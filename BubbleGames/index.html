@@ -93,17 +93,16 @@
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         let currentUser = "";
 
-        window.addEventListener('keydown', (e) => {
+        // CAPSLOCK DETECTION
+        window.addEventListener('keyup', (e) => {
             const isCaps = e.getModifierState('CapsLock');
             document.getElementById('capsWarning').style.display = isCaps ? 'block' : 'none';
         });
 
-        // ENGINE NAVIGATION FUNCTIONS
         function createNewGame() {
-            // Clear specific game ID to ensure a blank engine state
             localStorage.removeItem('currentGameId');
             localStorage.setItem('editMode', 'true');
-            localStorage.setItem('isNewGame', 'true'); // Flag for the engine to start empty
+            localStorage.setItem('isNewGame', 'true');
             window.location.href = 'engine.html';
         }
 
@@ -145,14 +144,21 @@
             if (userInput.length < 3) { msg.innerText = "Username too short!"; return; }
             const fakeEmail = `${userInput.toLowerCase()}@bubble.com`;
 
-            if (mode === 'signup') {
-                const { error } = await supabaseClient.auth.signUp({ email: fakeEmail, password: passInput });
-                if (error) msg.innerText = error.message;
-                else { msg.style.color = "var(--success)"; msg.innerText = "Account Created! Login now."; toggleAuth(false); }
-            } else {
-                const { error } = await supabaseClient.auth.signInWithPassword({ email: fakeEmail, password: passInput });
-                if (error) msg.innerText = "Invalid login!";
-                else { currentUser = userInput.toLowerCase(); showApp(currentUser); }
+            try {
+                if (mode === 'signup') {
+                    const { error } = await supabaseClient.auth.signUp({ email: fakeEmail, password: passInput });
+                    if (error) throw error;
+                    msg.style.color = "var(--success)"; 
+                    msg.innerText = "Account Created! Login now."; 
+                    toggleAuth(false);
+                } else {
+                    const { error } = await supabaseClient.auth.signInWithPassword({ email: fakeEmail, password: passInput });
+                    if (error) throw error;
+                    currentUser = userInput.toLowerCase(); 
+                    showApp(currentUser);
+                }
+            } catch (err) {
+                msg.innerText = err.message === "Failed to fetch" ? "Network Error: Check Ad-blockers" : err.message;
             }
         }
 
@@ -167,10 +173,12 @@
         async function loadGames(isOwner) {
             const myGrid = document.getElementById('myGamesGrid');
             const globalGrid = document.getElementById('globalGamesGrid');
-            const { data: savedGames } = await supabaseClient.from('games').select('*');
+            
+            const { data: savedGames, error } = await supabaseClient.from('games').select('*');
+            if (error) { console.error(error); return; }
 
             myGrid.innerHTML = ''; globalGrid.innerHTML = '';
-            if (!savedGames) return;
+            if (!savedGames || savedGames.length === 0) return;
 
             savedGames.forEach((game) => {
                 const isCreator = game.creator === currentUser;
