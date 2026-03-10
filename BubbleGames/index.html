@@ -7,7 +7,7 @@
     <style>
         :root { --primary: #00d4ff; --bg: #0a0a0c; --card: #16161a; --danger: #ff4444; --edit: #ffcc00; --success: #00ff88; --owner: #ffcf40; }
         body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; text-align: center; }
-        nav { padding: 10px 30px; border-bottom: 2px solid var(--primary); display: flex; justify-content: space-between; align-items: center; background: #000; }
+        nav { padding: 10px 50px; border-bottom: 2px solid var(--primary); display: flex; justify-content: space-between; align-items: center; background: #000; }
         .logo { font-size: 24px; font-weight: bold; color: var(--primary); text-transform: uppercase; }
         .container { padding: 50px 20px; max-width: 1000px; margin: auto; }
         
@@ -20,8 +20,10 @@
             font-size: 1.5rem; display: inline-block; transition: 0.3s;
             cursor: pointer; border: none;
         }
-
+        .btn-launch:hover { transform: scale(1.05); box-shadow: 0 0 20px var(--primary); }
+        
         .section-title { text-align: left; margin-top: 50px; color: var(--primary); border-left: 4px solid var(--primary); padding-left: 15px; }
+        
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-top: 20px; }
         .game-card { background: var(--card); border: 1px solid #333; padding: 20px; border-radius: 15px; text-align: left; transition: 0.3s; }
         .game-card:hover { border-color: var(--primary); }
@@ -31,20 +33,16 @@
         .btn-edit { background: var(--edit); color: black; width: 48%; margin-top: 5px; }
         .btn-rename { background: #444; color: white; width: 48%; margin-top: 5px; }
         .btn-delete { background: var(--danger); color: white; width: 100%; margin-top: 5px; }
-        .btn-logout { background: #333; color: white; font-size: 12px; margin-left: 10px; }
-        
-        .owner-tag { color: var(--owner); text-shadow: 0 0 10px var(--owner); font-weight: bold; }
+        .btn-logout { background: #333; color: white; font-size: 12px; }
+        .owner-tag { color: var(--owner); text-shadow: 0 0 10px var(--owner); }
         .creator-label { font-size: 12px; color: #00d4ff; font-weight: bold; }
 
-        /* NAV REMINDER STYLES */
-        .nav-info { display: flex; align-items: center; gap: 10px; font-size: 12px; }
-        .caps-reminder { color: #888; font-style: italic; }
-        #capsStatus { 
-            font-size: 10px; font-weight: bold; padding: 2px 6px; 
-            border-radius: 4px; text-transform: uppercase;
+        #capsWarning { 
+            color: var(--danger); font-size: 12px; font-weight: bold; 
+            padding: 5px 10px; border: 1px solid var(--danger); 
+            border-radius: 5px; display: none; animation: blink 1s infinite;
         }
-        .caps-on { color: var(--success); border: 1px solid var(--success); box-shadow: 0 0 5px var(--success); }
-        .caps-off { color: var(--danger); border: 1px solid var(--danger); }
+        @keyframes blink { 50% { opacity: 0.3; } }
     </style>
 </head>
 <body>
@@ -55,7 +53,7 @@
         <input type="password" id="password" placeholder="Password" maxlength="20">
         
         <div id="loginSection">
-            <button onclick="handleAuth('login')" id="loginBtn" class="btn-play">LOGIN</button>
+            <button onclick="handleAuth('login')" class="btn-play">LOGIN</button>
             <p style="font-size: 13px; margin-top:15px;">New creator? <span style="color:var(--primary);cursor:pointer;" onclick="toggleAuth(true)">Create Account</span></p>
         </div>
 
@@ -69,17 +67,16 @@
     <div id="mainApp" style="display:none;">
         <nav>
             <div class="logo">Bubble Games</div>
-            <div class="nav-info">
-                <span class="caps-reminder">Remember to caps on to move in game or editor!</span>
-                <div id="capsStatus">CHECKING...</div>
-                <span id="userDisplay"></span>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div id="capsWarning">⚠️ CAPS LOCK IS ON</div>
+                <span id="userDisplay" style="font-weight: bold;"></span>
                 <button class="btn-logout" onclick="handleLogout()">LOGOUT</button>
             </div>
         </nav>
 
         <div class="container">
             <h1>Build. Play. Publish.</h1>
-            <button onclick="createNewGame()" id="editorBtn" class="btn-launch">Open Editor 🛠️</button>
+            <button onclick="createNewGame()" class="btn-launch">Open Editor 🛠️</button>
             
             <h2 class="section-title">Your Studio 📂</h2>
             <div class="grid" id="myGamesGrid"></div>
@@ -95,25 +92,34 @@
         const SUPABASE_KEY = 'sb_publishable_ULjlm97u7-dg8ekTPU84aA_rA1CtUnH';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         let currentUser = "";
-        let isUserLoggedIn = false;
 
-        function updateCapsStatus(e) {
-            if (!isUserLoggedIn) return;
-            const isCaps = e && e.getModifierState ? e.getModifierState('CapsLock') : false;
-            const statusBox = document.getElementById('capsStatus');
-            
-            if (isCaps) {
-                statusBox.innerText = "CAPS ON";
-                statusBox.className = "caps-on";
-            } else {
-                statusBox.innerText = "CAPS OFF";
-                statusBox.className = "caps-off";
-            }
+        window.addEventListener('keydown', (e) => {
+            const isCaps = e.getModifierState('CapsLock');
+            document.getElementById('capsWarning').style.display = isCaps ? 'block' : 'none';
+        });
+
+        // ENGINE NAVIGATION FUNCTIONS
+        function createNewGame() {
+            // Clear specific game ID to ensure a blank engine state
+            localStorage.removeItem('currentGameId');
+            localStorage.setItem('editMode', 'true');
+            localStorage.setItem('isNewGame', 'true'); // Flag for the engine to start empty
+            window.location.href = 'engine.html';
         }
 
-        window.addEventListener('keydown', updateCapsStatus);
-        window.addEventListener('keyup', updateCapsStatus);
-        window.addEventListener('mousedown', updateCapsStatus);
+        function playId(id) {
+            localStorage.setItem('currentGameId', id);
+            localStorage.setItem('editMode', 'false');
+            localStorage.setItem('isNewGame', 'false');
+            window.location.href = 'engine.html';
+        }
+
+        function editId(id) {
+            localStorage.setItem('currentGameId', id);
+            localStorage.setItem('editMode', 'true');
+            localStorage.setItem('isNewGame', 'false');
+            window.location.href = 'engine.html';
+        }
 
         async function checkUser() {
             const { data: { user } } = await supabaseClient.auth.getUser();
@@ -125,14 +131,18 @@
         checkUser();
 
         function toggleAuth(isSignUp) {
+            document.getElementById('authTitle').innerText = isSignUp ? "Join Bubble Games" : "Bubble Games";
             document.getElementById('signupSection').style.display = isSignUp ? "block" : "none";
             document.getElementById('loginSection').style.display = isSignUp ? "none" : "block";
+            document.getElementById('msg').innerText = "";
         }
 
         async function handleAuth(mode) {
             const userInput = document.getElementById('username').value.trim();
             const passInput = document.getElementById('password').value;
             const msg = document.getElementById('msg');
+
+            if (userInput.length < 3) { msg.innerText = "Username too short!"; return; }
             const fakeEmail = `${userInput.toLowerCase()}@bubble.com`;
 
             if (mode === 'signup') {
@@ -147,65 +157,58 @@
         }
 
         function showApp(username) {
-            isUserLoggedIn = true;
+            const isOwner = username === "abraham";
             document.getElementById('authContainer').style.display = 'none';
             document.getElementById('mainApp').style.display = 'block';
-            
-            const isOwner = username === "abraham" || username === "worthy";
-            document.getElementById('userDisplay').innerHTML = isOwner ? 
-                `<span class="owner-tag">[OWNER] ${username.toUpperCase()}</span>` : 
-                `<span>${username.toUpperCase()}</span>`;
-                
-            loadGames();
+            document.getElementById('userDisplay').innerHTML = isOwner ? `<span class="owner-tag">[OWNER] ABRAHAM</span>` : `<span style="color:var(--primary)">${username.toUpperCase()}</span>`;
+            loadGames(isOwner);
         }
 
-        async function loadGames() {
+        async function loadGames(isOwner) {
             const myGrid = document.getElementById('myGamesGrid');
             const globalGrid = document.getElementById('globalGamesGrid');
             const { data: savedGames } = await supabaseClient.from('games').select('*');
-            
-            myGrid.innerHTML = ''; globalGrid.innerHTML = '';
-            
-            if (savedGames) {
-                savedGames.forEach((game) => {
-                    const isCreator = game.creator.toLowerCase() === currentUser.toLowerCase();
-                    const isOwner = currentUser === "abraham" || currentUser === "worthy";
-                    const card = document.createElement('div');
-                    card.className = 'game-card';
-                    
-                    let buttons = `<button class="btn-play" onclick="playId('${game.id}')">PLAY</button>`;
-                    
-                    if (isCreator || isOwner) {
-                        buttons += `
-                            <div style="display:flex; justify-content:space-between;">
-                                <button class="btn-edit" onclick="editId('${game.id}')">EDIT</button>
-                                <button class="btn-rename" onclick="renameGame('${game.id}')">RENAME</button>
-                            </div>
-                            <button class="btn-delete" onclick="deleteGame('${game.id}')">DELETE 🗑️</button>
-                        `;
-                    }
 
-                    card.innerHTML = `<span class="creator-label">@${game.creator}</span><h3>${game.name}</h3>${buttons}`;
-                    
-                    if (isCreator) myGrid.appendChild(card);
-                    else globalGrid.appendChild(card);
-                });
-            }
+            myGrid.innerHTML = ''; globalGrid.innerHTML = '';
+            if (!savedGames) return;
+
+            savedGames.forEach((game) => {
+                const isCreator = game.creator === currentUser;
+                const card = document.createElement('div');
+                card.className = 'game-card';
+
+                let buttons = `<button class="btn-play" onclick="playId('${game.id}')">PLAY</button>`;
+                if (isOwner || isCreator) {
+                    buttons += `
+                        <div style="display:flex; justify-content:space-between;">
+                            <button class="btn-edit" onclick="editId('${game.id}')">EDIT</button>
+                            <button class="btn-rename" onclick="renameGame('${game.id}', '${game.name}')">RENAME</button>
+                        </div>
+                        <button class="btn-delete" onclick="deleteGame('${game.id}')">DELETE</button>
+                    `;
+                }
+
+                card.innerHTML = `<span class="creator-label">@${game.creator || 'guest'}</span><h3 style="margin:5px 0;">${game.name}</h3>${buttons}`;
+                isCreator ? myGrid.appendChild(card) : globalGrid.appendChild(card);
+            });
         }
 
         async function deleteGame(id) {
-            if (confirm("REALLY DELETE THIS GAME?")) {
-                const { error } = await supabaseClient.from('games').delete().eq('id', id);
-                if (error) alert("Error deleting: " + error.message);
-                else loadGames();
+            if (confirm("Delete this game forever?")) {
+                await supabaseClient.from('games').delete().eq('id', id);
+                loadGames(currentUser === "abraham");
             }
         }
 
-        function createNewGame() { localStorage.removeItem('currentGameId'); window.location.href = 'engine.html'; }
-        function playId(id) { localStorage.setItem('currentGameId', id); localStorage.setItem('editMode', 'false'); window.location.href = 'engine.html'; }
-        function editId(id) { localStorage.setItem('currentGameId', id); localStorage.setItem('editMode', 'true'); window.location.href = 'engine.html'; }
+        async function renameGame(id, oldName) {
+            const newName = prompt("New name:", oldName);
+            if (newName) {
+                await supabaseClient.from('games').update({ name: newName }).eq('id', id);
+                loadGames(currentUser === "abraham");
+            }
+        }
 
-        async function handleLogout() { isUserLoggedIn = false; await supabaseClient.auth.signOut(); location.reload(); }
+        async function handleLogout() { await supabaseClient.auth.signOut(); location.reload(); }
     </script>
 </body>
 </html>
