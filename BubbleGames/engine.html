@@ -394,9 +394,17 @@
             } else { gizmo.detach(); }
         });
 
-        // FIXED KEYBOARD LISTENERS (Handles Capital Letters Automatically)
-        window.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true; if(e.key === " ") keys["space"] = true; });
-        window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; if(e.key === " ") keys["space"] = false; });
+        // --- WASD SUPPORT FIX ---
+        window.addEventListener('keydown', (e) => { 
+            const k = e.key.toLowerCase(); // Forces everything to lowercase
+            keys[k] = true; 
+            if(k === " ") keys["space"] = true; 
+        });
+        window.addEventListener('keyup', (e) => { 
+            const k = e.key.toLowerCase();
+            keys[k] = false; 
+            if(k === " ") keys["space"] = false; 
+        });
 
         function updateLabels() {
             const frustum = new THREE.Frustum();
@@ -429,6 +437,7 @@
                 camera.position.y += velocityY;
                 
                 let move = new THREE.Vector3();
+                // Movement checks for lowercase keys
                 if (keys['w']) move.z -= 1; if (keys['s']) move.z += 1;
                 if (keys['a']) move.x -= 1; if (keys['d']) move.x += 1;
                 
