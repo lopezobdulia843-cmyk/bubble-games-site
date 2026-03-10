@@ -58,18 +58,21 @@
             display: none; pointer-events: none; 
         }
         #loading-overlay { position: fixed; inset: 0; background: #050505; z-index: 100; display: flex; align-items: center; justify-content: center; color: #00d4ff; font-weight: bold; }
+        
+        /* Utility class to hide editor UI */
+        .editor-ui-hidden { display: none !important; }
     </style>
 </head>
 <body>
-    <div id="loading-overlay">INITIALIZING...</div>
+    <div id="loading-overlay">INITIALIZING EDITOR...</div>
 
     <div id="info">
-        <h2 id="gameNameDisplay" style="margin:0; color:#00d4ff;">BUBBLE GAMES</h2>
+        <h2 id="gameNameDisplay" style="margin:0; color:#00d4ff;">BUBBLE EDITOR</h2>
         <p id="status">Status: BUILDING MODE</p>
         <div id="coords">POS - X: 0 | Y: 0 | Z: 0</div>
     </div>
 
-    <div id="settings-panel">
+    <div id="settings-panel" class="editor-ui">
         <div class="setting-group">
             <label>Move Speed</label>
             <input type="range" id="speed-slider" min="0.02" max="0.25" step="0.01" value="0.08">
@@ -78,14 +81,14 @@
             <label>Gravity</label>
             <input type="range" id="gravity-slider" min="0.001" max="0.03" step="0.001" value="0.008">
         </div>
-        <div id="part-settings" style="display:none; border-top: 1px solid #333; padding-top: 10px;">
-            <label>Part Size</label>
+        <div id="part-settings" style="display:block; border-top: 1px solid #333; padding-top: 10px;">
+            <label>Selected Part Size</label>
             <input type="range" id="size-slider" min="0.2" max="5" step="0.1" value="1">
-            <p style="font-size: 9px; color: #888; margin-top:5px;">Click part to select</p>
+            <p style="font-size: 9px; color: #888; margin-top:5px;">Drag mode to resize</p>
         </div>
     </div>
 
-    <div id="item-selector">
+    <div id="item-selector" class="editor-ui">
         <div class="item-card selected" onclick="selectItem('block')" id="card-block">
             <div class="item-icon icon-block"></div>
             <div class="item-label">Block</div>
@@ -98,10 +101,10 @@
 
     <div id="top-bar" class="controls">
         <button id="playTestBtn" onclick="togglePlayTest()">PLAY TEST ▶</button>
-        <button id="saveBtn" onclick="quickSave()">QUICK SAVE 💾</button>
-        <button id="publishBtn" onclick="publishGame()">PUBLISH 🚀</button>
-        <button id="dragModeBtn" onclick="toggleTool('drag')">DRAG PART</button>
-        <button id="deleteModeBtn" onclick="toggleTool('delete')">DELETE</button>
+        <button id="saveBtn" class="editor-ui" onclick="quickSave()">QUICK SAVE 💾</button>
+        <button id="publishBtn" class="editor-ui" onclick="publishGame()">PUBLISH 🚀</button>
+        <button id="dragModeBtn" class="editor-ui" onclick="toggleTool('drag')">DRAG / RESIZE</button>
+        <button id="deleteModeBtn" class="editor-ui" onclick="toggleTool('delete')">DELETE</button>
         <button onclick="exitGame()">EXIT</button>
     </div>
     <div id="crosshair"></div>
@@ -159,30 +162,53 @@
         let velocityY = 0;
         let isGrounded = false;
         let spawnPoint = null;
+        let selectedObject = null;
         let editorCamPos = new THREE.Vector3(0, 5, 10);
         let editorCamRot = new THREE.Euler(-0.4, 0, 0);
         const playerHeight = 1.6; 
         const keys = {};
 
-        // --- BUTTON LOGIC ---
+        // --- RESIZE LOGIC ---
+        document.getElementById('size-slider').addEventListener('input', (e) => {
+            if (selectedObject && selectedObject !== floor) {
+                const s = parseFloat(e.target.value);
+                selectedObject.scale.set(s, s, s);
+            }
+        });
+
+        // --- UI TOGGLE ---
+        function updateUIVisibility() {
+            const editorElements = document.querySelectorAll('.editor-ui');
+            editorElements.forEach(el => {
+                if (isPlayMode) el.classList.add('editor-ui-hidden');
+                else el.classList.remove('editor-ui-hidden');
+            });
+        }
+
         window.togglePlayTest = () => {
             const btn = document.getElementById('playTestBtn');
             isPlayMode = !isPlayMode;
+            
+            updateUIVisibility();
+
             if (isPlayMode) {
-                if (!spawnPoint) { alert("❌ Place a Spawn Point first!"); isPlayMode = false; return; }
+                if (!spawnPoint) { 
+                    alert("❌ Place a Spawn Point first!"); 
+                    isPlayMode = false; 
+                    updateUIVisibility();
+                    return; 
+                }
                 editorCamPos.copy(camera.position);
                 editorCamRot.copy(camera.rotation);
                 btn.innerText = "STOP TEST ⏹"; btn.classList.add('playing');
                 document.getElementById('status').innerText = "Status: PLAY TESTING";
                 document.getElementById('crosshair').style.display = 'block';
-                ['publishBtn', 'saveBtn', 'dragModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(id => document.getElementById(id).style.display = 'none');
                 gizmo.detach();
                 camera.position.set(spawnPoint.position.x, spawnPoint.position.y + 1.6, spawnPoint.position.z);
             } else {
                 btn.innerText = "PLAY TEST ▶"; btn.classList.remove('playing');
                 document.getElementById('status').innerText = "Status: BUILDING MODE";
                 document.getElementById('crosshair').style.display = 'none';
-                ['publishBtn', 'saveBtn', 'dragModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(id => document.getElementById(id).style.display = 'flex');
                 camera.position.copy(editorCamPos); camera.rotation.copy(editorCamRot);
             }
         };
@@ -202,9 +228,8 @@
         };
 
         window.exitGame = () => {
-            if(confirm("Are you sure you would like to leave?")) {
+            if(confirm("Are you sure you would like to leave the editor?")) {
                 localStorage.removeItem('currentGameId');
-                localStorage.removeItem('editMode');
                 window.location.href = 'index.html';
             }
         };
@@ -212,6 +237,7 @@
         window.toggleTool = (tool) => {
             currentTool = (currentTool === tool) ? 'place' : tool;
             gizmo.detach();
+            selectedObject = null;
             document.getElementById('deleteModeBtn').classList.toggle('active-tool', currentTool === 'delete');
             document.getElementById('dragModeBtn').classList.toggle('active-tool', currentTool === 'drag');
         };
@@ -261,8 +287,11 @@
             mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObjects(objects);
+
             if (!isPlayMode && currentTool === 'drag' && intersects.length > 0 && intersects[0].object !== floor) {
-                gizmo.attach(intersects[0].object);
+                selectedObject = intersects[0].object;
+                gizmo.attach(selectedObject);
+                document.getElementById('size-slider').value = selectedObject.scale.x;
             } else if (!isPlayMode && currentTool === 'place' && intersects.length > 0) {
                 const intersect = intersects[0];
                 const isSpawn = selectedItemType === 'spawn';
@@ -273,7 +302,7 @@
             } else if (!isPlayMode && currentTool === 'delete' && intersects.length > 0 && intersects[0].object !== floor) {
                 if (intersects[0].object === spawnPoint) spawnPoint = null;
                 scene.remove(intersects[0].object); objects.splice(objects.indexOf(intersects[0].object), 1);
-            } else { isDraggingCam = true; prevMouse = { x: e.clientX, y: e.clientY }; }
+            } else if (!gizmo.dragging) { isDraggingCam = true; prevMouse = { x: e.clientX, y: e.clientY }; }
         });
 
         window.addEventListener('pointermove', (e) => {
