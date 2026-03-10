@@ -6,7 +6,7 @@
     <title>Bubble Games | Home</title>
     <style>
         :root { --primary: #00d4ff; --bg: #0a0a0c; --card: #16161a; --danger: #ff4444; --edit: #ffcc00; --success: #00ff88; --owner: #ffcf40; }
-        body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; text-align: center; transition: padding-top 0.3s; }
+        body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; text-align: center; }
         nav { padding: 10px 50px; border-bottom: 2px solid var(--primary); display: flex; justify-content: space-between; align-items: center; background: #000; }
         .logo { font-size: 24px; font-weight: bold; color: var(--primary); text-transform: uppercase; }
         .container { padding: 50px 20px; max-width: 1000px; margin: auto; }
@@ -14,28 +14,11 @@
         #authContainer { background: var(--card); padding: 40px; border-radius: 20px; border: 1px solid var(--primary); display: inline-block; margin-top: 100px; }
         input { display: block; margin: 10px auto; padding: 12px; width: 250px; border-radius: 8px; border: 1px solid #333; background: #000; color: white; }
         
-        /* CAPS LOCK REMINDER */
-        #capsLockAlert {
-            background: var(--danger); color: white; font-weight: bold;
-            padding: 10px; position: fixed; top: 0; left: 0; width: 100%;
-            z-index: 2000; display: none; text-transform: uppercase;
-            box-shadow: 0 5px 15px rgba(255, 68, 68, 0.4); font-size: 14px;
-        }
-
-        body.caps-locked { padding-top: 45px; }
-        body.caps-locked #capsLockAlert { display: block; }
-
         .btn-launch { 
             background: var(--primary); color: #000; padding: 15px 40px; 
             border-radius: 50px; text-decoration: none; font-weight: bold; 
             font-size: 1.5rem; display: inline-block; transition: 0.3s;
             cursor: pointer; border: none;
-        }
-        
-        button:disabled {
-            background: #222 !important; color: #555 !important;
-            cursor: not-allowed !important; transform: none !important;
-            box-shadow: none !important; border: 1px solid #333 !important;
         }
 
         .section-title { text-align: left; margin-top: 50px; color: var(--primary); border-left: 4px solid var(--primary); padding-left: 15px; }
@@ -53,16 +36,16 @@
         .owner-tag { color: var(--owner); text-shadow: 0 0 10px var(--owner); font-weight: bold; }
         .creator-label { font-size: 12px; color: #00d4ff; font-weight: bold; }
 
-        #capsWarning { 
-            color: var(--success); font-size: 12px; font-weight: bold; 
-            padding: 5px 10px; border: 1px solid var(--success); 
-            border-radius: 5px; display: none;
+        /* MINI WARNING STYLE */
+        #capsStatus { 
+            font-size: 10px; font-weight: bold; padding: 2px 6px; 
+            border-radius: 4px; text-transform: uppercase;
         }
+        .caps-on { color: var(--success); border: 1px solid var(--success); }
+        .caps-off { color: var(--danger); border: 1px solid var(--danger); }
     </style>
 </head>
 <body>
-
-    <div id="capsLockAlert">⚠️ ACCESS DENIED: TURN ON CAPS LOCK TO PLAY OR BUILD ⚠️</div>
 
     <div id="authContainer">
         <h1 id="authTitle">Bubble Games</h1>
@@ -84,8 +67,8 @@
     <div id="mainApp" style="display:none;">
         <nav>
             <div class="logo">Bubble Games</div>
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <div id="capsWarning">✅ CAPS ACTIVE</div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div id="capsStatus"></div>
                 <span id="userDisplay"></span>
                 <button class="btn-logout" onclick="handleLogout()">LOGOUT</button>
             </div>
@@ -93,7 +76,7 @@
 
         <div class="container">
             <h1>Build. Play. Publish.</h1>
-            <button onclick="createNewGame()" id="editorBtn" class="btn-launch caps-required" disabled>Open Editor 🛠️</button>
+            <button onclick="createNewGame()" id="editorBtn" class="btn-launch">Open Editor 🛠️</button>
             
             <h2 class="section-title">Your Studio 📂</h2>
             <div class="grid" id="myGamesGrid"></div>
@@ -111,26 +94,24 @@
         let currentUser = "";
         let isUserLoggedIn = false;
 
-        function checkCaps(e) {
+        // UPDATED: MINI WARNING ONLY
+        function updateCapsStatus(e) {
             if (!isUserLoggedIn) return;
             const isCaps = e && e.getModifierState ? e.getModifierState('CapsLock') : false;
-            const successBadge = document.getElementById('capsWarning');
-            const requiredBtns = document.querySelectorAll('.caps-required');
-
+            const statusBox = document.getElementById('capsStatus');
+            
             if (isCaps) {
-                document.body.classList.remove('caps-locked');
-                if (successBadge) successBadge.style.display = 'block';
-                requiredBtns.forEach(btn => btn.disabled = false);
+                statusBox.innerText = "CAPS ON";
+                statusBox.className = "caps-on";
             } else {
-                document.body.classList.add('caps-locked');
-                if (successBadge) successBadge.style.display = 'none';
-                requiredBtns.forEach(btn => btn.disabled = true);
+                statusBox.innerText = "CAPS OFF";
+                statusBox.className = "caps-off";
             }
         }
 
-        window.addEventListener('keydown', checkCaps);
-        window.addEventListener('keyup', checkCaps);
-        window.addEventListener('mousedown', checkCaps);
+        window.addEventListener('keydown', updateCapsStatus);
+        window.addEventListener('keyup', updateCapsStatus);
+        window.addEventListener('mousedown', updateCapsStatus);
 
         async function checkUser() {
             const { data: { user } } = await supabaseClient.auth.getUser();
@@ -190,15 +171,15 @@
                     const card = document.createElement('div');
                     card.className = 'game-card';
                     
-                    let buttons = `<button class="btn-play caps-required" onclick="playId('${game.id}')" disabled>PLAY</button>`;
+                    let buttons = `<button class="btn-play" onclick="playId('${game.id}')">PLAY</button>`;
                     
                     if (isCreator || isOwner) {
                         buttons += `
                             <div style="display:flex; justify-content:space-between;">
-                                <button class="btn-edit caps-required" onclick="editId('${game.id}')" disabled>EDIT</button>
-                                <button class="btn-rename caps-required" onclick="renameGame('${game.id}')" disabled>RENAME</button>
+                                <button class="btn-edit" onclick="editId('${game.id}')">EDIT</button>
+                                <button class="btn-rename" onclick="renameGame('${game.id}')">RENAME</button>
                             </div>
-                            <button class="btn-delete caps-required" onclick="deleteGame('${game.id}')" disabled>DELETE 🗑️</button>
+                            <button class="btn-delete" onclick="deleteGame('${game.id}')">DELETE 🗑️</button>
                         `;
                     }
 
@@ -208,11 +189,10 @@
                     else globalGrid.appendChild(card);
                 });
             }
-            checkCaps();
         }
 
         async function deleteGame(id) {
-            if (confirm("REALLY DELETE THIS GAME? THIS CANNOT BE UNDONE!")) {
+            if (confirm("REALLY DELETE THIS GAME?")) {
                 const { error } = await supabaseClient.from('games').delete().eq('id', id);
                 if (error) alert("Error deleting: " + error.message);
                 else loadGames();
@@ -227,4 +207,3 @@
     </script>
 </body>
 </html>
-
