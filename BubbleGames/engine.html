@@ -98,7 +98,7 @@
 
     <div id="top-bar" class="controls">
         <button id="playTestBtn" onclick="togglePlayTest()">PLAY TEST ▶</button>
-        <button id="saveBtn" onclick="saveGameOnly()">QUICK SAVE 💾</button>
+        <button id="saveBtn" onclick="quickSave()">QUICK SAVE 💾</button>
         <button id="publishBtn" onclick="publishGame()">PUBLISH 🚀</button>
         <button id="dragModeBtn" onclick="toggleTool('drag')">DRAG PART</button>
         <button id="deleteModeBtn" onclick="toggleTool('delete')">DELETE</button>
@@ -147,7 +147,6 @@
         
         const raycaster = new THREE.Raycaster();
         const downRay = new THREE.Raycaster(); 
-        const wallRay = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         const gizmo = new TransformControls(camera, renderer.domElement);
         scene.add(gizmo);
@@ -163,10 +162,9 @@
         let editorCamPos = new THREE.Vector3(0, 5, 10);
         let editorCamRot = new THREE.Euler(-0.4, 0, 0);
         const playerHeight = 1.6; 
-        const jumpStrength = 0.15;
         const keys = {};
 
-        // --- CORE FUNCTIONS ---
+        // --- BUTTON LOGIC ---
         window.togglePlayTest = () => {
             const btn = document.getElementById('playTestBtn');
             isPlayMode = !isPlayMode;
@@ -189,23 +187,24 @@
             }
         };
 
-        window.saveGameOnly = async () => {
+        window.quickSave = async () => {
             const blocksData = objects.filter(obj => obj !== floor).map(obj => ({ 
                 x: obj.position.x, y: obj.position.y, z: obj.position.z, s: obj.scale.x, type: (obj === spawnPoint) ? 'spawn' : 'block' 
             }));
-            const config = { gravity: worldGravity, speed: moveSpeed };
             const editId = localStorage.getItem('currentGameId');
             if(editId) {
-                await supabaseClient.from('games').update({ blocks: blocksData, config: config }).eq('id', editId);
-                alert("💾 Progress Saved to Library!");
+                const { error } = await supabaseClient.from('games').update({ blocks: blocksData }).eq('id', editId);
+                if (!error) alert("💾 Quick Saved!");
+                else alert("Error saving: " + error.message);
             } else {
-                alert("Please Publish once first to create a library entry!");
+                alert("You need to Publish at least once to save to the library!");
             }
         };
 
         window.exitGame = () => {
-            if(confirm("Are you sure you would like to leave? Unsaved changes may be lost.")) {
+            if(confirm("Are you sure you would like to leave?")) {
                 localStorage.removeItem('currentGameId');
+                localStorage.removeItem('editMode');
                 window.location.href = 'index.html';
             }
         };
@@ -234,7 +233,6 @@
             window.location.href = 'index.html';
         };
 
-        // --- INIT ---
         async function init() {
             camera.position.copy(editorCamPos);
             camera.rotation.copy(editorCamRot);
@@ -254,7 +252,6 @@
         }
         init();
 
-        // --- CONTROLS ---
         window.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true; if(e.key === " ") keys["space"] = true; });
         window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; if(e.key === " ") keys["space"] = false; });
 
@@ -266,27 +263,22 @@
             const intersects = raycaster.intersectObjects(objects);
             if (!isPlayMode && currentTool === 'drag' && intersects.length > 0 && intersects[0].object !== floor) {
                 gizmo.attach(intersects[0].object);
-            } else if (!isPlayMode && currentTool === 'place') {
-                if (intersects.length > 0) {
-                    const intersect = intersects[0];
-                    const isSpawn = selectedItemType === 'spawn';
-                    const m = new THREE.Mesh(isSpawn ? spawnGeo : blockGeo, isSpawn ? spawnMat : new THREE.MeshStandardMaterial({ color: 0xcccccc }));
-                    const pos = intersect.object === floor ? new THREE.Vector3(Math.round(intersect.point.x), isSpawn ? 0.1 : 0.5, Math.round(intersect.point.z)) : intersect.object.position.clone().add(intersect.face.normal.multiplyScalar(1));
-                    m.position.copy(pos); scene.add(m); objects.push(m);
-                    if (isSpawn) { if(spawnPoint) { scene.remove(spawnPoint); objects.splice(objects.indexOf(spawnPoint), 1); } spawnPoint = m; }
-                }
-            } else if (!isPlayMode && currentTool === 'delete') {
-                if (intersects.length > 0 && intersects[0].object !== floor) {
-                    if (intersects[0].object === spawnPoint) spawnPoint = null;
-                    scene.remove(intersects[0].object); objects.splice(objects.indexOf(intersects[0].object), 1);
-                }
+            } else if (!isPlayMode && currentTool === 'place' && intersects.length > 0) {
+                const intersect = intersects[0];
+                const isSpawn = selectedItemType === 'spawn';
+                const m = new THREE.Mesh(isSpawn ? spawnGeo : blockGeo, isSpawn ? spawnMat : new THREE.MeshStandardMaterial({ color: 0xcccccc }));
+                const pos = intersect.object === floor ? new THREE.Vector3(Math.round(intersect.point.x), isSpawn ? 0.1 : 0.5, Math.round(intersect.point.z)) : intersect.object.position.clone().add(intersect.face.normal.multiplyScalar(1));
+                m.position.copy(pos); scene.add(m); objects.push(m);
+                if (isSpawn) { if(spawnPoint) { scene.remove(spawnPoint); objects.splice(objects.indexOf(spawnPoint), 1); } spawnPoint = m; }
+            } else if (!isPlayMode && currentTool === 'delete' && intersects.length > 0 && intersects[0].object !== floor) {
+                if (intersects[0].object === spawnPoint) spawnPoint = null;
+                scene.remove(intersects[0].object); objects.splice(objects.indexOf(intersects[0].object), 1);
             } else { isDraggingCam = true; prevMouse = { x: e.clientX, y: e.clientY }; }
         });
 
         window.addEventListener('pointermove', (e) => {
             if (!isDraggingCam) return;
-            const dx = e.clientX - prevMouse.x; const dy = e.clientY - prevMouse.y;
-            camera.rotation.y -= dx * 0.003; camera.rotation.x -= dy * 0.003;
+            camera.rotation.y -= (e.clientX - prevMouse.x) * 0.003; camera.rotation.x -= (e.clientY - prevMouse.y) * 0.003;
             prevMouse = { x: e.clientX, y: e.clientY };
         });
         window.addEventListener('pointerup', () => isDraggingCam = false);
@@ -299,15 +291,12 @@
                 if (hits.length > 0 && hits[0].distance <= playerHeight) {
                     if (velocityY < 0) { velocityY = 0; isGrounded = true; camera.position.y = hits[0].point.y + playerHeight; }
                 } else { isGrounded = false; velocityY -= worldGravity; }
-                if (keys["space"] && isGrounded) { velocityY = jumpStrength; isGrounded = false; }
+                if (keys["space"] && isGrounded) { velocityY = 0.15; isGrounded = false; }
                 camera.position.y += velocityY;
                 let move = new THREE.Vector3();
                 if (keys['w']) move.z -= 1; if (keys['s']) move.z += 1;
                 if (keys['a']) move.x -= 1; if (keys['d']) move.x += 1;
-                if (move.length() > 0) {
-                    move.applyQuaternion(camera.quaternion); move.y = 0; move.normalize();
-                    camera.position.addScaledVector(move, moveSpeed);
-                }
+                if (move.length() > 0) { move.applyQuaternion(camera.quaternion); move.y = 0; move.normalize(); camera.position.addScaledVector(move, moveSpeed); }
             } else {
                 if (keys['w']) camera.translateZ(-0.2); if (keys['s']) camera.translateZ(0.2);
                 if (keys['a']) camera.translateX(-0.2); if (keys['d']) camera.translateX(0.2);
