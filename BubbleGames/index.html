@@ -7,7 +7,7 @@
     <style>
         :root { --primary: #00d4ff; --bg: #0a0a0c; --card: #16161a; --danger: #ff4444; --edit: #ffcc00; --success: #00ff88; --owner: #ffcf40; }
         body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; text-align: center; }
-        nav { padding: 10px 50px; border-bottom: 2px solid var(--primary); display: flex; justify-content: space-between; align-items: center; background: #000; }
+        nav { padding: 10px 30px; border-bottom: 2px solid var(--primary); display: flex; justify-content: space-between; align-items: center; background: #000; }
         .logo { font-size: 24px; font-weight: bold; color: var(--primary); text-transform: uppercase; }
         .container { padding: 50px 20px; max-width: 1000px; margin: auto; }
         
@@ -31,17 +31,19 @@
         .btn-edit { background: var(--edit); color: black; width: 48%; margin-top: 5px; }
         .btn-rename { background: #444; color: white; width: 48%; margin-top: 5px; }
         .btn-delete { background: var(--danger); color: white; width: 100%; margin-top: 5px; }
-        .btn-logout { background: #333; color: white; font-size: 12px; }
+        .btn-logout { background: #333; color: white; font-size: 12px; margin-left: 10px; }
         
         .owner-tag { color: var(--owner); text-shadow: 0 0 10px var(--owner); font-weight: bold; }
         .creator-label { font-size: 12px; color: #00d4ff; font-weight: bold; }
 
-        /* MINI WARNING STYLE */
+        /* NAV REMINDER STYLES */
+        .nav-info { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+        .caps-reminder { color: #888; font-style: italic; }
         #capsStatus { 
             font-size: 10px; font-weight: bold; padding: 2px 6px; 
             border-radius: 4px; text-transform: uppercase;
         }
-        .caps-on { color: var(--success); border: 1px solid var(--success); }
+        .caps-on { color: var(--success); border: 1px solid var(--success); box-shadow: 0 0 5px var(--success); }
         .caps-off { color: var(--danger); border: 1px solid var(--danger); }
     </style>
 </head>
@@ -67,8 +69,9 @@
     <div id="mainApp" style="display:none;">
         <nav>
             <div class="logo">Bubble Games</div>
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <div id="capsStatus"></div>
+            <div class="nav-info">
+                <span class="caps-reminder">Remember to caps on to move in game or editor!</span>
+                <div id="capsStatus">CHECKING...</div>
                 <span id="userDisplay"></span>
                 <button class="btn-logout" onclick="handleLogout()">LOGOUT</button>
             </div>
@@ -94,7 +97,6 @@
         let currentUser = "";
         let isUserLoggedIn = false;
 
-        // UPDATED: MINI WARNING ONLY
         function updateCapsStatus(e) {
             if (!isUserLoggedIn) return;
             const isCaps = e && e.getModifierState ? e.getModifierState('CapsLock') : false;
