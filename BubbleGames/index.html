@@ -36,6 +36,14 @@
         .btn-logout { background: #333; color: white; font-size: 12px; }
         .owner-tag { color: var(--owner); text-shadow: 0 0 10px var(--owner); }
         .creator-label { font-size: 12px; color: #00d4ff; font-weight: bold; }
+
+        /* CAPS LOCK WARNING STYLE */
+        #capsWarning { 
+            color: var(--danger); font-size: 12px; font-weight: bold; 
+            padding: 5px 10px; border: 1px solid var(--danger); 
+            border-radius: 5px; display: none; animation: blink 1s infinite;
+        }
+        @keyframes blink { 50% { opacity: 0.3; } }
     </style>
 </head>
 <body>
@@ -61,6 +69,7 @@
         <nav>
             <div class="logo">Bubble Games</div>
             <div style="display: flex; align-items: center; gap: 15px;">
+                <div id="capsWarning">⚠️ CAPS LOCK IS ON</div>
                 <span id="userDisplay" style="font-weight: bold;"></span>
                 <button class="btn-logout" onclick="handleLogout()">LOGOUT</button>
             </div>
@@ -85,11 +94,17 @@
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         let currentUser = "";
 
+        // CAPS LOCK DETECTOR
+        window.addEventListener('keydown', (e) => {
+            const isCaps = e.getModifierState('CapsLock');
+            document.getElementById('capsWarning').style.display = isCaps ? 'block' : 'none';
+        });
+
         // SYNC FUNCTIONS FOR ENGINE
         function createNewGame() {
             localStorage.removeItem('currentGameId');
             localStorage.setItem('editMode', 'true');
-            localStorage.setItem('isNewGame', 'true'); // Critical for the Engine
+            localStorage.setItem('isNewGame', 'true');
             window.location.href = 'engine.html';
         }
 
@@ -131,16 +146,28 @@
             if (userInput.length < 3) { msg.innerText = "Username too short! (Min 3)"; return; }
             if (userInput.length > 15) { msg.innerText = "Username too long! (Max 15)"; return; }
             if (passInput.length < 6) { msg.innerText = "Password too short! (Min 6)"; return; }
+            
+            // Lowercase is safer for auth
             const fakeEmail = `${userInput.toLowerCase()}@bubble.com`;
 
             if (mode === 'signup') {
                 const { error } = await supabaseClient.auth.signUp({ email: fakeEmail, password: passInput });
                 if (error) msg.innerText = error.message;
-                else { msg.style.color = "var(--success)"; msg.innerText = "Account Created! Login now."; toggleAuth(false); }
+                else { 
+                    msg.style.color = "var(--success)"; 
+                    msg.innerText = "Account Created! Login now."; 
+                    toggleAuth(false); 
+                }
             } else {
-                const { error } = await supabaseClient.auth.signInWithPassword({ email: fakeEmail, password: passInput });
-                if (error) { msg.style.color = "var(--danger)"; msg.innerText = "Invalid login!"; }
-                else { currentUser = userInput.toLowerCase(); showApp(currentUser); }
+                const { data, error } = await supabaseClient.auth.signInWithPassword({ email: fakeEmail, password: passInput });
+                if (error) { 
+                    msg.style.color = "var(--danger)"; 
+                    msg.innerText = "Invalid login! Use Caps Lock for movement, not passwords."; 
+                }
+                else { 
+                    currentUser = userInput.toLowerCase(); 
+                    showApp(currentUser); 
+                }
             }
         }
 
