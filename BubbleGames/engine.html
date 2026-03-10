@@ -172,7 +172,6 @@
             config: { presence: { key: currentUser } }
         });
 
-        // INVISIBLE RE-JOIN (Heartbeat Background Sync)
         setInterval(async () => {
             if (channel) {
                 await channel.track({
@@ -269,6 +268,7 @@
                 const spawnHeightOffset = (spawnPoint.scale.y * 0.2) / 2;
                 camera.position.set(spawnPoint.position.x, spawnPoint.position.y + spawnHeightOffset + playerHeight, spawnPoint.position.z);
                 velocityY = 0;
+                renderer.domElement.focus();
             } else {
                 btn.innerText = "PLAY TEST ▶"; btn.classList.remove('playing');
                 document.getElementById('status').innerText = "Status: BUILDING MODE";
@@ -356,6 +356,10 @@
 
         window.addEventListener('pointerdown', (e) => { 
             if (e.target.closest('button') || e.target.closest('.item-card') || e.target.closest('input') || isDraggingGizmo) return;
+            
+            // Force focus on click to ensure keys work
+            window.focus();
+
             mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObjects(objects);
@@ -395,8 +399,17 @@
             } else { gizmo.detach(); }
         });
 
-        window.addEventListener('keydown', (e) => { keys[e.code] = true; });
-        window.addEventListener('keyup', (e) => keys[e.code] = false);
+        // FIXED KEYBOARD LISTENERS (Using .key for better compatibility)
+        window.addEventListener('keydown', (e) => { 
+            const k = e.key.toLowerCase();
+            keys[k] = true;
+            if (k === ' ') keys['space'] = true; // Fallback for space
+        });
+        window.addEventListener('keyup', (e) => {
+            const k = e.key.toLowerCase();
+            keys[k] = false;
+            if (k === ' ') keys['space'] = false;
+        });
 
         function updateLabels() {
             const frustum = new THREE.Frustum();
@@ -424,12 +437,14 @@
                 if (groundHits.length > 0 && groundHits[0].distance <= playerHeight) {
                     if (velocityY < 0) { velocityY = 0; isGrounded = true; camera.position.y = groundHits[0].point.y + playerHeight; }
                 } else { isGrounded = false; velocityY -= worldGravity; }
-                if (keys['Space'] && isGrounded) { velocityY = jumpStrength; isGrounded = false; }
+                
+                if ((keys[' '] || keys['space']) && isGrounded) { velocityY = jumpStrength; isGrounded = false; }
                 camera.position.y += velocityY;
                 
                 let move = new THREE.Vector3();
-                if (keys['KeyW']) move.z -= 1; if (keys['KeyS']) move.z += 1;
-                if (keys['KeyA']) move.x -= 1; if (keys['KeyD']) move.x += 1;
+                if (keys['w']) move.z -= 1; if (keys['s']) move.z += 1;
+                if (keys['a']) move.x -= 1; if (keys['d']) move.x += 1;
+                
                 if (move.length() > 0) {
                     move.applyQuaternion(camera.quaternion); move.y = 0; move.normalize();
                     const checkDirs = [move.clone(), move.clone().applyAxisAngle(new THREE.Vector3(0,1,0), 0.4), move.clone().applyAxisAngle(new THREE.Vector3(0,1,0), -0.4)];
@@ -442,7 +457,6 @@
                     if (canMove) camera.position.addScaledVector(move, moveSpeed);
                 }
                 
-                // HIGH FREQUENCY COORDINATE BROADCAST
                 const now = Date.now();
                 if (now - lastSend > 50) {
                     channel.send({ 
@@ -453,9 +467,10 @@
                 }
             } else {
                 const flySpeed = moveSpeed * 2;
-                if (keys['KeyW']) camera.translateZ(-flySpeed); if (keys['KeyS']) camera.translateZ(flySpeed);
-                if (keys['KeyA']) camera.translateX(-flySpeed); if (keys['KeyD']) camera.translateX(flySpeed);
-                if (keys['Space']) camera.position.y += flySpeed; if (keys['ShiftLeft']) camera.position.y -= flySpeed;
+                if (keys['w']) camera.translateZ(-flySpeed); if (keys['s']) camera.translateZ(flySpeed);
+                if (keys['a']) camera.translateX(-flySpeed); if (keys['d']) camera.translateX(flySpeed);
+                if (keys[' '] || keys['space']) camera.position.y += flySpeed; 
+                if (keys['shift']) camera.position.y -= flySpeed;
             }
             updateLabels(); renderer.render(scene, camera);
         }
