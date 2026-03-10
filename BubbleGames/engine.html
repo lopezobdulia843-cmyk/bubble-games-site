@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Bubble Games</title>
+    <title>Bubble Games - Editor</title>
     <style>
         body { margin: 0; overflow: hidden; background: #050505; font-family: sans-serif; touch-action: none; color: white; }
         .controls { position: absolute; z-index: 10; display: flex; gap: 10px; }
@@ -394,16 +394,18 @@
             } else { gizmo.detach(); }
         });
 
-        // --- WASD SUPPORT FIX ---
+        // --- UNIVERSAL KEY SUPPORT ---
         window.addEventListener('keydown', (e) => { 
-            const k = e.key.toLowerCase(); // Forces everything to lowercase
+            const k = e.key.toLowerCase(); // Supports Lowercase and Uppercase
             keys[k] = true; 
             if(k === " ") keys["space"] = true; 
+            if(k === "shift") keys["shift"] = true;
         });
         window.addEventListener('keyup', (e) => { 
             const k = e.key.toLowerCase();
             keys[k] = false; 
             if(k === " ") keys["space"] = false; 
+            if(k === "shift") keys["shift"] = false;
         });
 
         function updateLabels() {
@@ -433,11 +435,10 @@
                     if (velocityY < 0) { velocityY = 0; isGrounded = true; camera.position.y = groundHits[0].point.y + playerHeight; }
                 } else { isGrounded = false; velocityY -= worldGravity; }
                 
-                if ((keys[' '] || keys['space']) && isGrounded) { velocityY = jumpStrength; isGrounded = false; }
+                if (keys["space"] && isGrounded) { velocityY = jumpStrength; isGrounded = false; }
                 camera.position.y += velocityY;
                 
                 let move = new THREE.Vector3();
-                // Movement checks for lowercase keys
                 if (keys['w']) move.z -= 1; if (keys['s']) move.z += 1;
                 if (keys['a']) move.x -= 1; if (keys['d']) move.x += 1;
                 
@@ -465,7 +466,7 @@
                 const flySpeed = moveSpeed * 2;
                 if (keys['w']) camera.translateZ(-flySpeed); if (keys['s']) camera.translateZ(flySpeed);
                 if (keys['a']) camera.translateX(-flySpeed); if (keys['d']) camera.translateX(flySpeed);
-                if (keys[' '] || keys['space']) camera.position.y += flySpeed; 
+                if (keys["space"]) camera.position.y += flySpeed; 
                 if (keys['shift']) camera.position.y -= flySpeed;
             }
             updateLabels(); renderer.render(scene, camera);
