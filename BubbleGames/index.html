@@ -29,21 +29,13 @@
         .game-card:hover { border-color: var(--primary); }
         
         button { border: none; padding: 12px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .btn-play { background: var(--primary); color: black; width: 100%; margin-top: 100px; }
-        .btn-play-card { background: var(--primary); color: black; width: 100%; margin-top: 10px; }
+        .btn-play { background: var(--primary); color: black; width: 100%; margin-top: 10px; }
         .btn-edit { background: var(--edit); color: black; width: 48%; margin-top: 5px; }
         .btn-rename { background: #444; color: white; width: 48%; margin-top: 5px; }
         .btn-delete { background: var(--danger); color: white; width: 100%; margin-top: 5px; }
         .btn-logout { background: #333; color: white; font-size: 12px; }
         .owner-tag { color: var(--owner); text-shadow: 0 0 10px var(--owner); }
         .creator-label { font-size: 12px; color: #00d4ff; font-weight: bold; }
-
-        #capsWarning { 
-            color: var(--danger); font-size: 12px; font-weight: bold; 
-            padding: 5px 10px; border: 1px solid var(--danger); 
-            border-radius: 5px; display: none; animation: blink 1s infinite;
-        }
-        @keyframes blink { 50% { opacity: 0.3; } }
     </style>
 </head>
 <body>
@@ -54,12 +46,12 @@
         <input type="password" id="password" placeholder="Password" maxlength="20">
         
         <div id="loginSection">
-            <button onclick="handleAuth('login')" class="btn-play-card">LOGIN</button>
+            <button onclick="handleAuth('login')" class="btn-play">LOGIN</button>
             <p style="font-size: 13px; margin-top:15px;">New creator? <span style="color:var(--primary);cursor:pointer;" onclick="toggleAuth(true)">Create Account</span></p>
         </div>
 
         <div id="signupSection" style="display:none;">
-            <button onclick="handleAuth('signup')" style="background:var(--success); color:black; width:100%;" class="btn-play-card">CREATE ACCOUNT</button>
+            <button onclick="handleAuth('signup')" style="background:var(--success); color:black; width:100%;" class="btn-play">CREATE ACCOUNT</button>
             <p style="font-size: 13px; margin-top:15px;">Have an account? <span style="color:var(--primary);cursor:pointer;" onclick="toggleAuth(false)">Back to Login</span></p>
         </div>
         <p id="msg" style="font-size: 13px; color: var(--danger); margin-top: 10px;"></p>
@@ -69,7 +61,6 @@
         <nav>
             <div class="logo">Bubble Games</div>
             <div style="display: flex; align-items: center; gap: 15px;">
-                <div id="capsWarning">⚠️ CAPS LOCK IS ON</div>
                 <span id="userDisplay" style="font-weight: bold;"></span>
                 <button class="btn-logout" onclick="handleLogout()">LOGOUT</button>
             </div>
@@ -94,15 +85,11 @@
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         let currentUser = "";
 
-        window.addEventListener('keyup', (e) => {
-            const isCaps = e.getModifierState('CapsLock');
-            document.getElementById('capsWarning').style.display = isCaps ? 'block' : 'none';
-        });
-
+        // SYNC FUNCTIONS FOR ENGINE
         function createNewGame() {
             localStorage.removeItem('currentGameId');
             localStorage.setItem('editMode', 'true');
-            localStorage.setItem('isNewGame', 'true');
+            localStorage.setItem('isNewGame', 'true'); // Critical for the Engine
             window.location.href = 'engine.html';
         }
 
@@ -141,24 +128,19 @@
             const passInput = document.getElementById('password').value;
             const msg = document.getElementById('msg');
 
-            if (userInput.length < 3) { msg.innerText = "Username too short!"; return; }
+            if (userInput.length < 3) { msg.innerText = "Username too short! (Min 3)"; return; }
+            if (userInput.length > 15) { msg.innerText = "Username too long! (Max 15)"; return; }
+            if (passInput.length < 6) { msg.innerText = "Password too short! (Min 6)"; return; }
             const fakeEmail = `${userInput.toLowerCase()}@bubble.com`;
 
-            try {
-                if (mode === 'signup') {
-                    const { error } = await supabaseClient.auth.signUp({ email: fakeEmail, password: passInput });
-                    if (error) throw error;
-                    msg.style.color = "var(--success)"; 
-                    msg.innerText = "Account Created! Login now."; 
-                    toggleAuth(false);
-                } else {
-                    const { error } = await supabaseClient.auth.signInWithPassword({ email: fakeEmail, password: passInput });
-                    if (error) throw error;
-                    currentUser = userInput.toLowerCase(); 
-                    showApp(currentUser);
-                }
-            } catch (err) {
-                msg.innerText = err.message === "Failed to fetch" ? "Network Error: Check Ad-blockers" : err.message;
+            if (mode === 'signup') {
+                const { error } = await supabaseClient.auth.signUp({ email: fakeEmail, password: passInput });
+                if (error) msg.innerText = error.message;
+                else { msg.style.color = "var(--success)"; msg.innerText = "Account Created! Login now."; toggleAuth(false); }
+            } else {
+                const { error } = await supabaseClient.auth.signInWithPassword({ email: fakeEmail, password: passInput });
+                if (error) { msg.style.color = "var(--danger)"; msg.innerText = "Invalid login!"; }
+                else { currentUser = userInput.toLowerCase(); showApp(currentUser); }
             }
         }
 
@@ -173,19 +155,19 @@
         async function loadGames(isOwner) {
             const myGrid = document.getElementById('myGamesGrid');
             const globalGrid = document.getElementById('globalGamesGrid');
-            
             const { data: savedGames, error } = await supabaseClient.from('games').select('*');
+
             if (error) return;
 
             myGrid.innerHTML = ''; globalGrid.innerHTML = '';
-            if (!savedGames) return;
 
             savedGames.forEach((game) => {
                 const isCreator = game.creator === currentUser;
                 const card = document.createElement('div');
                 card.className = 'game-card';
 
-                let buttons = `<button class="btn-play-card" onclick="playId('${game.id}')">PLAY</button>`;
+                let buttons = `<button class="btn-play" onclick="playId('${game.id}')">PLAY</button>`;
+
                 if (isOwner || isCreator) {
                     buttons += `
                         <div style="display:flex; justify-content:space-between;">
@@ -196,23 +178,33 @@
                     `;
                 }
 
-                card.innerHTML = `<span class="creator-label">@${game.creator || 'guest'}</span><h3 style="margin:5px 0;">${game.name}</h3>${buttons}`;
-                isCreator ? myGrid.appendChild(card) : globalGrid.appendChild(card);
+                card.innerHTML = `
+                    <span class="creator-label">@${game.creator || 'guest'}</span>
+                    <h3 style="margin: 5px 0;">${game.name}</h3>
+                    <p style="color:#666; font-size:12px; margin-bottom:10px;">Blocks: ${game.blocks ? game.blocks.length : 0}</p>
+                    ${buttons}
+                `;
+
+                if (isCreator) myGrid.appendChild(card);
+                else globalGrid.appendChild(card);
             });
+
+            if (myGrid.innerHTML === '') myGrid.innerHTML = '<p style="color:#444">You haven\'t built any games yet.</p>';
+            if (globalGrid.innerHTML === '') globalGrid.innerHTML = '<p style="color:#444">No other games found.</p>';
         }
 
         async function deleteGame(id) {
-            if (confirm("Delete this game forever?")) {
-                await supabaseClient.from('games').delete().eq('id', id);
-                loadGames(currentUser === "abraham");
+            if (confirm("Delete this game from the cloud forever?")) {
+                const { error } = await supabaseClient.from('games').delete().eq('id', id);
+                if (!error) loadGames(currentUser === "abraham");
             }
         }
 
         async function renameGame(id, oldName) {
             const newName = prompt("New name:", oldName);
-            if (newName) {
-                await supabaseClient.from('games').update({ name: newName }).eq('id', id);
-                loadGames(currentUser === "abraham");
+            if (newName && newName.length < 20) {
+                const { error } = await supabaseClient.from('games').update({ name: newName }).eq('id', id);
+                if (!error) loadGames(currentUser === "abraham");
             }
         }
 
