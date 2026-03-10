@@ -268,7 +268,6 @@
                 const spawnHeightOffset = (spawnPoint.scale.y * 0.2) / 2;
                 camera.position.set(spawnPoint.position.x, spawnPoint.position.y + spawnHeightOffset + playerHeight, spawnPoint.position.z);
                 velocityY = 0;
-                renderer.domElement.focus();
             } else {
                 btn.innerText = "PLAY TEST ▶"; btn.classList.remove('playing');
                 document.getElementById('status').innerText = "Status: BUILDING MODE";
@@ -356,10 +355,6 @@
 
         window.addEventListener('pointerdown', (e) => { 
             if (e.target.closest('button') || e.target.closest('.item-card') || e.target.closest('input') || isDraggingGizmo) return;
-            
-            // Force focus on click to ensure keys work
-            window.focus();
-
             mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObjects(objects);
@@ -399,17 +394,9 @@
             } else { gizmo.detach(); }
         });
 
-        // FIXED KEYBOARD LISTENERS (Using .key for better compatibility)
-        window.addEventListener('keydown', (e) => { 
-            const k = e.key.toLowerCase();
-            keys[k] = true;
-            if (k === ' ') keys['space'] = true; // Fallback for space
-        });
-        window.addEventListener('keyup', (e) => {
-            const k = e.key.toLowerCase();
-            keys[k] = false;
-            if (k === ' ') keys['space'] = false;
-        });
+        // FIXED KEYBOARD LISTENERS (Handles Capital Letters Automatically)
+        window.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true; if(e.key === " ") keys["space"] = true; });
+        window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; if(e.key === " ") keys["space"] = false; });
 
         function updateLabels() {
             const frustum = new THREE.Frustum();
