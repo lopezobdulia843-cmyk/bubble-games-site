@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Bubble Games</title>
+    <title>Bubble Games - Editor</title>
     <style>
         body { margin: 0; overflow: hidden; background: #050505; font-family: sans-serif; touch-action: none; color: white; }
         .controls { position: absolute; z-index: 10; display: flex; gap: 10px; }
@@ -73,29 +73,10 @@
             border: 1px solid #00d4ff; pointer-events: none; white-space: nowrap;
             transform: translate(-50%, -100%); z-index: 5;
         }
-
-        #chat-container {
-            position: absolute; bottom: 100px; left: 20px; width: 250px;
-            height: 200px; display: flex; flex-direction: column;
-            z-index: 60; pointer-events: none;
-        }
-        #chat-messages {
-            flex-grow: 1; overflow-y: auto; background: rgba(0,0,0,0.4);
-            border-radius: 8px; padding: 10px; font-size: 13px;
-            display: flex; flex-direction: column; gap: 4px;
-            scrollbar-width: thin; scrollbar-color: #00d4ff transparent;
-        }
-        #chat-input {
-            margin-top: 5px; background: rgba(0,0,0,0.8); border: 1px solid #00d4ff;
-            color: white; padding: 8px; border-radius: 4px; pointer-events: auto;
-            outline: none;
-        }
-        .chat-msg { word-wrap: break-word; text-shadow: 1px 1px 2px black; }
-        .chat-user { color: #00d4ff; font-weight: bold; }
     </style>
 </head>
 <body>
-    <div id="loading-overlay">INITIALIZING...</div>
+    <div id="loading-overlay">INITIALIZING EDITOR...</div>
 
     <div id="info">
         <h2 id="gameNameDisplay" style="margin:0; color:#00d4ff;">BUBBLE GAMES</h2>
@@ -103,12 +84,7 @@
         <div id="coords">POS - X: 0 | Y: 0 | Z: 0</div>
     </div>
 
-    <div id="chat-container">
-        <div id="chat-messages"></div>
-        <input type="text" id="chat-input" placeholder="Press Enter to chat..." autocomplete="off">
-    </div>
-
-    <div id="settings-panel" style="display:none;">
+    <div id="settings-panel">
         <div class="setting-group">
             <div class="label-container">
                 <label>Move Speed</label>
@@ -132,7 +108,7 @@
         </div>
     </div>
 
-    <div id="item-selector" style="display:none;">
+    <div id="item-selector">
         <div class="item-card selected" onclick="selectItem('block')" id="card-block">
             <div class="item-icon icon-block"></div>
             <div class="item-label">Block</div>
@@ -145,9 +121,9 @@
 
     <div id="top-bar" class="controls">
         <button id="playTestBtn" onclick="togglePlayTest()">PLAY TEST ▶</button>
-        <button id="publishBtn" onclick="publishGame()" style="display:none;">PUBLISH 🚀</button>
-        <button id="dragModeBtn" onclick="toggleTool('drag')" style="display:none;">DRAG PART</button>
-        <button id="deleteModeBtn" onclick="toggleTool('delete')" style="display:none;">DELETE</button>
+        <button id="publishBtn" onclick="publishGame()">PUBLISH 🚀</button>
+        <button id="dragModeBtn" onclick="toggleTool('drag')">DRAG PART</button>
+        <button id="deleteModeBtn" onclick="toggleTool('delete')">DELETE</button>
         <button onclick="exitGame()">EXIT</button>
     </div>
     <div id="crosshair"></div>
@@ -212,35 +188,6 @@
         const gameId = localStorage.getItem('currentGameId') || 'lobby';
         const channel = supabaseClient.channel(`room_${gameId}`);
 
-        const chatInput = document.getElementById('chat-input');
-        const chatMessages = document.getElementById('chat-messages');
-
-        function addChatMessage(user, text) {
-            const div = document.createElement('div');
-            div.className = 'chat-msg';
-            div.innerHTML = `<span class="chat-user">${user}:</span> ${text}`;
-            chatMessages.appendChild(div);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        chatInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && chatInput.value.trim() !== '') {
-                const msg = chatInput.value.trim();
-                channel.send({
-                    type: 'broadcast',
-                    event: 'chat',
-                    payload: { user: currentUser, text: msg }
-                });
-                addChatMessage("You", msg);
-                chatInput.value = '';
-                chatInput.blur();
-            }
-        });
-
-        channel.on('broadcast', { event: 'chat' }, ({ payload }) => {
-            addChatMessage(payload.user, payload.text);
-        });
-
         channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
             leftPresences.forEach(p => {
                 const id = p.key;
@@ -254,14 +201,6 @@
 
         channel.on('broadcast', { event: 'move' }, ({ payload }) => {
             if (payload.id === currentUser) return;
-            if (payload.y < -10) {
-                if (remotePlayers[payload.id]) {
-                    scene.remove(remotePlayers[payload.id].mesh);
-                    remotePlayers[payload.id].label.style.display = 'none';
-                }
-                return;
-            }
-
             if (!remotePlayers[payload.id]) {
                 const bodyGeo = new THREE.BoxGeometry(0.8, 1.6, 0.8);
                 const bodyMat = new THREE.MeshStandardMaterial({ color: 0x00d4ff });
@@ -293,7 +232,6 @@
         let editorCamRot = new THREE.Euler();
         const playerHeight = 1.4; 
         const jumpStrength = 0.35; 
-        const fallMultiplier = 1.5; 
         const playerRadius = 0.45; 
 
         const speedSlider = document.getElementById('speed-slider');
@@ -373,14 +311,6 @@
 
         async function init() {
             const id = localStorage.getItem('currentGameId');
-            const isEditMode = localStorage.getItem('editMode') === 'true';
-            if (isEditMode) {
-                isPlayMode = false;
-                ['publishBtn', 'dragModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(id => document.getElementById(id).style.display = 'flex');
-            } else {
-                isPlayMode = true;
-                document.getElementById('crosshair').style.display = 'block'; document.getElementById('playTestBtn').style.display = 'none';
-            }
             if (id) {
                 const { data: game } = await supabaseClient.from('games').select('*').eq('id', id).single();
                 if (game && game.blocks) {
@@ -393,8 +323,8 @@
                     });
                 }
             }
-            if(spawnPoint) camera.position.set(spawnPoint.position.x, spawnPoint.position.y + playerHeight, spawnPoint.position.z);
-            else camera.position.set(0, playerHeight, 5);
+            camera.position.set(0, 5, 10);
+            document.getElementById('status').innerText = "Status: BUILDING MODE";
             setTimeout(() => document.getElementById('loading-overlay').style.display = 'none', 500);
         }
         init();
@@ -404,7 +334,7 @@
         const keys = {};
 
         window.addEventListener('pointerdown', (e) => { 
-            if (e.target.closest('button') || e.target.closest('.item-card') || e.target.closest('#settings-panel') || e.target.closest('#chat-container') || isDraggingGizmo) return;
+            if (e.target.closest('button') || e.target.closest('.item-card') || e.target.closest('#settings-panel') || isDraggingGizmo) return;
             mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObjects(objects);
@@ -459,9 +389,8 @@
             }
         }
 
-        // Updated Wall Collision to check ALL objects
         function checkWallCollision(position, direction) {
-            const collisionObjects = objects.filter(o => o !== floor); // Everyone is solid now
+            const collisionObjects = objects.filter(o => o !== floor);
             const checkOffsets = [-1.3, -0.8, -0.3]; 
             for (let offset of checkOffsets) {
                 sideRay.set(new THREE.Vector3(position.x, position.y + offset, position.z), direction);
@@ -477,39 +406,19 @@
             document.getElementById('coords').innerText = `X: ${camera.position.x.toFixed(2)} | Y: ${camera.position.y.toFixed(2)} | Z: ${camera.position.z.toFixed(2)}`;
 
             if (isPlayMode) {
-                const solidObjects = objects.filter(o => o !== floor);
-
-                // 1. GROUND CHECK (All objects are solid)
                 downRay.set(camera.position, new THREE.Vector3(0, -1, 0));
                 const groundHits = downRay.intersectObjects(objects);
                 if (groundHits.length > 0 && groundHits[0].distance <= playerHeight) {
-                    if (velocityY < 0) { 
-                        velocityY = 0; isGrounded = true; 
-                        camera.position.y = groundHits[0].point.y + playerHeight; 
-                    }
-                } else { 
-                    isGrounded = false;
-                    velocityY -= (velocityY < 0 ? worldGravity * fallMultiplier : worldGravity);
-                }
+                    if (velocityY < 0) { velocityY = 0; isGrounded = true; camera.position.y = groundHits[0].point.y + playerHeight; }
+                } else { isGrounded = false; velocityY -= worldGravity; }
 
-                // 2. HEAD COLLISION (Check every block above you)
-                if (velocityY > 0) {
-                    upRay.set(camera.position, new THREE.Vector3(0, 1, 0));
-                    const headHits = upRay.intersectObjects(solidObjects);
-                    if (headHits.length > 0 && headHits[0].distance < 0.4) {
-                        velocityY = 0; 
-                    }
-                }
-                
-                if (keys['Space'] && isGrounded && document.activeElement !== chatInput) { velocityY = jumpStrength; isGrounded = false; }
+                if (keys['Space'] && isGrounded) { velocityY = jumpStrength; isGrounded = false; }
                 camera.position.y += velocityY;
                 
-                // 3. MOVEMENT
                 let move = new THREE.Vector3();
-                if (document.activeElement !== chatInput) {
-                    if (keys['KeyW']) move.z -= 1; if (keys['KeyS']) move.z += 1;
-                    if (keys['KeyA']) move.x -= 1; if (keys['KeyD']) move.x += 1;
-                }
+                if (keys['KeyW']) move.z -= 1; if (keys['KeyS']) move.z += 1;
+                if (keys['KeyA']) move.x -= 1; if (keys['KeyD']) move.x += 1;
+                
                 if (move.length() > 0) {
                     move.applyQuaternion(camera.quaternion); move.y = 0; move.normalize();
                     if (!checkWallCollision(camera.position, new THREE.Vector3(move.x, 0, 0))) camera.position.x += move.x * moveSpeed;
@@ -523,11 +432,9 @@
                 }
             } else {
                 const flySpeed = moveSpeed * 2;
-                if (document.activeElement !== chatInput) {
-                    if (keys['KeyW']) camera.translateZ(-flySpeed); if (keys['KeyS']) camera.translateZ(flySpeed);
-                    if (keys['KeyA']) camera.translateX(-flySpeed); if (keys['KeyD']) camera.translateX(flySpeed);
-                    if (keys['Space']) camera.position.y += flySpeed; if (keys['ShiftLeft']) camera.position.y -= flySpeed;
-                }
+                if (keys['KeyW']) camera.translateZ(-flySpeed); if (keys['KeyS']) camera.translateZ(flySpeed);
+                if (keys['KeyA']) camera.translateX(-flySpeed); if (keys['KeyD']) camera.translateX(flySpeed);
+                if (keys['Space']) camera.position.y += flySpeed; if (keys['ShiftLeft']) camera.position.y -= flySpeed;
             }
             updateLabels(); renderer.render(scene, camera);
         }
