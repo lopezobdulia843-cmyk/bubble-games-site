@@ -73,6 +73,26 @@
             border: 1px solid #00d4ff; pointer-events: none; white-space: nowrap;
             transform: translate(-50%, -100%); z-index: 5;
         }
+
+        /* --- CHAT SYSTEM CSS --- */
+        #chat-container {
+            position: absolute; bottom: 100px; left: 20px; width: 250px;
+            height: 200px; display: flex; flex-direction: column;
+            z-index: 60; pointer-events: none;
+        }
+        #chat-messages {
+            flex-grow: 1; overflow-y: auto; background: rgba(0,0,0,0.4);
+            border-radius: 8px; padding: 10px; font-size: 13px;
+            display: flex; flex-direction: column; gap: 4px;
+            scrollbar-width: thin; scrollbar-color: #00d4ff transparent;
+        }
+        #chat-input {
+            margin-top: 5px; background: rgba(0,0,0,0.8); border: 1px solid #00d4ff;
+            color: white; padding: 8px; border-radius: 4px; pointer-events: auto;
+            outline: none;
+        }
+        .chat-msg { word-wrap: break-word; text-shadow: 1px 1px 2px black; }
+        .chat-user { color: #00d4ff; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -82,6 +102,11 @@
         <h2 id="gameNameDisplay" style="margin:0; color:#00d4ff;">BUBBLE GAMES</h2>
         <p id="status">Status: LOADING...</p>
         <div id="coords">POS - X: 0 | Y: 0 | Z: 0</div>
+    </div>
+
+    <div id="chat-container">
+        <div id="chat-messages"></div>
+        <input type="text" id="chat-input" placeholder="Press Enter to chat..." autocomplete="off">
     </div>
 
     <div id="settings-panel" style="display:none;">
@@ -175,6 +200,7 @@
         
         const raycaster = new THREE.Raycaster();
         const downRay = new THREE.Raycaster(); 
+        const upRay = new THREE.Raycaster(); // For head collision
         const sideRay = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
@@ -187,6 +213,36 @@
         const gameId = localStorage.getItem('currentGameId') || 'lobby';
         const channel = supabaseClient.channel(`room_${gameId}`, {
             config: { presence: { key: currentUser } }
+        });
+
+        // --- CHAT LOGIC ---
+        const chatInput = document.getElementById('chat-input');
+        const chatMessages = document.getElementById('chat-messages');
+
+        function addChatMessage(user, text) {
+            const div = document.createElement('div');
+            div.className = 'chat-msg';
+            div.innerHTML = `<span class="chat-user">${user}:</span> ${text}`;
+            chatMessages.appendChild(div);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && chatInput.value.trim() !== '') {
+                const msg = chatInput.value.trim();
+                channel.send({
+                    type: 'broadcast',
+                    event: 'chat',
+                    payload: { user: currentUser, text: msg }
+                });
+                addChatMessage("You", msg);
+                chatInput.value = '';
+                chatInput.blur();
+            }
+        });
+
+        channel.on('broadcast', { event: 'chat' }, ({ payload }) => {
+            addChatMessage(payload.user, payload.text);
         });
 
         setInterval(async () => {
@@ -399,7 +455,7 @@
         const keys = {};
 
         window.addEventListener('pointerdown', (e) => { 
-            if (e.target.closest('button') || e.target.closest('.item-card') || e.target.closest('#settings-panel') || isDraggingGizmo) return;
+            if (e.target.closest('button') || e.target.closest('.item-card') || e.target.closest('#settings-panel') || e.target.closest('#chat-container') || isDraggingGizmo) return;
             mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObjects(objects);
@@ -475,6 +531,10 @@
             document.getElementById('coords').innerText = `X: ${camera.position.x.toFixed(2)} | Y: ${camera.position.y.toFixed(2)} | Z: ${camera.position.z.toFixed(2)}`;
 
             if (isPlayMode) {
+                // COLLISION OBJECTS (exclude floor/spawn for side/head)
+                const collisionObjects = objects.filter(o => o !== floor && o !== spawnPoint);
+
+                // 1. GROUND CHECK
                 downRay.set(camera.position, new THREE.Vector3(0, -1, 0));
                 const groundHits = downRay.intersectObjects(objects);
                 
@@ -489,17 +549,30 @@
                     const gravityScale = velocityY < 0 ? worldGravity * fallMultiplier : worldGravity;
                     velocityY -= gravityScale;
                 }
+
+                // 2. HEAD COLLISION (The "block on top" request)
+                if (velocityY > 0) {
+                    upRay.set(camera.position, new THREE.Vector3(0, 1, 0));
+                    const headHits = upRay.intersectObjects(collisionObjects);
+                    if (headHits.length > 0 && headHits[0].distance < 0.3) {
+                        velocityY = 0; // Stop moving up immediately
+                    }
+                }
                 
-                if (keys['Space'] && isGrounded) { 
+                // 3. JUMP
+                if (keys['Space'] && isGrounded && document.activeElement !== chatInput) { 
                     velocityY = jumpStrength; 
                     isGrounded = false; 
                 }
                 
                 camera.position.y += velocityY;
                 
+                // 4. MOVEMENT
                 let move = new THREE.Vector3();
-                if (keys['KeyW']) move.z -= 1; if (keys['KeyS']) move.z += 1;
-                if (keys['KeyA']) move.x -= 1; if (keys['KeyD']) move.x += 1;
+                if (document.activeElement !== chatInput) {
+                    if (keys['KeyW']) move.z -= 1; if (keys['KeyS']) move.z += 1;
+                    if (keys['KeyA']) move.x -= 1; if (keys['KeyD']) move.x += 1;
+                }
                 
                 if (move.length() > 0) {
                     move.applyQuaternion(camera.quaternion); 
@@ -525,10 +598,13 @@
                     lastSend = now;
                 }
             } else {
+                // Fly Mode for Editor
                 const flySpeed = moveSpeed * 2;
-                if (keys['KeyW']) camera.translateZ(-flySpeed); if (keys['KeyS']) camera.translateZ(flySpeed);
-                if (keys['KeyA']) camera.translateX(-flySpeed); if (keys['KeyD']) camera.translateX(flySpeed);
-                if (keys['Space']) camera.position.y += flySpeed; if (keys['ShiftLeft']) camera.position.y -= flySpeed;
+                if (document.activeElement !== chatInput) {
+                    if (keys['KeyW']) camera.translateZ(-flySpeed); if (keys['KeyS']) camera.translateZ(flySpeed);
+                    if (keys['KeyA']) camera.translateX(-flySpeed); if (keys['KeyD']) camera.translateX(flySpeed);
+                    if (keys['Space']) camera.position.y += flySpeed; if (keys['ShiftLeft']) camera.position.y -= flySpeed;
+                }
             }
             updateLabels(); renderer.render(scene, camera);
         }
