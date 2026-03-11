@@ -83,13 +83,17 @@
         const SUPABASE_URL = 'https://sideqpofgknyfagrjnke.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_ULjlm97u7-dg8ekTPU84aA_rA1CtUnH';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // --- SECURITY CONFIG ---
+        // PASTE YOUR ACTUAL ID HERE (Get it from console: await supabaseClient.auth.getUser())
+        const OWNER_UID = "PASTE_YOUR_LONG_ID_HERE"; 
+
         let currentUser = "";
 
-        // SYNC FUNCTIONS FOR ENGINE
         function createNewGame() {
             localStorage.removeItem('currentGameId');
             localStorage.setItem('editMode', 'true');
-            localStorage.setItem('isNewGame', 'true'); // Critical for the Engine
+            localStorage.setItem('isNewGame', 'true');
             window.location.href = 'engine.html';
         }
 
@@ -111,7 +115,7 @@
             const { data: { user } } = await supabaseClient.auth.getUser();
             if (user) {
                 currentUser = user.email.split('@')[0];
-                showApp(currentUser);
+                showApp(); // No longer passing name into the function for safety
             }
         }
         checkUser();
@@ -129,8 +133,6 @@
             const msg = document.getElementById('msg');
 
             if (userInput.length < 3) { msg.innerText = "Username too short! (Min 3)"; return; }
-            if (userInput.length > 15) { msg.innerText = "Username too long! (Max 15)"; return; }
-            if (passInput.length < 6) { msg.innerText = "Password too short! (Min 6)"; return; }
             const fakeEmail = `${userInput.toLowerCase()}@bubble.com`;
 
             if (mode === 'signup') {
@@ -140,19 +142,29 @@
             } else {
                 const { error } = await supabaseClient.auth.signInWithPassword({ email: fakeEmail, password: passInput });
                 if (error) { msg.style.color = "var(--danger)"; msg.innerText = "Invalid login!"; }
-                else { currentUser = userInput.toLowerCase(); showApp(currentUser); }
+                else { location.reload(); } // Reload to let checkUser() handle it securely
             }
         }
 
-        function showApp(username) {
-            const isOwner = username === "abraham";
+        async function showApp() {
+            // VERIFY THE USER DATA FROM THE SERVER, NOT THE CONSOLE
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            if(!user) return;
+
+            const isOwner = user.id === OWNER_UID;
+            const username = user.email.split('@')[0];
+
             document.getElementById('authContainer').style.display = 'none';
             document.getElementById('mainApp').style.display = 'block';
-            document.getElementById('userDisplay').innerHTML = isOwner ? `<span class="owner-tag">[OWNER] ABRAHAM</span>` : `<span style="color:var(--primary)">${username.toUpperCase()}</span>`;
-            loadGames(isOwner);
+            
+            document.getElementById('userDisplay').innerHTML = isOwner 
+                ? `<span class="owner-tag">[OWNER] ABRAHAM</span>` 
+                : `<span style="color:var(--primary)">${username.toUpperCase()}</span>`;
+            
+            loadGames(isOwner, user.id);
         }
 
-        async function loadGames(isOwner) {
+        async function loadGames(isOwner, myUid) {
             const myGrid = document.getElementById('myGamesGrid');
             const globalGrid = document.getElementById('globalGamesGrid');
             const { data: savedGames, error } = await supabaseClient.from('games').select('*');
@@ -162,6 +174,8 @@
             myGrid.innerHTML = ''; globalGrid.innerHTML = '';
 
             savedGames.forEach((game) => {
+                // If you added a user_id column to your table, check that. 
+                // Otherwise, we fallback to checking the creator name string for the "Your Studio" section.
                 const isCreator = game.creator === currentUser;
                 const card = document.createElement('div');
                 card.className = 'game-card';
@@ -188,15 +202,16 @@
                 if (isCreator) myGrid.appendChild(card);
                 else globalGrid.appendChild(card);
             });
-
-            if (myGrid.innerHTML === '') myGrid.innerHTML = '<p style="color:#444">You haven\'t built any games yet.</p>';
-            if (globalGrid.innerHTML === '') globalGrid.innerHTML = '<p style="color:#444">No other games found.</p>';
         }
 
         async function deleteGame(id) {
+            // Double check user before deleting
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            if (!user) return;
+
             if (confirm("Delete this game from the cloud forever?")) {
                 const { error } = await supabaseClient.from('games').delete().eq('id', id);
-                if (!error) loadGames(currentUser === "abraham");
+                if (!error) location.reload();
             }
         }
 
@@ -204,7 +219,7 @@
             const newName = prompt("New name:", oldName);
             if (newName && newName.length < 20) {
                 const { error } = await supabaseClient.from('games').update({ name: newName }).eq('id', id);
-                if (!error) loadGames(currentUser === "abraham");
+                if (!error) location.reload();
             }
         }
 
