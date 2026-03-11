@@ -241,9 +241,9 @@
         let spawnPoint = null;
         let editorCamPos = new THREE.Vector3();
         let editorCamRot = new THREE.Euler();
-        const playerHeight = 1.6; 
+        const playerHeight = 1.4; // Slightly lower for better ground feel
         const jumpStrength = 0.15;
-        const playerRadius = 0.45; // Size of collision box around player
+        const playerRadius = 0.45; 
 
         document.getElementById('speed-slider').oninput = (e) => moveSpeed = parseFloat(e.target.value);
         document.getElementById('gravity-slider').oninput = (e) => worldGravity = parseFloat(e.target.value);
@@ -413,10 +413,21 @@
             }
         }
 
+        // IMPROVED COLLISION: Checks multiple heights so flat blocks are detected
         function checkWallCollision(position, direction) {
-            sideRay.set(position, direction);
-            const hits = sideRay.intersectObjects(objects.filter(o => o !== floor && o !== spawnPoint));
-            return hits.length > 0 && hits[0].distance < playerRadius;
+            const collisionObjects = objects.filter(o => o !== floor && o !== spawnPoint);
+            // Check Foot Level, Knee Level, and Waist Level
+            const checkOffsets = [-1.3, -0.8, -0.3]; 
+            
+            for (let offset of checkOffsets) {
+                let rayPos = new THREE.Vector3(position.x, position.y + offset, position.z);
+                sideRay.set(rayPos, direction);
+                const hits = sideRay.intersectObjects(collisionObjects);
+                if (hits.length > 0 && hits[0].distance < playerRadius) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         let lastSend = 0;
@@ -435,7 +446,7 @@
                 if (keys['Space'] && isGrounded) { velocityY = jumpStrength; isGrounded = false; }
                 camera.position.y += velocityY;
                 
-                // Movement with Box Collision
+                // Movement with Multi-Ray Collision
                 let move = new THREE.Vector3();
                 if (keys['KeyW']) move.z -= 1; if (keys['KeyS']) move.z += 1;
                 if (keys['KeyA']) move.x -= 1; if (keys['KeyD']) move.x += 1;
@@ -445,20 +456,16 @@
                     move.y = 0; 
                     move.normalize();
 
-                    // Check horizontal collisions (X axis)
-                    let nextX = camera.position.x + move.x * moveSpeed;
-                    let checkPosX = new THREE.Vector3(nextX, camera.position.y - 0.5, camera.position.z);
+                    // Collision check for X
                     let dirX = new THREE.Vector3(move.x > 0 ? 1 : -1, 0, 0);
-                    if (!checkWallCollision(checkPosX, dirX)) {
-                        camera.position.x = nextX;
+                    if (!checkWallCollision(camera.position, dirX)) {
+                        camera.position.x += move.x * moveSpeed;
                     }
 
-                    // Check horizontal collisions (Z axis)
-                    let nextZ = camera.position.z + move.z * moveSpeed;
-                    let checkPosZ = new THREE.Vector3(camera.position.x, camera.position.y - 0.5, nextZ);
+                    // Collision check for Z
                     let dirZ = new THREE.Vector3(0, 0, move.z > 0 ? 1 : -1);
-                    if (!checkWallCollision(checkPosZ, dirZ)) {
-                        camera.position.z = nextZ;
+                    if (!checkWallCollision(camera.position, dirZ)) {
+                        camera.position.z += move.z * moveSpeed;
                     }
                 }
                 
