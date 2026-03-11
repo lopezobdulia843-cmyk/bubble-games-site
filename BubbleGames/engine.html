@@ -82,7 +82,7 @@
         </div>
         <div class="setting-group">
             <label>Gravity</label>
-            <input type="range" id="gravity-slider" min="0.001" max="0.03" step="0.001" value="0.008">
+            <input type="range" id="gravity-slider" min="0.001" max="0.03" step="0.001" value="0.015">
         </div>
         <div id="part-settings" style="display:none; border-top: 1px solid #333; padding-top: 10px;">
             <label>Part Size</label>
@@ -234,15 +234,16 @@
         let isPlayMode = false; 
         let currentTool = 'place'; 
         let selectedItemType = 'block'; 
-        let moveSpeed = 0.08;
-        let worldGravity = 0.008;
+        let moveSpeed = 0.12; // Roblox characters move a bit faster
+        let worldGravity = 0.015; // Increased for snappier fall
         let velocityY = 0;
         let isGrounded = false;
         let spawnPoint = null;
         let editorCamPos = new THREE.Vector3();
         let editorCamRot = new THREE.Euler();
-        const playerHeight = 1.4; // Slightly lower for better ground feel
-        const jumpStrength = 0.15;
+        const playerHeight = 1.4; 
+        const jumpStrength = 0.35; // Snappier Roblox JumpPower
+        const fallMultiplier = 1.5; // Falls faster than it jumps up
         const playerRadius = 0.45; 
 
         document.getElementById('speed-slider').oninput = (e) => moveSpeed = parseFloat(e.target.value);
@@ -329,7 +330,7 @@
             if (id) {
                 const { data: game } = await supabaseClient.from('games').select('*').eq('id', id).single();
                 if (game) {
-                    if (game.config) { worldGravity = game.config.gravity || 0.008; moveSpeed = game.config.speed || 0.08; document.getElementById('gravity-slider').value = worldGravity; document.getElementById('speed-slider').value = moveSpeed; }
+                    if (game.config) { worldGravity = game.config.gravity || 0.015; moveSpeed = game.config.speed || 0.12; document.getElementById('gravity-slider').value = worldGravity; document.getElementById('speed-slider').value = moveSpeed; }
                     if (game.blocks) {
                         document.getElementById('gameNameDisplay').innerText = game.name.toUpperCase();
                         game.blocks.forEach(d => {
@@ -413,19 +414,14 @@
             }
         }
 
-        // IMPROVED COLLISION: Checks multiple heights so flat blocks are detected
         function checkWallCollision(position, direction) {
             const collisionObjects = objects.filter(o => o !== floor && o !== spawnPoint);
-            // Check Foot Level, Knee Level, and Waist Level
             const checkOffsets = [-1.3, -0.8, -0.3]; 
-            
             for (let offset of checkOffsets) {
                 let rayPos = new THREE.Vector3(position.x, position.y + offset, position.z);
                 sideRay.set(rayPos, direction);
                 const hits = sideRay.intersectObjects(collisionObjects);
-                if (hits.length > 0 && hits[0].distance < playerRadius) {
-                    return true;
-                }
+                if (hits.length > 0 && hits[0].distance < playerRadius) return true;
             }
             return false;
         }
@@ -436,33 +432,44 @@
             document.getElementById('coords').innerText = `X: ${camera.position.x.toFixed(2)} | Y: ${camera.position.y.toFixed(2)} | Z: ${camera.position.z.toFixed(2)}`;
 
             if (isPlayMode) {
-                // Ground Detection
+                // ROBLOX PHYSICS
                 downRay.set(camera.position, new THREE.Vector3(0, -1, 0));
                 const groundHits = downRay.intersectObjects(objects);
-                if (groundHits.length > 0 && groundHits[0].distance <= playerHeight) {
-                    if (velocityY < 0) { velocityY = 0; isGrounded = true; camera.position.y = groundHits[0].point.y + playerHeight; }
-                } else { isGrounded = false; velocityY -= worldGravity; }
                 
-                if (keys['Space'] && isGrounded) { velocityY = jumpStrength; isGrounded = false; }
+                if (groundHits.length > 0 && groundHits[0].distance <= playerHeight) {
+                    if (velocityY < 0) { 
+                        velocityY = 0; 
+                        isGrounded = true; 
+                        camera.position.y = groundHits[0].point.y + playerHeight; 
+                    }
+                } else { 
+                    isGrounded = false;
+                    // Roblox-Style falling physics: Fall faster if moving down
+                    const gravityScale = velocityY < 0 ? worldGravity * fallMultiplier : worldGravity;
+                    velocityY -= gravityScale;
+                }
+                
+                if (keys['Space'] && isGrounded) { 
+                    velocityY = jumpStrength; 
+                    isGrounded = false; 
+                }
+                
                 camera.position.y += velocityY;
                 
-                // Movement with Multi-Ray Collision
+                // Movement
                 let move = new THREE.Vector3();
                 if (keys['KeyW']) move.z -= 1; if (keys['KeyS']) move.z += 1;
                 if (keys['KeyA']) move.x -= 1; if (keys['KeyD']) move.x += 1;
                 
                 if (move.length() > 0) {
                     move.applyQuaternion(camera.quaternion); 
-                    move.y = 0; 
-                    move.normalize();
+                    move.y = 0; move.normalize();
 
-                    // Collision check for X
                     let dirX = new THREE.Vector3(move.x > 0 ? 1 : -1, 0, 0);
                     if (!checkWallCollision(camera.position, dirX)) {
                         camera.position.x += move.x * moveSpeed;
                     }
 
-                    // Collision check for Z
                     let dirZ = new THREE.Vector3(0, 0, move.z > 0 ? 1 : -1);
                     if (!checkWallCollision(camera.position, dirZ)) {
                         camera.position.z += move.z * moveSpeed;
