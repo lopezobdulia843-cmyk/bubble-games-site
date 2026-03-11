@@ -157,6 +157,8 @@
         const spawnMat = new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 2 });
         
         const raycaster = new THREE.Raycaster();
+        const downRay = new THREE.Raycaster(); 
+        const wallRay = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
         const gizmo = new TransformControls(camera, renderer.domElement);
@@ -170,6 +172,7 @@
             config: { presence: { key: currentUser } }
         });
 
+        // INVISIBLE RE-JOIN (Heartbeat Background Sync)
         setInterval(async () => {
             if (channel) {
                 await channel.track({
@@ -201,6 +204,7 @@
                 }
                 return;
             }
+
             if (!remotePlayers[payload.id]) {
                 const bodyGeo = new THREE.BoxGeometry(0.8, 1.6, 0.8);
                 const bodyMat = new THREE.MeshStandardMaterial({ color: 0x00d4ff });
@@ -239,15 +243,7 @@
         let editorCamPos = new THREE.Vector3();
         let editorCamRot = new THREE.Euler();
         const playerHeight = 1.6; 
-
-        // ─── ROBLOX-STYLE JUMP CONSTANTS ────────────────────────────────────
-        // Jump is split into two phases: ascent (lighter gravity) and
-        // descent (heavier gravity) so it arcs up fast and falls crisply.
-        const JUMP_VELOCITY   = 0.22;   // initial upward kick
-        const GRAVITY_UP      = 0.018;  // gravity while rising  (floaty ascent)
-        const GRAVITY_DOWN    = 0.032;  // gravity while falling  (snappy descent)
-        const MAX_FALL_SPEED  = 0.6;    // terminal velocity clamp
-        // ────────────────────────────────────────────────────────────────────
+        const jumpStrength = 0.15;
 
         document.getElementById('speed-slider').oninput = (e) => moveSpeed = parseFloat(e.target.value);
         document.getElementById('gravity-slider').oninput = (e) => worldGravity = parseFloat(e.target.value);
@@ -257,55 +253,6 @@
                 gizmo.object.scale.set(s, s, s);
             }
         };
-
-        // ─── ROBUST GROUND COLLISION ────────────────────────────────────────
-        // Instead of a single downward ray we cast FIVE rays (centre + four
-        // corners of the player's foot-print).  Each ray checks against the
-        // world AABB of every collidable object so scaled blocks are handled
-        // correctly.  Returns the highest surface Y hit or null.
-        function getGroundY(pos) {
-            const footOffsets = [
-                new THREE.Vector3( 0,    0,  0   ),   // centre
-                new THREE.Vector3( 0.3,  0,  0.3 ),   // front-right
-                new THREE.Vector3(-0.3,  0,  0.3 ),   // front-left
-                new THREE.Vector3( 0.3,  0, -0.3 ),   // back-right
-                new THREE.Vector3(-0.3,  0, -0.3 ),   // back-left
-            ];
-
-            // Build collidable list (exclude floor and spawn for ground test;
-            // floor handled separately below).
-            const collidables = objects.filter(o => o !== floor && o !== spawnPoint);
-
-            let highestY = null;
-
-            // Check solid blocks via AABB
-            const box = new THREE.Box3();
-            for (const obj of collidables) {
-                box.setFromObject(obj);   // accounts for scale automatically
-                for (const offset of footOffsets) {
-                    const fx = pos.x + offset.x;
-                    const fz = pos.z + offset.z;
-                    // Is the foot-point horizontally inside this block?
-                    if (fx >= box.min.x && fx <= box.max.x &&
-                        fz >= box.min.z && fz <= box.max.z) {
-                        const topY = box.max.y;
-                        // Only land on top surface (not underside)
-                        if (topY <= pos.y + 0.05) {   // small tolerance
-                            if (highestY === null || topY > highestY) highestY = topY;
-                        }
-                    }
-                }
-            }
-
-            // Also check the infinite floor plane (y = 0)
-            if (pos.y - playerHeight <= 0.05) {
-                const floorY = 0;
-                if (highestY === null || floorY > highestY) highestY = floorY;
-            }
-
-            return highestY;
-        }
-        // ────────────────────────────────────────────────────────────────────
 
         window.togglePlayTest = () => {
             const btn = document.getElementById('playTestBtn');
@@ -322,7 +269,6 @@
                 const spawnHeightOffset = (spawnPoint.scale.y * 0.2) / 2;
                 camera.position.set(spawnPoint.position.x, spawnPoint.position.y + spawnHeightOffset + playerHeight, spawnPoint.position.z);
                 velocityY = 0;
-                isGrounded = false;
             } else {
                 btn.innerText = "PLAY TEST ▶"; btn.classList.remove('playing');
                 document.getElementById('status').innerText = "Status: BUILDING MODE";
@@ -396,7 +342,7 @@
                     }
                 }
             }
-            if (spawnPoint) {
+            if(spawnPoint) {
                 const spawnHeightOffset = (spawnPoint.scale.y * 0.2) / 2;
                 camera.position.set(spawnPoint.position.x, spawnPoint.position.y + spawnHeightOffset + playerHeight, spawnPoint.position.z);
             } else { camera.position.set(0, playerHeight, 5); }
@@ -440,19 +386,17 @@
                 } else if (currentTool === 'place') {
                     const isSpawn = selectedItemType === 'spawn';
                     const m = new THREE.Mesh(isSpawn ? spawnGeo : blockGeo, isSpawn ? spawnMat : new THREE.MeshStandardMaterial({ color: 0xcccccc }));
-                    const pos = intersect.object === floor
-                        ? new THREE.Vector3(Math.round(intersect.point.x), isSpawn ? 0.1 : 0.5, Math.round(intersect.point.z))
-                        : intersect.object.position.clone().add(intersect.face.normal.multiplyScalar(isSpawn ? 0.6 : 1));
+                    const pos = intersect.object === floor ? new THREE.Vector3(Math.round(intersect.point.x), isSpawn ? 0.1 : 0.5, Math.round(intersect.point.z)) : intersect.object.position.clone().add(intersect.face.normal.multiplyScalar(isSpawn ? 0.6 : 1));
                     if (pos.y >= 0) {
                         m.position.copy(pos); scene.add(m); objects.push(m);
-                        if (isSpawn) { if (spawnPoint) { scene.remove(spawnPoint); objects.splice(objects.indexOf(spawnPoint), 1); } spawnPoint = m; }
+                        if (isSpawn) { if(spawnPoint) { scene.remove(spawnPoint); objects.splice(objects.indexOf(spawnPoint), 1); } spawnPoint = m; }
                     }
                 }
             } else { gizmo.detach(); }
         });
 
         window.addEventListener('keydown', (e) => { keys[e.code] = true; });
-        window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+        window.addEventListener('keyup', (e) => keys[e.code] = false);
 
         function updateLabels() {
             const frustum = new THREE.Frustum();
@@ -475,69 +419,30 @@
             document.getElementById('coords').innerText = `X: ${camera.position.x.toFixed(2)} | Y: ${camera.position.y.toFixed(2)} | Z: ${camera.position.z.toFixed(2)}`;
 
             if (isPlayMode) {
-
-                // ── HORIZONTAL MOVEMENT ──────────────────────────────────────
+                downRay.set(camera.position, new THREE.Vector3(0, -1, 0));
+                const groundHits = downRay.intersectObjects(objects);
+                if (groundHits.length > 0 && groundHits[0].distance <= playerHeight) {
+                    if (velocityY < 0) { velocityY = 0; isGrounded = true; camera.position.y = groundHits[0].point.y + playerHeight; }
+                } else { isGrounded = false; velocityY -= worldGravity; }
+                if (keys['Space'] && isGrounded) { velocityY = jumpStrength; isGrounded = false; }
+                camera.position.y += velocityY;
+                
                 let move = new THREE.Vector3();
-                if (keys['KeyW']) move.z -= 1;
-                if (keys['KeyS']) move.z += 1;
-                if (keys['KeyA']) move.x -= 1;
-                if (keys['KeyD']) move.x += 1;
-
+                if (keys['KeyW']) move.z -= 1; if (keys['KeyS']) move.z += 1;
+                if (keys['KeyA']) move.x -= 1; if (keys['KeyD']) move.x += 1;
                 if (move.length() > 0) {
-                    move.applyQuaternion(camera.quaternion);
-                    move.y = 0;
-                    move.normalize();
-
-                    // Wall collision — multi-angle ray sweep
-                    const wallRay = new THREE.Raycaster();
-                    const wallTargets = objects.filter(o => o !== floor && o !== spawnPoint);
-                    const checkDirs = [
-                        move.clone(),
-                        move.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0),  0.4),
-                        move.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), -0.4)
-                    ];
+                    move.applyQuaternion(camera.quaternion); move.y = 0; move.normalize();
+                    const checkDirs = [move.clone(), move.clone().applyAxisAngle(new THREE.Vector3(0,1,0), 0.4), move.clone().applyAxisAngle(new THREE.Vector3(0,1,0), -0.4)];
                     let canMove = true;
-                    for (const dir of checkDirs) {
+                    for(let dir of checkDirs) {
                         wallRay.set(camera.position, dir);
-                        const hits = wallRay.intersectObjects(wallTargets);
-                        if (hits.length > 0 && hits[0].distance < 0.6) { canMove = false; break; }
+                        const wallHits = wallRay.intersectObjects(objects.filter(o => o !== floor && o !== spawnPoint));
+                        if (wallHits.length > 0 && wallHits[0].distance < 0.6) { canMove = false; break; }
                     }
                     if (canMove) camera.position.addScaledVector(move, moveSpeed);
                 }
-
-                // ── VERTICAL / GRAVITY / JUMP ────────────────────────────────
-                // 1. Apply Roblox-style asymmetric gravity
-                const grav = velocityY > 0 ? GRAVITY_UP : GRAVITY_DOWN;
-                velocityY -= grav;
-                velocityY = Math.max(velocityY, -MAX_FALL_SPEED);   // clamp fall speed
-
-                // 2. Move player vertically
-                camera.position.y += velocityY;
-
-                // 3. AABB ground check (fixes stacked-block collision)
-                const groundY = getGroundY(camera.position);
-                if (groundY !== null) {
-                    const standY = groundY + playerHeight;
-                    if (camera.position.y <= standY) {
-                        camera.position.y = standY;
-                        if (velocityY <= 0) {
-                            velocityY = 0;
-                            isGrounded = true;
-                        }
-                    } else {
-                        isGrounded = false;
-                    }
-                } else {
-                    isGrounded = false;
-                }
-
-                // 4. Jump input
-                if (keys['Space'] && isGrounded) {
-                    velocityY = JUMP_VELOCITY;
-                    isGrounded = false;
-                }
-
-                // ── BROADCAST POSITION ───────────────────────────────────────
+                
+                // HIGH FREQUENCY COORDINATE BROADCAST
                 const now = Date.now();
                 if (now - lastSend > 50) {
                     channel.send({ 
@@ -546,28 +451,15 @@
                     });
                     lastSend = now;
                 }
-
             } else {
-                // EDITOR FLY MODE
                 const flySpeed = moveSpeed * 2;
-                if (keys['KeyW']) camera.translateZ(-flySpeed);
-                if (keys['KeyS']) camera.translateZ(flySpeed);
-                if (keys['KeyA']) camera.translateX(-flySpeed);
-                if (keys['KeyD']) camera.translateX(flySpeed);
-                if (keys['Space']) camera.position.y += flySpeed;
-                if (keys['ShiftLeft']) camera.position.y -= flySpeed;
+                if (keys['KeyW']) camera.translateZ(-flySpeed); if (keys['KeyS']) camera.translateZ(flySpeed);
+                if (keys['KeyA']) camera.translateX(-flySpeed); if (keys['KeyD']) camera.translateX(flySpeed);
+                if (keys['Space']) camera.position.y += flySpeed; if (keys['ShiftLeft']) camera.position.y -= flySpeed;
             }
-
-            updateLabels();
-            renderer.render(scene, camera);
+            updateLabels(); renderer.render(scene, camera);
         }
         animate();
-
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
     </script>
 </body>
 </html>
