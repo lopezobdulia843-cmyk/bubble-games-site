@@ -18,7 +18,6 @@
         .label-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
         .setting-group label { font-size: 11px; text-transform: uppercase; color: #00d4ff; font-weight: bold; }
         
-        /* The Number Box */
         .num-input {
             width: 50px; background: #111; border: 1px solid #444; color: #00d4ff;
             font-size: 12px; border-radius: 4px; padding: 2px 4px; text-align: center;
@@ -264,13 +263,11 @@
         const fallMultiplier = 1.5; 
         const playerRadius = 0.45; 
 
-        // --- CONTROL LINKING LOGIC ---
         const speedSlider = document.getElementById('speed-slider');
         const speedNum = document.getElementById('speed-num');
         const gravSlider = document.getElementById('gravity-slider');
         const gravNum = document.getElementById('gravity-num');
 
-        // Link Speed
         speedSlider.oninput = (e) => {
             moveSpeed = parseFloat(e.target.value);
             speedNum.value = moveSpeed;
@@ -280,7 +277,6 @@
             speedSlider.value = moveSpeed;
         };
 
-        // Link Gravity
         gravSlider.oninput = (e) => {
             worldGravity = parseFloat(e.target.value);
             gravNum.value = worldGravity;
