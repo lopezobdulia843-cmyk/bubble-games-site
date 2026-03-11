@@ -158,7 +158,7 @@
         
         const raycaster = new THREE.Raycaster();
         const downRay = new THREE.Raycaster(); 
-        const wallRay = new THREE.Raycaster();
+        const sideRay = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
         const gizmo = new TransformControls(camera, renderer.domElement);
@@ -196,7 +196,7 @@
 
         channel.on('broadcast', { event: 'move' }, ({ payload }) => {
             if (payload.id === currentUser) return;
-            if (payload.y < 0) {
+            if (payload.y < -10) {
                 if (remotePlayers[payload.id]) {
                     scene.remove(remotePlayers[payload.id].mesh);
                     remotePlayers[payload.id].label.style.display = 'none';
@@ -243,7 +243,7 @@
         let editorCamRot = new THREE.Euler();
         const playerHeight = 1.6; 
         const jumpStrength = 0.15;
-        const collisionRadius = 0.4;
+        const playerRadius = 0.45; // Size of collision box around player
 
         document.getElementById('speed-slider').oninput = (e) => moveSpeed = parseFloat(e.target.value);
         document.getElementById('gravity-slider').oninput = (e) => worldGravity = parseFloat(e.target.value);
@@ -413,6 +413,12 @@
             }
         }
 
+        function checkWallCollision(position, direction) {
+            sideRay.set(position, direction);
+            const hits = sideRay.intersectObjects(objects.filter(o => o !== floor && o !== spawnPoint));
+            return hits.length > 0 && hits[0].distance < playerRadius;
+        }
+
         let lastSend = 0;
         function animate() {
             requestAnimationFrame(animate);
@@ -423,20 +429,13 @@
                 downRay.set(camera.position, new THREE.Vector3(0, -1, 0));
                 const groundHits = downRay.intersectObjects(objects);
                 if (groundHits.length > 0 && groundHits[0].distance <= playerHeight) {
-                    if (velocityY < 0) { 
-                        velocityY = 0; 
-                        isGrounded = true; 
-                        camera.position.y = groundHits[0].point.y + playerHeight; 
-                    }
-                } else { 
-                    isGrounded = false; 
-                    velocityY -= worldGravity; 
-                }
+                    if (velocityY < 0) { velocityY = 0; isGrounded = true; camera.position.y = groundHits[0].point.y + playerHeight; }
+                } else { isGrounded = false; velocityY -= worldGravity; }
                 
                 if (keys['Space'] && isGrounded) { velocityY = jumpStrength; isGrounded = false; }
                 camera.position.y += velocityY;
                 
-                // Movement with Wall Collisions
+                // Movement with Box Collision
                 let move = new THREE.Vector3();
                 if (keys['KeyW']) move.z -= 1; if (keys['KeyS']) move.z += 1;
                 if (keys['KeyA']) move.x -= 1; if (keys['KeyD']) move.x += 1;
@@ -445,24 +444,22 @@
                     move.applyQuaternion(camera.quaternion); 
                     move.y = 0; 
                     move.normalize();
-                    
-                    const nextPos = camera.position.clone().addScaledVector(move, moveSpeed);
-                    const collisionObjs = objects.filter(o => o !== floor && o !== spawnPoint);
-                    
-                    // Check X movement
-                    let canMoveX = true;
-                    wallRay.set(new THREE.Vector3(nextPos.x, camera.position.y, camera.position.z), move.x > 0 ? new THREE.Vector3(1,0,0) : new THREE.Vector3(-1,0,0));
-                    let hitsX = wallRay.intersectObjects(collisionObjs);
-                    if (hitsX.length > 0 && hitsX[0].distance < collisionRadius) canMoveX = false;
 
-                    // Check Z movement
-                    let canMoveZ = true;
-                    wallRay.set(new THREE.Vector3(camera.position.x, camera.position.y, nextPos.z), move.z > 0 ? new THREE.Vector3(0,0,1) : new THREE.Vector3(0,0,-1));
-                    let hitsZ = wallRay.intersectObjects(collisionObjs);
-                    if (hitsZ.length > 0 && hitsZ[0].distance < collisionRadius) canMoveZ = false;
+                    // Check horizontal collisions (X axis)
+                    let nextX = camera.position.x + move.x * moveSpeed;
+                    let checkPosX = new THREE.Vector3(nextX, camera.position.y - 0.5, camera.position.z);
+                    let dirX = new THREE.Vector3(move.x > 0 ? 1 : -1, 0, 0);
+                    if (!checkWallCollision(checkPosX, dirX)) {
+                        camera.position.x = nextX;
+                    }
 
-                    if (canMoveX) camera.position.x = nextPos.x;
-                    if (canMoveZ) camera.position.z = nextPos.z;
+                    // Check horizontal collisions (Z axis)
+                    let nextZ = camera.position.z + move.z * moveSpeed;
+                    let checkPosZ = new THREE.Vector3(camera.position.x, camera.position.y - 0.5, nextZ);
+                    let dirZ = new THREE.Vector3(0, 0, move.z > 0 ? 1 : -1);
+                    if (!checkWallCollision(checkPosZ, dirZ)) {
+                        camera.position.z = nextZ;
+                    }
                 }
                 
                 const now = Date.now();
