@@ -39,12 +39,13 @@
         .game-name { margin: 15px 0 5px; font-size: 1.4rem; font-weight: 800; }
         .game-stats { font-size: 13px; color: #777; margin-bottom: 20px; display: flex; gap: 10px; }
 
-        .action-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+        .action-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 10px; }
         .btn-base { border: none; padding: 12px; border-radius: 10px; cursor: pointer; font-weight: 800; font-size: 12px; transition: 0.2s; display: flex; align-items: center; justify-content: center; }
-        .btn-play { background: var(--primary); color: #000; grid-column: span 3; font-size: 16px; margin-bottom: 8px; }
+        .btn-play { background: var(--primary); color: #000; grid-column: span 2; font-size: 16px; margin-bottom: 8px; }
         .btn-edit { background: var(--glass); color: var(--edit); border: 1px solid rgba(255,204,0,0.2); }
         .btn-delete { background: rgba(255,68,68,0.1); color: var(--danger); border: 1px solid rgba(255,68,68,0.2); }
         .btn-toggle { background: var(--glass); color: #fff; border: 1px solid rgba(255,255,255,0.1); }
+        .btn-rename { background: var(--glass); color: #00ffcc; border: 1px solid rgba(0,255,204,0.2); }
         
         .btn-logout { background: #222; color: #fff; padding: 8px 15px; border-radius: 8px; font-size: 12px; cursor: pointer; border: none; }
         .owner-tag { color: var(--owner); text-shadow: 0 0 10px var(--owner); font-weight: 900; }
@@ -118,7 +119,7 @@
             const globalGrid = document.getElementById('globalGamesGrid');
             myGrid.innerHTML = ''; globalGrid.innerHTML = '';
 
-            const { data: games, error } = await supabaseClient.from('games').select('*');
+            const { data: games } = await supabaseClient.from('games').select('*').order('created_at', { ascending: false });
             if (games) {
                 games.forEach(game => {
                     const isCreator = (game.creator === currentUser);
@@ -140,7 +141,7 @@
             const statusClass = game.is_public ? 'status-public' : 'status-private';
             const statusText = game.is_public ? '🌐 Public' : '🔒 Private';
             const blocks = typeof game.blocks === 'string' ? JSON.parse(game.blocks) : (game.blocks || []);
-            const displayDate = game.created_at ? new Date(game.created_at).toLocaleDateString('en-GB') : 'Recently Created';
+            const displayDate = game.created_at ? new Date(game.created_at).toLocaleDateString('en-GB') : 'Just now';
 
             card.innerHTML = `
                 <div class="card-inner">
@@ -155,16 +156,29 @@
                         <button class="btn-base btn-play" onclick="playGame('${game.id}')">▶ PLAY</button>
                         ${(isCreator || isOwner) ? `
                             <button class="btn-base btn-edit" onclick="editGame('${game.id}')">✎ Edit</button>
+                            <button class="btn-base btn-rename" onclick="renameGame('${game.id}', '${game.name}')">📝 Rename</button>
                             <button class="btn-base btn-toggle" onclick="toggleVisibility('${game.id}', ${game.is_public})">
-                                ${game.is_public ? '🔒 Make Private' : '🌐 Go Public'}
+                                ${game.is_public ? '🔒 Private' : '🌐 Public'}
                             </button>
-                            <button class="btn-base btn-delete" onclick="deleteGame('${game.id}')">✖</button>
+                            <button class="btn-base btn-delete" onclick="deleteGame('${game.id}')">✖ Delete</button>
                         ` : ''}
                     </div>
                 </div>
             `;
             return card;
         }
+
+        window.renameGame = async (id, oldName) => {
+            const newName = prompt("Enter new name for your world:", oldName);
+            if (newName && newName.trim() !== "" && newName !== oldName) {
+                const { error } = await supabaseClient
+                    .from('games')
+                    .update({ name: newName.trim() })
+                    .eq('id', id);
+                
+                if (!error) loadGames(currentUser === "abraham");
+            }
+        };
 
         window.toggleVisibility = async (id, currentPublicStatus) => {
             const { error } = await supabaseClient
@@ -215,7 +229,6 @@
         document.getElementById('newGameBtn').onclick = () => {
             localStorage.removeItem('currentGameId');
             localStorage.setItem('editMode', 'true');
-            // We set this so the engine knows to save as is_public: false
             localStorage.setItem('isNewGame', 'true'); 
             window.location.href = 'engine.html';
         };
