@@ -50,7 +50,6 @@
         
         .btn-logout { background: #222; color: #fff; padding: 8px 15px; border-radius: 8px; font-size: 12px; cursor: pointer; border: none; }
         .owner-tag { color: var(--owner); text-shadow: 0 0 10px var(--owner); font-weight: 900; }
-
         .btn-base:disabled { opacity: 0.4; cursor: not-allowed; filter: grayscale(1); }
     </style>
 </head>
@@ -101,14 +100,13 @@
 
         let currentUser = "";
         let userRole = "Player";
-        let attemptCount = 0;
 
         async function init() {
             try {
                 const { data: { user }, error } = await supabaseClient.auth.getUser();
                 
                 if (user && !error) {
-                    // Fetch the profile data (username and role) from the profiles table
+                    // Check the database for the user's real role and username
                     const { data: profile, error: profileError } = await supabaseClient
                         .from('profiles')
                         .select('username, role')
@@ -117,16 +115,11 @@
 
                     if (profile) {
                         currentUser = profile.username;
-                        userRole = profile.role;
+                        userRole = profile.role; // This pulls "Owner" or "Player" from DB
                     } else {
-                        // Fallback if profile doesn't exist yet
+                        // Fallback if no profile row exists yet
                         currentUser = user.email.split('@')[0];
                         userRole = "Player";
-                    }
-
-                    // Special Override for goomba
-                    if (currentUser.toLowerCase() === "goomba") {
-                        userRole = "Owner";
                     }
 
                     document.getElementById('loadingState').style.display = 'none';
@@ -136,7 +129,7 @@
                     document.getElementById('authContainer').style.display = 'inline-block';
                 }
             } catch (e) {
-                document.getElementById('loadingState').innerText = "Connection Failed.";
+                document.getElementById('loadingState').innerText = "Database Error.";
             }
         }
 
@@ -145,6 +138,7 @@
             document.getElementById('authContainer').style.display = 'none';
             document.getElementById('mainApp').style.display = 'block';
             
+            // UI reflects the role from the database
             document.getElementById('userDisplay').innerHTML = isOwner 
                 ? `<span class="owner-tag">[OWNER] ${currentUser.toUpperCase()}</span>` 
                 : `<span style="color:var(--primary); font-weight:bold;">${currentUser.toUpperCase()}</span>`;
@@ -173,6 +167,7 @@
             const statusClass = game.is_public ? 'status-public' : 'status-private';
             const statusText = game.is_public ? '🌐 Public' : '🔒 Private';
             
+            // Permission check: You can edit if you made it OR you are an Owner in the DB
             const hasPower = isCreator || isOwner;
 
             card.innerHTML = `
@@ -227,7 +222,7 @@
             const passInput = document.getElementById('password').value;
             
             if (!userInput || !passInput) {
-                msg.innerText = "Please fill in all fields.";
+                msg.innerText = "Fields cannot be empty.";
                 return;
             }
 
@@ -239,12 +234,13 @@
                 ? await supabaseClient.auth.signUp({
                     email: fakeEmail, 
                     password: passInput,
+                    // We send the metadata so a trigger or function can create the profile
                     options: { data: { username: userInput, role: 'Player' } }
                   }) 
                 : await supabaseClient.auth.signInWithPassword({email: fakeEmail, password: passInput});
 
             if (error) {
-                msg.innerText = "Error: " + error.message;
+                msg.innerText = error.message;
                 loginBtn.disabled = false;
                 signupBtn.disabled = false;
             } else {
