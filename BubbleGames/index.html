@@ -163,10 +163,10 @@
                 const card = createCard(game, isCreator, isOwner);
                 
                 if (isCreator) {
-                    // You always see your own games (Studio)
+                    // Studio: Show your own games regardless of status
                     myGrid.appendChild(card);
                 } else if (game.is_public) {
-                    // Everyone (including Owner) only sees PUBLIC games from others
+                    // Library: Show ONLY public games. Owners cannot see private games here.
                     globalGrid.appendChild(card);
                 }
             });
@@ -178,7 +178,7 @@
             const statusClass = game.is_public ? 'status-public' : 'status-private';
             const statusText = game.is_public ? '🌐 Public' : '🔒 Private';
             
-            // Owners can moderate any game that is visible in the list
+            // Power remains for moderation if a game is visible in the list
             const hasPower = isCreator || isOwner;
 
             card.innerHTML = `
