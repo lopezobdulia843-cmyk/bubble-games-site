@@ -44,7 +44,7 @@
 
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px; }
 
-        /* NEW PRO GAME CARD */
+        /* GAME CARD */
         .game-card { 
             background: var(--card); 
             border: 1px solid rgba(255,255,255,0.05); 
@@ -67,7 +67,7 @@
         .game-name { margin: 15px 0 5px; font-size: 1.4rem; font-weight: 800; }
         .game-stats { font-size: 13px; color: #777; margin-bottom: 20px; display: flex; gap: 10px; }
 
-        /* PRO ACTION BUTTONS */
+        /* ACTION BUTTONS */
         .action-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 10px; }
         
         .btn-base { border: none; padding: 12px; border-radius: 10px; cursor: pointer; font-weight: 800; font-size: 13px; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 5px; }
@@ -97,12 +97,12 @@
         <input type="password" id="password" placeholder="Password" maxlength="20">
         
         <div id="loginSection">
-            <button id="loginBtn" class="btn-base btn-play">LOGIN TO ENGINE</button>
-            <p style="font-size: 13px; margin-top:15px; color:#777;">New creator? <span id="toSignup" style="color:var(--primary);cursor:pointer;font-weight:bold;">Create Account</span></p>
+            <button id="loginBtn" class="btn-base btn-play">LOGIN</button>
+            <p style="font-size: 13px; margin-top:15px; color:#777;">New? <span id="toSignup" style="color:var(--primary);cursor:pointer;font-weight:bold;">Sign Up</span></p>
         </div>
 
         <div id="signupSection" style="display:none;">
-            <button id="signupBtn" style="background:var(--success); color:black;" class="btn-base btn-play">CREATE CREATOR ID</button>
+            <button id="signupBtn" style="background:var(--success); color:black;" class="btn-base btn-play">SIGN UP</button>
             <p style="font-size: 13px; margin-top:15px; color:#777;">Have an account? <span id="toLogin" style="color:var(--primary);cursor:pointer;font-weight:bold;">Back to Login</span></p>
         </div>
         <p id="msg" style="font-size: 13px; color: var(--danger); margin-top: 10px;"></p>
@@ -118,8 +118,7 @@
         </nav>
 
         <div class="container">
-            <h1 style="font-size: 3rem; font-weight: 900; margin-bottom: 10px;">Build. Play. Publish.</h1>
-            <p style="color:#777; margin-bottom: 40px;">The world's first bubble-based game engine.</p>
+            <h1 style="font-size: 3rem; font-weight: 900; margin-bottom: 40px;">Build. Play. Publish.</h1>
             <button id="newGameBtn" class="btn-launch">Create New World 🛠️</button>
             
             <h2 class="section-title"><span>📂</span> Your Studio</h2>
@@ -230,14 +229,13 @@
             document.querySelectorAll('.rename-action').forEach(b => b.onclick = () => renameGame(b.dataset.id, b.dataset.name));
         }
 
-        // --- HELPERS ---
         function toggleAuth(isSignUp) {
             document.getElementById('signupSection').style.display = isSignUp ? "block" : "none";
             document.getElementById('loginSection').style.display = isSignUp ? "none" : "block";
         }
 
         async function deleteGame(id) {
-            if (confirm("Delete forever? This cannot be undone.")) {
+            if (confirm("Delete forever?")) {
                 await supabaseClient.from('games').delete().eq('id', id);
                 showApp();
             }
