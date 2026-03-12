@@ -1,20 +1,18 @@
-// ==========================================
-// 🌌 BUBBLER+ CORE ENGINE (PRE-ALPHA)
-// ==========================================
-
-// 📦 THE STORAGE BINS (Empty for now)
-let universeObjects = []; // This will hold our blocks
-let worldRules = {
-    gravity: 0,
-    speed: 0
-};
-
-// 🏗️ THE BUILDER (Waiting for instructions)
-function processArchitectCommand(cmd) {
-    // This is where the engine will eventually 
-    // translate the .bub files.
+// 🔍 THE READER (Test Run Only)
+async function testScriptRun() {
+    try {
+        const response = await fetch('main.bub');
+        const script = await response.text();
+        
+        console.log("📜 SCRIPT DETECTED! Reading main.bub contents...");
+        console.log("---------------------------------------");
+        console.log(script); // This prints your commands
+        console.log("---------------------------------------");
+        console.log("✅ Connection Test: SUCCESS. The Brain can see the Soul.");
+    } catch (error) {
+        console.error("❌ Connection Test: FAILED. Check file names.");
+    }
 }
 
-// 📡 THE ANTENNA 
-// This will eventually "listen" to the main.bub file.
-console.log("🛰️ Bubbler+ Engine: Online and awaiting Architect command...");
+// Start the test
+testScriptRun();
