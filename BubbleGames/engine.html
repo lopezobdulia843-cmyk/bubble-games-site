@@ -93,9 +93,7 @@
         .chat-msg { word-wrap: break-word; text-shadow: 1px 1px 2px black; }
         .chat-user { color: #00d4ff; font-weight: bold; }
 
-        /* Custom Checkbox Style */
         .toggle-container { display: flex; align-items: center; gap: 10px; margin-top: 10px; cursor: pointer; }
-        .toggle-container input { cursor: pointer; }
     </style>
 </head>
 <body>
@@ -199,7 +197,6 @@
         const grid = new THREE.GridHelper(100, 100, 0x00d4ff, 0x222222);
         scene.add(grid);
 
-        // --- GRID TEXTURE GENERATOR ---
         const createGridTexture = () => {
             const canvas = document.createElement('canvas');
             canvas.width = 256; canvas.height = 256;
@@ -251,21 +248,14 @@
         chatInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && chatInput.value.trim() !== '') {
                 const msg = chatInput.value.trim();
-                channel.send({
-                    type: 'broadcast',
-                    event: 'chat',
-                    payload: { user: currentUser, text: msg }
-                });
+                channel.send({ type: 'broadcast', event: 'chat', payload: { user: currentUser, text: msg } });
                 addChatMessage("You", msg);
                 chatInput.value = '';
                 chatInput.blur();
             }
         });
 
-        channel.on('broadcast', { event: 'chat' }, ({ payload }) => {
-            addChatMessage(payload.user, payload.text);
-        });
-
+        channel.on('broadcast', { event: 'chat' }, ({ payload }) => { addChatMessage(payload.user, payload.text); });
         channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
             leftPresences.forEach(p => {
                 const id = p.key;
@@ -286,7 +276,6 @@
                 }
                 return;
             }
-
             if (!remotePlayers[payload.id]) {
                 const bodyGeo = new THREE.BoxGeometry(0.8, 1.6, 0.8);
                 const bodyMat = new THREE.MeshStandardMaterial({ color: 0x00d4ff });
@@ -302,9 +291,7 @@
         }).subscribe();
 
         let isDraggingGizmo = false;
-        gizmo.addEventListener('dragging-changed', (event) => {
-            isDraggingGizmo = event.value;
-        });
+        gizmo.addEventListener('dragging-changed', (e) => { isDraggingGizmo = e.value; });
 
         let isPlayMode = false; 
         let currentTool = 'place'; 
@@ -353,8 +340,7 @@
             isPlayMode = !isPlayMode;
             if (isPlayMode) {
                 if (!spawnPoint) { alert("❌ Need a Spawn Point!"); isPlayMode = false; return; }
-                editorCamPos.copy(camera.position);
-                editorCamRot.copy(camera.rotation);
+                editorCamPos.copy(camera.position); editorCamRot.copy(camera.rotation);
                 btn.innerText = "STOP TEST ⏹"; btn.classList.add('playing');
                 document.getElementById('status').innerText = "Status: PLAY TESTING";
                 document.getElementById('crosshair').style.display = 'block';
@@ -411,7 +397,7 @@
             const isEditMode = localStorage.getItem('editMode') === 'true';
             if (isEditMode) {
                 isPlayMode = false;
-                ['publishBtn', 'dragModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(id => document.getElementById(id).style.display = 'flex');
+                ['publishBtn', 'dragModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(i => document.getElementById(i).style.display = 'flex');
             } else {
                 isPlayMode = true;
                 document.getElementById('crosshair').style.display = 'block'; document.getElementById('playTestBtn').style.display = 'none';
@@ -513,26 +499,16 @@
             document.getElementById('coords').innerText = `X: ${camera.position.x.toFixed(2)} | Y: ${camera.position.y.toFixed(2)} | Z: ${camera.position.z.toFixed(2)}`;
 
             if (isPlayMode) {
-                const solidObjects = objects.filter(o => o !== floor);
-
                 downRay.set(camera.position, new THREE.Vector3(0, -1, 0));
                 const groundHits = downRay.intersectObjects(objects);
                 if (groundHits.length > 0 && groundHits[0].distance <= playerHeight) {
-                    if (velocityY < 0) { 
-                        velocityY = 0; isGrounded = true; 
-                        camera.position.y = groundHits[0].point.y + playerHeight; 
-                    }
-                } else { 
-                    isGrounded = false;
-                    velocityY -= (velocityY < 0 ? worldGravity * fallMultiplier : worldGravity);
-                }
+                    if (velocityY < 0) { velocityY = 0; isGrounded = true; camera.position.y = groundHits[0].point.y + playerHeight; }
+                } else { isGrounded = false; velocityY -= (velocityY < 0 ? worldGravity * fallMultiplier : worldGravity); }
 
                 if (velocityY > 0) {
                     upRay.set(camera.position, new THREE.Vector3(0, 1, 0));
-                    const headHits = upRay.intersectObjects(solidObjects);
-                    if (headHits.length > 0 && headHits[0].distance < 0.4) {
-                        velocityY = 0; 
-                    }
+                    const headHits = upRay.intersectObjects(objects.filter(o => o !== floor));
+                    if (headHits.length > 0 && headHits[0].distance < 0.4) { velocityY = 0; }
                 }
                 
                 if (keys['Space'] && isGrounded && document.activeElement !== chatInput) { velocityY = jumpStrength; isGrounded = false; }
@@ -568,4 +544,3 @@
     </script>
 </body>
 </html>
-
