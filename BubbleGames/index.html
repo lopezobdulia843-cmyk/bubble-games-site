@@ -97,8 +97,8 @@
         <input type="password" id="password" placeholder="Password" maxlength="20">
         
         <div id="loginSection">
-            <button id="loginBtn" class="btn-base btn-play">LOGIN</button>
-            <p style="font-size: 13px; margin-top:15px; color:#777;">New? <span id="toSignup" style="color:var(--primary);cursor:pointer;font-weight:bold;">Sign Up</span></p>
+            <button id="loginBtn" class="btn-base btn-play">LOG IN</button>
+            <p style="font-size: 13px; margin-top:15px; color:#777;">New user? <span id="toSignup" style="color:var(--primary);cursor:pointer;font-weight:bold;">Sign Up</span></p>
         </div>
 
         <div id="signupSection" style="display:none;">
@@ -118,7 +118,7 @@
         </nav>
 
         <div class="container">
-            <h1 style="font-size: 3rem; font-weight: 900; margin-bottom: 40px;">Build. Play. Publish.</h1>
+            <h1 style="font-size: 3rem; font-weight: 900; margin-bottom: 30px;">Build. Play. Publish.</h1>
             <button id="newGameBtn" class="btn-launch">Create New World 🛠️</button>
             
             <h2 class="section-title"><span>📂</span> Your Studio</h2>
@@ -150,15 +150,15 @@
             const { data: { user } } = await supabaseClient.auth.getUser();
             if (!user) return;
 
-            const nameFromEmail = user.email.split('@')[0];
-            const isOwner = (nameFromEmail === "abraham");
+            currentUser = user.email.split('@')[0];
+            const isOwner = (currentUser === "abraham");
 
             document.getElementById('authContainer').style.display = 'none';
             document.getElementById('mainApp').style.display = 'block';
             
             document.getElementById('userDisplay').innerHTML = isOwner 
                 ? `<span class="owner-tag">[OWNER] ABRAHAM</span>` 
-                : `<span style="color:var(--primary); font-weight:bold;">${nameFromEmail.toUpperCase()}</span>`;
+                : `<span style="color:var(--primary); font-weight:bold;">${currentUser.toUpperCase()}</span>`;
             
             loadGames(isOwner);
         }
@@ -191,7 +191,7 @@
             myGrid.innerHTML = ''; globalGrid.innerHTML = '';
 
             savedGames.forEach((game) => {
-                const isCreator = game.creator === currentUser;
+                const isCreator = (game.creator === currentUser);
                 const card = document.createElement('div');
                 card.className = 'game-card';
 
@@ -206,21 +206,27 @@
                     `;
                 }
 
+                // Clean Date format: DD/MM/YYYY
+                const gameDate = new Date(game.created_at).toLocaleDateString('en-GB');
+
                 card.innerHTML = `
                     <div class="card-inner">
                         <span class="creator-label">@${game.creator || 'guest'}</span>
                         <h3 class="game-name">${game.name}</h3>
                         <div class="game-stats">
-                            <span>📦 ${game.blocks ? game.blocks.length : 0} Blocks</span>
-                            <span>📅 ${new Date(game.created_at).toLocaleDateString()}</span>
+                            <span>📦 ${game.blocks ? (typeof game.blocks === 'string' ? JSON.parse(game.blocks).length : game.blocks.length) : 0} Blocks</span>
+                            <span>📅 ${gameDate}</span>
                         </div>
-                        <button class="btn-base btn-play play-action" data-id="${game.id}">▶ PLAY NOW</button>
+                        <button class="btn-base btn-play play-action" data-id="${game.id}">▶ PLAY</button>
                         ${actionButtons}
                     </div>
                 `;
 
-                if (isCreator) myGrid.appendChild(card);
-                else globalGrid.appendChild(card);
+                if (isCreator) {
+                    myGrid.appendChild(card);
+                } else {
+                    globalGrid.appendChild(card);
+                }
             });
 
             document.querySelectorAll('.play-action').forEach(b => b.onclick = () => playId(b.dataset.id));
@@ -235,14 +241,14 @@
         }
 
         async function deleteGame(id) {
-            if (confirm("Delete forever?")) {
+            if (confirm("Delete this game forever?")) {
                 await supabaseClient.from('games').delete().eq('id', id);
                 showApp();
             }
         }
 
         async function renameGame(id, oldName) {
-            const n = prompt("New world name:", oldName);
+            const n = prompt("New game name:", oldName);
             if (n) { await supabaseClient.from('games').update({ name: n }).eq('id', id); showApp(); }
         }
 
