@@ -93,7 +93,9 @@
         .chat-msg { word-wrap: break-word; text-shadow: 1px 1px 2px black; }
         .chat-user { color: #00d4ff; font-weight: bold; }
 
+        /* Custom Checkbox Style */
         .toggle-container { display: flex; align-items: center; gap: 10px; margin-top: 10px; cursor: pointer; }
+        .toggle-container input { cursor: pointer; }
     </style>
 </head>
 <body>
@@ -197,6 +199,7 @@
         const grid = new THREE.GridHelper(100, 100, 0x00d4ff, 0x222222);
         scene.add(grid);
 
+        // --- GRID TEXTURE GENERATOR ---
         const createGridTexture = () => {
             const canvas = document.createElement('canvas');
             canvas.width = 256; canvas.height = 256;
@@ -276,6 +279,14 @@
 
         channel.on('broadcast', { event: 'move' }, ({ payload }) => {
             if (payload.id === currentUser) return;
+            if (payload.y < -10) {
+                if (remotePlayers[payload.id]) {
+                    scene.remove(remotePlayers[payload.id].mesh);
+                    remotePlayers[payload.id].label.style.display = 'none';
+                }
+                return;
+            }
+
             if (!remotePlayers[payload.id]) {
                 const bodyGeo = new THREE.BoxGeometry(0.8, 1.6, 0.8);
                 const bodyMat = new THREE.MeshStandardMaterial({ color: 0x00d4ff });
@@ -309,6 +320,33 @@
         const jumpStrength = 0.35; 
         const fallMultiplier = 1.5; 
         const playerRadius = 0.45; 
+
+        const speedSlider = document.getElementById('speed-slider');
+        const speedNum = document.getElementById('speed-num');
+        const gravSlider = document.getElementById('gravity-slider');
+        const gravNum = document.getElementById('gravity-num');
+        const gridToggle = document.getElementById('grid-toggle');
+
+        speedSlider.oninput = (e) => { moveSpeed = parseFloat(e.target.value); speedNum.value = moveSpeed; };
+        speedNum.oninput = (e) => { moveSpeed = parseFloat(e.target.value) || 0; speedSlider.value = moveSpeed; };
+        gravSlider.oninput = (e) => { worldGravity = parseFloat(e.target.value); gravNum.value = worldGravity; };
+        gravNum.oninput = (e) => { worldGravity = parseFloat(e.target.value) || 0; gravSlider.value = worldGravity; };
+
+        gridToggle.onchange = () => {
+            objects.forEach(obj => {
+                if (obj !== floor && obj !== spawnPoint) {
+                    obj.material.map = gridToggle.checked ? gridTexture : null;
+                    obj.material.needsUpdate = true;
+                }
+            });
+        };
+
+        document.getElementById('size-slider').oninput = (e) => {
+            if (gizmo.object) {
+                const s = parseFloat(e.target.value);
+                gizmo.object.scale.set(s, s, s);
+            }
+        };
 
         window.togglePlayTest = () => {
             const btn = document.getElementById('playTestBtn');
@@ -384,7 +422,7 @@
                     document.getElementById('gameNameDisplay').innerText = game.name.toUpperCase();
                     game.blocks.forEach(d => {
                         const isSpawn = d.type === 'spawn';
-                        const mat = isSpawn ? spawnMat : new THREE.MeshStandardMaterial({ color: 0xcccccc, map: gridTexture });
+                        const mat = isSpawn ? spawnMat : new THREE.MeshStandardMaterial({ color: 0xcccccc, map: gridToggle.checked ? gridTexture : null });
                         const mesh = new THREE.Mesh(isSpawn ? spawnGeo : blockGeo, mat);
                         mesh.position.set(d.x, d.y, d.z); if (d.s) mesh.scale.set(d.s, d.s, d.s);
                         scene.add(mesh); objects.push(mesh); if (isSpawn) spawnPoint = mesh;
@@ -432,7 +470,7 @@
                     gizmo.detach(); scene.remove(intersect.object); objects.splice(objects.indexOf(intersect.object), 1);
                 } else if (currentTool === 'place') {
                     const isSpawn = selectedItemType === 'spawn';
-                    const mat = isSpawn ? spawnMat : new THREE.MeshStandardMaterial({ color: 0xcccccc, map: gridTexture });
+                    const mat = isSpawn ? spawnMat : new THREE.MeshStandardMaterial({ color: 0xcccccc, map: gridToggle.checked ? gridTexture : null });
                     const m = new THREE.Mesh(isSpawn ? spawnGeo : blockGeo, mat);
                     const pos = intersect.object === floor ? new THREE.Vector3(Math.round(intersect.point.x), isSpawn ? 0.1 : 0.5, Math.round(intersect.point.z)) : intersect.object.position.clone().add(intersect.face.normal.multiplyScalar(isSpawn ? 0.6 : 1));
                     m.position.copy(pos); scene.add(m); objects.push(m);
@@ -476,16 +514,25 @@
 
             if (isPlayMode) {
                 const solidObjects = objects.filter(o => o !== floor);
+
                 downRay.set(camera.position, new THREE.Vector3(0, -1, 0));
                 const groundHits = downRay.intersectObjects(objects);
                 if (groundHits.length > 0 && groundHits[0].distance <= playerHeight) {
-                    if (velocityY < 0) { velocityY = 0; isGrounded = true; camera.position.y = groundHits[0].point.y + playerHeight; }
-                } else { isGrounded = false; velocityY -= (velocityY < 0 ? worldGravity * fallMultiplier : worldGravity); }
+                    if (velocityY < 0) { 
+                        velocityY = 0; isGrounded = true; 
+                        camera.position.y = groundHits[0].point.y + playerHeight; 
+                    }
+                } else { 
+                    isGrounded = false;
+                    velocityY -= (velocityY < 0 ? worldGravity * fallMultiplier : worldGravity);
+                }
 
                 if (velocityY > 0) {
                     upRay.set(camera.position, new THREE.Vector3(0, 1, 0));
                     const headHits = upRay.intersectObjects(solidObjects);
-                    if (headHits.length > 0 && headHits[0].distance < 0.4) velocityY = 0; 
+                    if (headHits.length > 0 && headHits[0].distance < 0.4) {
+                        velocityY = 0; 
+                    }
                 }
                 
                 if (keys['Space'] && isGrounded && document.activeElement !== chatInput) { velocityY = jumpStrength; isGrounded = false; }
@@ -521,3 +568,4 @@
     </script>
 </body>
 </html>
+
