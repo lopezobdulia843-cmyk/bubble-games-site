@@ -6,67 +6,46 @@
     <title>Bubble Games | Home</title>
     <style>
         :root { 
-            --primary: #00d4ff; 
-            --bg: #0a0a0c; 
-            --card: #16161a; 
-            --danger: #ff4444; 
-            --edit: #ffcc00; 
-            --success: #00ff88; 
-            --owner: #ffcf40; 
-            --glass: rgba(255, 255, 255, 0.05);
+            --primary: #00d4ff; --bg: #0a0a0c; --card: #16161a; 
+            --danger: #ff4444; --edit: #ffcc00; --success: #00ff88; 
+            --owner: #ffcf40; --glass: rgba(255, 255, 255, 0.05);
         }
 
         body { margin: 0; background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; text-align: center; }
-        
         nav { padding: 15px 50px; border-bottom: 1px solid rgba(0, 212, 255, 0.3); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100; }
-        
         .logo { font-size: 24px; font-weight: 900; color: var(--primary); text-transform: uppercase; letter-spacing: 2px; }
-        
         .container { padding: 40px 20px; max-width: 1100px; margin: auto; }
 
         #authContainer { background: var(--card); padding: 40px; border-radius: 24px; border: 1px solid rgba(0, 212, 255, 0.2); display: inline-block; margin-top: 80px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
         input { display: block; margin: 10px auto; padding: 14px; width: 280px; border-radius: 12px; border: 1px solid #333; background: #000; color: white; outline: none; transition: 0.3s; }
         input:focus { border-color: var(--primary); box-shadow: 0 0 10px rgba(0, 212, 255, 0.3); }
 
-        .btn-launch { 
-            background: linear-gradient(45deg, var(--primary), #0044ff); color: white; padding: 18px 50px; 
-            border-radius: 16px; text-decoration: none; font-weight: 800; 
-            font-size: 1.2rem; display: inline-block; transition: 0.3s;
-            cursor: pointer; border: none; box-shadow: 0 10px 20px rgba(0, 212, 255, 0.2);
-        }
+        .btn-launch { background: linear-gradient(45deg, var(--primary), #0044ff); color: white; padding: 18px 50px; border-radius: 16px; font-weight: 800; font-size: 1.2rem; cursor: pointer; border: none; transition: 0.3s; box-shadow: 0 10px 20px rgba(0, 212, 255, 0.2); }
         .btn-launch:hover { transform: translateY(-3px); box-shadow: 0 15px 30px rgba(0, 212, 255, 0.4); }
 
         .section-title { text-align: left; margin: 60px 0 20px; font-size: 1.5rem; color: #fff; display: flex; align-items: center; gap: 10px; }
         .section-title::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.1); }
-
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px; }
 
-        .game-card { 
-            background: var(--card); border: 1px solid rgba(255,255,255,0.05); border-radius: 20px; 
-            text-align: left; transition: 0.4s; overflow: hidden; position: relative;
-        }
+        .game-card { background: var(--card); border: 1px solid rgba(255,255,255,0.05); border-radius: 20px; text-align: left; transition: 0.4s; overflow: hidden; position: relative; }
         .game-card:hover { transform: translateY(-5px); border-color: var(--primary); background: #1c1c21; }
-
         .card-inner { padding: 20px; }
-        .creator-label { font-size: 11px; color: var(--primary); font-weight: bold; background: rgba(0, 212, 255, 0.1); padding: 3px 8px; border-radius: 20px; }
         
-        /* Status Badges */
         .status-tag { float: right; font-size: 10px; padding: 2px 8px; border-radius: 6px; font-weight: bold; text-transform: uppercase; }
         .status-private { background: #333; color: #aaa; border: 1px solid #444; }
         .status-public { background: rgba(0, 255, 136, 0.1); color: var(--success); border: 1px solid var(--success); }
 
+        .creator-label { font-size: 11px; color: var(--primary); font-weight: bold; background: rgba(0, 212, 255, 0.1); padding: 3px 8px; border-radius: 20px; }
         .game-name { margin: 15px 0 5px; font-size: 1.4rem; font-weight: 800; }
         .game-stats { font-size: 13px; color: #777; margin-bottom: 20px; display: flex; gap: 10px; }
 
         .action-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
         .btn-base { border: none; padding: 12px; border-radius: 10px; cursor: pointer; font-weight: 800; font-size: 12px; transition: 0.2s; display: flex; align-items: center; justify-content: center; }
-        
         .btn-play { background: var(--primary); color: #000; grid-column: span 3; font-size: 16px; margin-bottom: 8px; }
         .btn-edit { background: var(--glass); color: var(--edit); border: 1px solid rgba(255,204,0,0.2); }
         .btn-delete { background: rgba(255,68,68,0.1); color: var(--danger); border: 1px solid rgba(255,68,68,0.2); }
         .btn-toggle { background: var(--glass); color: #fff; border: 1px solid rgba(255,255,255,0.1); }
-        .btn-toggle:hover { background: #fff; color: #000; }
-
+        
         .btn-logout { background: #222; color: #fff; padding: 8px 15px; border-radius: 8px; font-size: 12px; cursor: pointer; border: none; }
         .owner-tag { color: var(--owner); text-shadow: 0 0 10px var(--owner); font-weight: 900; }
     </style>
@@ -139,49 +118,47 @@
             const globalGrid = document.getElementById('globalGamesGrid');
             myGrid.innerHTML = ''; globalGrid.innerHTML = '';
 
-            // 1. Get Private Games from LocalStorage
-            const localGames = JSON.parse(localStorage.getItem('bubble_private_games') || '[]');
-            localGames.forEach((game, index) => {
-                myGrid.appendChild(createCard(game, true, index, isOwner));
-            });
-
-            // 2. Get Public Games from Supabase
-            const { data: publicGames } = await supabaseClient.from('games').select('*');
-            if (publicGames) {
-                publicGames.forEach(game => {
+            const { data: games, error } = await supabaseClient.from('games').select('*');
+            if (games) {
+                games.forEach(game => {
                     const isCreator = (game.creator === currentUser);
-                    if (isCreator) myGrid.appendChild(createCard(game, false, null, isOwner));
-                    else globalGrid.appendChild(createCard(game, false, null, isOwner));
+                    const card = createCard(game, isCreator, isOwner);
+                    
+                    if (isCreator) {
+                        myGrid.appendChild(card);
+                    } else if (game.is_public) {
+                        globalGrid.appendChild(card);
+                    }
                 });
             }
         }
 
-        function createCard(game, isPrivate, localIndex, isOwner) {
+        function createCard(game, isCreator, isOwner) {
             const card = document.createElement('div');
             card.className = 'game-card';
-            const isCreator = isPrivate || game.creator === currentUser;
-            const statusClass = isPrivate ? 'status-private' : 'status-public';
-            const statusText = isPrivate ? '🔒 Private' : '🌐 Public';
-            const blocksCount = game.blocks ? (typeof game.blocks === 'string' ? JSON.parse(game.blocks).length : game.blocks.length) : 0;
-            const displayDate = game.created_at ? new Date(game.created_at).toLocaleDateString('en-GB') : 'Local Draft';
+            
+            const statusClass = game.is_public ? 'status-public' : 'status-private';
+            const statusText = game.is_public ? '🌐 Public' : '🔒 Private';
+            const blocks = typeof game.blocks === 'string' ? JSON.parse(game.blocks) : (game.blocks || []);
+            const displayDate = game.created_at ? new Date(game.created_at).toLocaleDateString('en-GB') : 'Recently Created';
 
             card.innerHTML = `
                 <div class="card-inner">
                     <span class="status-tag ${statusClass}">${statusText}</span>
-                    <span class="creator-label">@${game.creator || currentUser}</span>
+                    <span class="creator-label">@${game.creator}</span>
                     <h3 class="game-name">${game.name}</h3>
                     <div class="game-stats">
-                        <span>📦 ${blocksCount} Blocks</span>
+                        <span>📦 ${blocks.length} Blocks</span>
                         <span>📅 ${displayDate}</span>
                     </div>
                     <div class="action-row">
-                        <button class="btn-base btn-play" onclick="playGame('${game.id}', ${isPrivate}, ${localIndex})">▶ PLAY</button>
+                        <button class="btn-base btn-play" onclick="playGame('${game.id}')">▶ PLAY</button>
                         ${(isCreator || isOwner) ? `
-                            <button class="btn-base btn-edit" onclick="editGame('${game.id}', ${isPrivate}, ${localIndex})">✎ Edit</button>
-                            <button class="btn-base btn-toggle" onclick="toggleVisibility(${isPrivate}, '${game.id}', ${localIndex})">
-                                ${isPrivate ? '🌐 Go Public' : '🔒 Go Private'}
+                            <button class="btn-base btn-edit" onclick="editGame('${game.id}')">✎ Edit</button>
+                            <button class="btn-base btn-toggle" onclick="toggleVisibility('${game.id}', ${game.is_public})">
+                                ${game.is_public ? '🔒 Make Private' : '🌐 Go Public'}
                             </button>
-                            <button class="btn-base btn-delete" onclick="deleteGame('${game.id}', ${isPrivate}, ${localIndex})">✖</button>
+                            <button class="btn-base btn-delete" onclick="deleteGame('${game.id}')">✖</button>
                         ` : ''}
                     </div>
                 </div>
@@ -189,68 +166,42 @@
             return card;
         }
 
-        // --- GAME ACTIONS ---
-
-        window.toggleVisibility = async (isCurrentlyPrivate, id, index) => {
-            if (isCurrentlyPrivate) {
-                const locals = JSON.parse(localStorage.getItem('bubble_private_games'));
-                const gameToPub = locals[index];
-                const { error } = await supabaseClient.from('games').insert([{
-                    name: gameToPub.name,
-                    creator: currentUser,
-                    blocks: gameToPub.blocks || []
-                }]);
-                if (!error) {
-                    locals.splice(index, 1);
-                    localStorage.setItem('bubble_private_games', JSON.stringify(locals));
-                }
-            } else {
-                const { data: gameData } = await supabaseClient.from('games').select('*').eq('id', id).single();
-                if (gameData) {
-                    const locals = JSON.parse(localStorage.getItem('bubble_private_games') || '[]');
-                    locals.push(gameData);
-                    localStorage.setItem('bubble_private_games', JSON.stringify(locals));
-                    await supabaseClient.from('games').delete().eq('id', id);
-                }
-            }
-            location.reload();
+        window.toggleVisibility = async (id, currentPublicStatus) => {
+            const { error } = await supabaseClient
+                .from('games')
+                .update({ is_public: !currentPublicStatus })
+                .eq('id', id);
+            
+            if (!error) loadGames(currentUser === "abraham");
         };
 
-        window.deleteGame = async (id, isPrivate, index) => {
-            if (!confirm("Delete this game forever?")) return;
-            if (isPrivate) {
-                const locals = JSON.parse(localStorage.getItem('bubble_private_games'));
-                locals.splice(index, 1);
-                localStorage.setItem('bubble_private_games', JSON.stringify(locals));
-            } else {
+        window.deleteGame = async (id) => {
+            if (confirm("Delete this game forever?")) {
                 await supabaseClient.from('games').delete().eq('id', id);
+                loadGames(currentUser === "abraham");
             }
-            location.reload();
         };
 
-        window.playGame = (id, isPrivate, index) => {
-            localStorage.setItem('currentGameTarget', isPrivate ? 'local' : 'db');
-            localStorage.setItem('currentGameIndex', isPrivate ? index : '');
+        window.playGame = (id) => {
             localStorage.setItem('currentGameId', id);
             localStorage.setItem('editMode', 'false');
             window.location.href = 'engine.html';
         };
 
-        window.editGame = (id, isPrivate, index) => {
-            localStorage.setItem('currentGameTarget', isPrivate ? 'local' : 'db');
-            localStorage.setItem('currentGameIndex', isPrivate ? index : '');
+        window.editGame = (id) => {
             localStorage.setItem('currentGameId', id);
             localStorage.setItem('editMode', 'true');
             window.location.href = 'engine.html';
         };
 
-        // --- AUTH ---
-
         async function handleAuth(mode) {
             const userInput = document.getElementById('username').value.trim();
             const passInput = document.getElementById('password').value;
             const fakeEmail = `${userInput.toLowerCase()}@bubble.com`;
-            const { error } = mode === 'signup' ? await supabaseClient.auth.signUp({email: fakeEmail, password: passInput}) : await supabaseClient.auth.signInWithPassword({email: fakeEmail, password: passInput});
+            const { error } = mode === 'signup' 
+                ? await supabaseClient.auth.signUp({email: fakeEmail, password: passInput}) 
+                : await supabaseClient.auth.signInWithPassword({email: fakeEmail, password: passInput});
+            
             if (error) document.getElementById('msg').innerText = error.message;
             else location.reload();
         }
@@ -260,11 +211,12 @@
         document.getElementById('toSignup').onclick = () => { document.getElementById('loginSection').style.display='none'; document.getElementById('signupSection').style.display='block'; };
         document.getElementById('toLogin').onclick = () => { document.getElementById('loginSection').style.display='block'; document.getElementById('signupSection').style.display='none'; };
         document.getElementById('logoutBtn').onclick = async () => { await supabaseClient.auth.signOut(); location.reload(); };
+        
         document.getElementById('newGameBtn').onclick = () => {
             localStorage.removeItem('currentGameId');
-            localStorage.setItem('currentGameTarget', 'local');
             localStorage.setItem('editMode', 'true');
-            localStorage.setItem('isNewGame', 'true');
+            // We set this so the engine knows to save as is_public: false
+            localStorage.setItem('isNewGame', 'true'); 
             window.location.href = 'engine.html';
         };
 
