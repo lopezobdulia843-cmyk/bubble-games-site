@@ -11,7 +11,11 @@
             --owner: #ffcf40; --glass: rgba(255, 255, 255, 0.05);
         }
 
-        body { margin: 0; background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; text-align: center; }
+        body { margin: 0; background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; text-align: center; overflow-x: hidden; }
+        
+        /* Loading Overlay */
+        #loadingState { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 1000; font-weight: bold; color: var(--primary); }
+
         nav { padding: 15px 50px; border-bottom: 1px solid rgba(0, 212, 255, 0.3); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100; }
         .logo { font-size: 24px; font-weight: 900; color: var(--primary); text-transform: uppercase; letter-spacing: 2px; }
         .container { padding: 40px 20px; max-width: 1100px; margin: auto; }
@@ -25,7 +29,7 @@
 
         .section-title { text-align: left; margin: 60px 0 20px; font-size: 1.5rem; color: #fff; display: flex; align-items: center; gap: 10px; }
         .section-title::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.1); }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px; min-height: 100px; }
 
         .game-card { background: var(--card); border: 1px solid rgba(255,255,255,0.05); border-radius: 20px; text-align: left; transition: 0.4s; overflow: hidden; position: relative; }
         .game-card:hover { transform: translateY(-5px); border-color: var(--primary); background: #1c1c21; }
@@ -53,7 +57,9 @@
 </head>
 <body>
 
-    <div id="authContainer">
+    <div id="loadingState">SYNCING WITH DATABASE...</div>
+
+    <div id="authContainer" style="display:none;">
         <h1 class="logo">Bubble Games</h1>
         <input type="text" id="username" placeholder="Username" maxlength="15">
         <input type="password" id="password" placeholder="Password" maxlength="20">
@@ -96,11 +102,15 @@
 
         let currentUser = "";
 
-        async function checkUser() {
+        async function init() {
             const { data: { user } } = await supabaseClient.auth.getUser();
+            document.getElementById('loadingState').style.display = 'none';
+            
             if (user) {
                 currentUser = user.email.split('@')[0];
                 showApp();
+            } else {
+                document.getElementById('authContainer').style.display = 'inline-block';
             }
         }
 
@@ -117,9 +127,14 @@
         async function loadGames(isOwner) {
             const myGrid = document.getElementById('myGamesGrid');
             const globalGrid = document.getElementById('globalGamesGrid');
-            myGrid.innerHTML = ''; globalGrid.innerHTML = '';
+            myGrid.innerHTML = '<p style="color:#555">Loading games...</p>'; 
+            globalGrid.innerHTML = '<p style="color:#555">Loading library...</p>';
 
             const { data: games } = await supabaseClient.from('games').select('*').order('created_at', { ascending: false });
+            
+            myGrid.innerHTML = ''; 
+            globalGrid.innerHTML = '';
+
             if (games) {
                 games.forEach(game => {
                     const isCreator = (game.creator === currentUser);
@@ -141,7 +156,6 @@
             const statusClass = game.is_public ? 'status-public' : 'status-private';
             const statusText = game.is_public ? '🌐 Public' : '🔒 Private';
             const blocks = typeof game.blocks === 'string' ? JSON.parse(game.blocks) : (game.blocks || []);
-            const displayDate = game.created_at ? new Date(game.created_at).toLocaleDateString('en-GB') : 'Just now';
 
             card.innerHTML = `
                 <div class="card-inner">
@@ -150,7 +164,6 @@
                     <h3 class="game-name">${game.name}</h3>
                     <div class="game-stats">
                         <span>📦 ${blocks.length} Blocks</span>
-                        <span>📅 ${displayDate}</span>
                     </div>
                     <div class="action-row">
                         <button class="btn-base btn-play" onclick="playGame('${game.id}')">▶ PLAY</button>
@@ -158,7 +171,7 @@
                             <button class="btn-base btn-edit" onclick="editGame('${game.id}')">✎ Edit</button>
                             <button class="btn-base btn-rename" onclick="renameGame('${game.id}', '${game.name}')">📝 Rename</button>
                             <button class="btn-base btn-toggle" onclick="toggleVisibility('${game.id}', ${game.is_public})">
-                                ${game.is_public ? '🔒 Private' : '🌐 Public'}
+                                ${game.is_public ? '🔒 Hide' : '🌐 Publish'}
                             </button>
                             <button class="btn-base btn-delete" onclick="deleteGame('${game.id}')">✖ Delete</button>
                         ` : ''}
@@ -169,28 +182,20 @@
         }
 
         window.renameGame = async (id, oldName) => {
-            const newName = prompt("Enter new name for your world:", oldName);
+            const newName = prompt("New world name:", oldName);
             if (newName && newName.trim() !== "" && newName !== oldName) {
-                const { error } = await supabaseClient
-                    .from('games')
-                    .update({ name: newName.trim() })
-                    .eq('id', id);
-                
-                if (!error) loadGames(currentUser === "abraham");
+                await supabaseClient.from('games').update({ name: newName.trim() }).eq('id', id);
+                loadGames(currentUser === "abraham");
             }
         };
 
         window.toggleVisibility = async (id, currentPublicStatus) => {
-            const { error } = await supabaseClient
-                .from('games')
-                .update({ is_public: !currentPublicStatus })
-                .eq('id', id);
-            
-            if (!error) loadGames(currentUser === "abraham");
+            await supabaseClient.from('games').update({ is_public: !currentPublicStatus }).eq('id', id);
+            loadGames(currentUser === "abraham");
         };
 
         window.deleteGame = async (id) => {
-            if (confirm("Delete this game forever?")) {
+            if (confirm("Delete this game?")) {
                 await supabaseClient.from('games').delete().eq('id', id);
                 loadGames(currentUser === "abraham");
             }
@@ -233,7 +238,7 @@
             window.location.href = 'engine.html';
         };
 
-        checkUser();
+        init();
     </script>
 </body>
 </html>
