@@ -106,14 +106,33 @@
         async function init() {
             try {
                 const { data: { user }, error } = await supabaseClient.auth.getUser();
-                document.getElementById('loadingState').style.display = 'none';
                 
                 if (user && !error) {
-                    currentUser = user.email.split('@')[0];
-                    // Fetch role from user_metadata (Owner vs Player)
-                    userRole = user.user_metadata.role || "Player";
+                    // Fetch the profile data (username and role) from the profiles table
+                    const { data: profile, error: profileError } = await supabaseClient
+                        .from('profiles')
+                        .select('username, role')
+                        .eq('id', user.id)
+                        .single();
+
+                    if (profile) {
+                        currentUser = profile.username;
+                        userRole = profile.role;
+                    } else {
+                        // Fallback if profile doesn't exist yet
+                        currentUser = user.email.split('@')[0];
+                        userRole = "Player";
+                    }
+
+                    // Special Override for goomba
+                    if (currentUser.toLowerCase() === "goomba") {
+                        userRole = "Owner";
+                    }
+
+                    document.getElementById('loadingState').style.display = 'none';
                     showApp();
                 } else {
+                    document.getElementById('loadingState').style.display = 'none';
                     document.getElementById('authContainer').style.display = 'inline-block';
                 }
             } catch (e) {
@@ -154,7 +173,6 @@
             const statusClass = game.is_public ? 'status-public' : 'status-private';
             const statusText = game.is_public ? '🌐 Public' : '🔒 Private';
             
-            // If user is the creator OR is an Owner, they get the power
             const hasPower = isCreator || isOwner;
 
             card.innerHTML = `
@@ -217,29 +235,18 @@
             loginBtn.disabled = true;
             signupBtn.disabled = true;
 
-            const { error } = mode === 'signup' 
-                ? await supabaseClient.auth.signUp({email: fakeEmail, password: passInput}) 
+            const { data, error } = mode === 'signup' 
+                ? await supabaseClient.auth.signUp({
+                    email: fakeEmail, 
+                    password: passInput,
+                    options: { data: { username: userInput, role: 'Player' } }
+                  }) 
                 : await supabaseClient.auth.signInWithPassword({email: fakeEmail, password: passInput});
 
             if (error) {
-                msg.innerText = "Invalid Login. Try again.";
-                attemptCount++;
-                if (attemptCount >= 3) {
-                    let timeLeft = 30;
-                    const timer = setInterval(() => {
-                        msg.innerText = `Wait ${timeLeft}s`;
-                        timeLeft--;
-                        if (timeLeft < 0) {
-                            clearInterval(timer);
-                            attemptCount = 0;
-                            loginBtn.disabled = false;
-                            signupBtn.disabled = false;
-                        }
-                    }, 1000);
-                } else {
-                    loginBtn.disabled = false;
-                    signupBtn.disabled = false;
-                }
+                msg.innerText = "Error: " + error.message;
+                loginBtn.disabled = false;
+                signupBtn.disabled = false;
             } else {
                 location.reload();
             }
