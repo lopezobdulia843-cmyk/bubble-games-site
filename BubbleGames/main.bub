@@ -1,0 +1,17 @@
+// --- BUBBLER+ STARTUP SCRIPT ---
+
+// 1. Define the Laws
+set.[PLAYER.SPEED.25]
+set.[WORLD.GRAVITY.15]
+
+// 2. Create the World
+construct.[BASEPLATE.SIZE.100, 1, 100]
+modify.[BASEPLATE.COLOR.DARK_GRAY]
+
+// 3. Add a Fun Element
+construct.[BOUNCE_PAD.SIZE.5, 1, 5]
+place.[BOUNCE_PAD.TO. 0, 1, 10]
+modify.[BOUNCE_PAD.COLOR.NEON_BLUE]
+
+// 4. Link the Logic
+on.[TOUCH.BOUNCE_PAD] >> launch.[PLAYER.UP.60]
