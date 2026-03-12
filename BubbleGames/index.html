@@ -51,7 +51,6 @@
         .btn-logout { background: #222; color: #fff; padding: 8px 15px; border-radius: 8px; font-size: 12px; cursor: pointer; border: none; }
         .owner-tag { color: var(--owner); text-shadow: 0 0 10px var(--owner); font-weight: 900; }
 
-        /* Anti-Spam Styling */
         .btn-base:disabled { opacity: 0.4; cursor: not-allowed; filter: grayscale(1); }
     </style>
 </head>
@@ -101,6 +100,7 @@
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let currentUser = "";
+        let userRole = "Player";
         let attemptCount = 0;
 
         async function init() {
@@ -110,6 +110,8 @@
                 
                 if (user && !error) {
                     currentUser = user.email.split('@')[0];
+                    // Fetch role from user_metadata (Owner vs Player)
+                    userRole = user.user_metadata.role || "Player";
                     showApp();
                 } else {
                     document.getElementById('authContainer').style.display = 'inline-block';
@@ -120,12 +122,14 @@
         }
 
         async function showApp() {
-            const isOwner = (currentUser === "abraham");
+            const isOwner = (userRole === "Owner");
             document.getElementById('authContainer').style.display = 'none';
             document.getElementById('mainApp').style.display = 'block';
+            
             document.getElementById('userDisplay').innerHTML = isOwner 
-                ? `<span class="owner-tag">[OWNER] ABRAHAM</span>` 
+                ? `<span class="owner-tag">[OWNER] ${currentUser.toUpperCase()}</span>` 
                 : `<span style="color:var(--primary); font-weight:bold;">${currentUser.toUpperCase()}</span>`;
+            
             loadGames(isOwner);
         }
 
@@ -149,6 +153,10 @@
             card.className = 'game-card';
             const statusClass = game.is_public ? 'status-public' : 'status-private';
             const statusText = game.is_public ? '🌐 Public' : '🔒 Private';
+            
+            // If user is the creator OR is an Owner, they get the power
+            const hasPower = isCreator || isOwner;
+
             card.innerHTML = `
                 <div class="card-inner">
                     <span class="status-tag ${statusClass}">${statusText}</span>
@@ -156,7 +164,7 @@
                     <h3 class="game-name">${game.name || 'Untitled'}</h3>
                     <div class="action-row">
                         <button class="btn-base btn-play" onclick="playGame('${game.id}')">▶ PLAY</button>
-                        ${(isCreator || isOwner) ? `
+                        ${hasPower ? `
                             <button class="btn-base btn-edit" onclick="editGame('${game.id}')">✎ Edit</button>
                             <button class="btn-base btn-rename" onclick="renameGame('${game.id}', '${game.name}')">📝 Rename</button>
                             <button class="btn-base btn-toggle" onclick="toggleVisibility('${game.id}', ${game.is_public})">
@@ -206,8 +214,6 @@
             }
 
             const fakeEmail = `${userInput.toLowerCase()}@bubble.com`;
-            
-            // Disable buttons to prevent spamming while waiting
             loginBtn.disabled = true;
             signupBtn.disabled = true;
 
@@ -216,22 +222,18 @@
                 : await supabaseClient.auth.signInWithPassword({email: fakeEmail, password: passInput});
 
             if (error) {
-                // Human-friendly error
                 msg.innerText = "Invalid Login. Try again.";
                 attemptCount++;
-
-                // Bot protection: 3 fails = 30 second lock
                 if (attemptCount >= 3) {
                     let timeLeft = 30;
                     const timer = setInterval(() => {
-                        msg.innerText = `Too many attempts. Wait ${timeLeft}s`;
+                        msg.innerText = `Wait ${timeLeft}s`;
                         timeLeft--;
                         if (timeLeft < 0) {
                             clearInterval(timer);
                             attemptCount = 0;
                             loginBtn.disabled = false;
                             signupBtn.disabled = false;
-                            msg.innerText = "";
                         }
                     }, 1000);
                 } else {
