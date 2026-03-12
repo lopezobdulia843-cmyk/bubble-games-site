@@ -50,6 +50,9 @@
         
         .btn-logout { background: #222; color: #fff; padding: 8px 15px; border-radius: 8px; font-size: 12px; cursor: pointer; border: none; }
         .owner-tag { color: var(--owner); text-shadow: 0 0 10px var(--owner); font-weight: 900; }
+
+        /* Anti-Spam Styling */
+        .btn-base:disabled { opacity: 0.4; cursor: not-allowed; filter: grayscale(1); }
     </style>
 </head>
 <body>
@@ -98,6 +101,7 @@
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let currentUser = "";
+        let attemptCount = 0;
 
         async function init() {
             try {
@@ -111,7 +115,6 @@
                     document.getElementById('authContainer').style.display = 'inline-block';
                 }
             } catch (e) {
-                console.error("Auth Error:", e);
                 document.getElementById('loadingState').innerText = "Connection Failed.";
             }
         }
@@ -129,17 +132,10 @@
         async function loadGames(isOwner) {
             const myGrid = document.getElementById('myGamesGrid');
             const globalGrid = document.getElementById('globalGamesGrid');
-            
-            const { data: games, error } = await supabaseClient.from('games').select('*');
-            
-            if (error) {
-                console.error("Supabase 400 Error details:", error);
-                return;
-            }
+            const { data: games } = await supabaseClient.from('games').select('*');
+            if (!games) return;
 
-            myGrid.innerHTML = ''; 
-            globalGrid.innerHTML = '';
-
+            myGrid.innerHTML = ''; globalGrid.innerHTML = '';
             games.forEach(game => {
                 const isCreator = (game.creator === currentUser);
                 const card = createCard(game, isCreator, isOwner);
@@ -153,7 +149,6 @@
             card.className = 'game-card';
             const statusClass = game.is_public ? 'status-public' : 'status-private';
             const statusText = game.is_public ? '🌐 Public' : '🔒 Private';
-
             card.innerHTML = `
                 <div class="card-inner">
                     <span class="status-tag ${statusClass}">${statusText}</span>
@@ -175,7 +170,6 @@
             return card;
         }
 
-        // Global Window functions for the buttons
         window.renameGame = async (id, oldName) => {
             const newName = prompt("New world name:", oldName);
             if (newName && newName.trim() !== "") {
@@ -200,14 +194,53 @@
         window.editGame = (id) => { localStorage.setItem('currentGameId', id); localStorage.setItem('editMode', 'true'); window.location.href = 'engine.html'; };
 
         async function handleAuth(mode) {
+            const loginBtn = document.getElementById('loginBtn');
+            const signupBtn = document.getElementById('signupBtn');
+            const msg = document.getElementById('msg');
             const userInput = document.getElementById('username').value.trim();
             const passInput = document.getElementById('password').value;
+            
+            if (!userInput || !passInput) {
+                msg.innerText = "Please fill in all fields.";
+                return;
+            }
+
             const fakeEmail = `${userInput.toLowerCase()}@bubble.com`;
+            
+            // Disable buttons to prevent spamming while waiting
+            loginBtn.disabled = true;
+            signupBtn.disabled = true;
+
             const { error } = mode === 'signup' 
                 ? await supabaseClient.auth.signUp({email: fakeEmail, password: passInput}) 
                 : await supabaseClient.auth.signInWithPassword({email: fakeEmail, password: passInput});
-            if (error) document.getElementById('msg').innerText = error.message;
-            else location.reload();
+
+            if (error) {
+                // Human-friendly error
+                msg.innerText = "Invalid Login. Try again.";
+                attemptCount++;
+
+                // Bot protection: 3 fails = 30 second lock
+                if (attemptCount >= 3) {
+                    let timeLeft = 30;
+                    const timer = setInterval(() => {
+                        msg.innerText = `Too many attempts. Wait ${timeLeft}s`;
+                        timeLeft--;
+                        if (timeLeft < 0) {
+                            clearInterval(timer);
+                            attemptCount = 0;
+                            loginBtn.disabled = false;
+                            signupBtn.disabled = false;
+                            msg.innerText = "";
+                        }
+                    }, 1000);
+                } else {
+                    loginBtn.disabled = false;
+                    signupBtn.disabled = false;
+                }
+            } else {
+                location.reload();
+            }
         }
 
         document.getElementById('loginBtn').onclick = () => handleAuth('login');
