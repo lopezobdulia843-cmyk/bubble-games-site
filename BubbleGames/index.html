@@ -98,6 +98,10 @@
         const SUPABASE_KEY = 'sb_publishable_ULjlm97u7-dg8ekTPU84aA_rA1CtUnH';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+        // --- OWNER CONFIGURATION ---
+        const OWNER_EMAIL = "goomba@bubble.com"; // Change this to your actual admin email
+        // ---------------------------
+
         let currentUser = "";
         let userRole = "Player";
 
@@ -106,8 +110,8 @@
                 const { data: { user }, error } = await supabaseClient.auth.getUser();
                 
                 if (user && !error) {
-                    // Check the database for the user's real role and username
-                    const { data: profile, error: profileError } = await supabaseClient
+                    // 1. First, fetch the profile data
+                    const { data: profile } = await supabaseClient
                         .from('profiles')
                         .select('username, role')
                         .eq('id', user.id)
@@ -115,11 +119,15 @@
 
                     if (profile) {
                         currentUser = profile.username;
-                        userRole = profile.role; // This pulls "Owner" or "Player" from DB
+                        userRole = profile.role;
                     } else {
-                        // Fallback if no profile row exists yet
                         currentUser = user.email.split('@')[0];
                         userRole = "Player";
+                    }
+
+                    // 2. EMAIL OVERRIDE: If the email matches your admin email, force Owner status
+                    if (user.email.toLowerCase() === OWNER_EMAIL.toLowerCase()) {
+                        userRole = "Owner";
                     }
 
                     document.getElementById('loadingState').style.display = 'none';
@@ -138,7 +146,6 @@
             document.getElementById('authContainer').style.display = 'none';
             document.getElementById('mainApp').style.display = 'block';
             
-            // UI reflects the role from the database
             document.getElementById('userDisplay').innerHTML = isOwner 
                 ? `<span class="owner-tag">[OWNER] ${currentUser.toUpperCase()}</span>` 
                 : `<span style="color:var(--primary); font-weight:bold;">${currentUser.toUpperCase()}</span>`;
@@ -156,8 +163,13 @@
             games.forEach(game => {
                 const isCreator = (game.creator === currentUser);
                 const card = createCard(game, isCreator, isOwner);
-                if (isCreator) myGrid.appendChild(card);
-                else if (game.is_public) globalGrid.appendChild(card);
+                
+                if (isCreator) {
+                    myGrid.appendChild(card);
+                } else if (game.is_public || isOwner) {
+                    // Owners can see ALL games in the global library, even private ones
+                    globalGrid.appendChild(card);
+                }
             });
         }
 
@@ -167,7 +179,7 @@
             const statusClass = game.is_public ? 'status-public' : 'status-private';
             const statusText = game.is_public ? '🌐 Public' : '🔒 Private';
             
-            // Permission check: You can edit if you made it OR you are an Owner in the DB
+            // If user is the creator OR they are the Owner email, they get full control
             const hasPower = isCreator || isOwner;
 
             card.innerHTML = `
@@ -230,11 +242,10 @@
             loginBtn.disabled = true;
             signupBtn.disabled = true;
 
-            const { data, error } = mode === 'signup' 
+            const { error } = mode === 'signup' 
                 ? await supabaseClient.auth.signUp({
                     email: fakeEmail, 
                     password: passInput,
-                    // We send the metadata so a trigger or function can create the profile
                     options: { data: { username: userInput, role: 'Player' } }
                   }) 
                 : await supabaseClient.auth.signInWithPassword({email: fakeEmail, password: passInput});
