@@ -10,27 +10,23 @@
         
         #settings-panel { 
             position: absolute; top: 100px; left: 20px; 
-            background: rgba(0,0,0,0.9); padding: 15px; border-radius: 12px; 
+            background: rgba(0,0,0,0.85); padding: 15px; border-radius: 12px; 
             border: 1px solid #00d4ff; width: 220px; z-index: 50;
             backdrop-filter: blur(10px);
         }
-        .setting-group { margin-bottom: 15px; }
+        .setting-group { margin-bottom: 18px; }
         .label-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .setting-group label { font-size: 10px; text-transform: uppercase; color: #00d4ff; font-weight: bold; }
+        .setting-group label { font-size: 11px; text-transform: uppercase; color: #00d4ff; font-weight: bold; }
         
         .num-input, .text-input {
             background: #111; border: 1px solid #444; color: #00d4ff;
             font-size: 12px; border-radius: 4px; padding: 4px;
         }
         .num-input { width: 50px; text-align: center; }
-        .text-input { width: 100%; box-sizing: border-box; }
+        .text-input { width: 100%; box-sizing: border-box; margin-top: 5px; }
 
         input[type="range"] { width: 100%; cursor: pointer; accent-color: #00d4ff; }
-        
-        #property-editor {
-            margin-top: 15px; padding-top: 15px; border-top: 2px solid #333;
-            display: none; /* Shown when a part is selected */
-        }
+        input[type="color"] { background: none; border: none; width: 30px; height: 30px; cursor: pointer; vertical-align: middle; }
 
         button { 
             width: 140px; height: 50px; font-size: 14px; font-weight: bold;
@@ -62,10 +58,12 @@
         #info { position: absolute; top: 10px; left: 10px; color: white; pointer-events: none; }
         #coords { font-family: monospace; color: #00d4ff; margin-top: 5px; background: rgba(0,0,0,0.5); padding: 5px; border-radius: 5px; }
         #loading-overlay { position: fixed; inset: 0; background: #050505; z-index: 100; display: flex; align-items: center; justify-content: center; color: #00d4ff; }
+
+        #property-editor { margin-top: 15px; padding-top: 15px; border-top: 2px solid #333; display: none; }
     </style>
 </head>
 <body>
-    <div id="loading-overlay">INITIALIZING ENGINE...</div>
+    <div id="loading-overlay">INITIALIZING...</div>
 
     <div id="info">
         <h2 id="gameNameDisplay" style="margin:0; color:#00d4ff;">BUBBLE GAMES</h2>
@@ -81,22 +79,17 @@
 
         <div id="property-editor">
             <h3 style="color:#00d4ff; font-size: 12px; margin-top:0;">PART PROPERTIES</h3>
-            
             <div class="setting-group">
-                <label>Part Name</label>
-                <input type="text" id="part-name" class="text-input" placeholder="Block Name">
+                <label>Name</label>
+                <input type="text" id="part-name" class="text-input" placeholder="Part Name">
             </div>
-
             <div class="setting-group">
-                <label>Color & Grid</label>
-                <div style="display:flex; gap:10px; align-items:center;">
-                    <input type="color" id="part-color" value="#cccccc">
-                    <label style="font-size: 9px;"><input type="checkbox" id="part-grid-toggle" checked> GRID</label>
-                </div>
+                <label>Color</label><br>
+                <input type="color" id="part-color" value="#cccccc">
+                <label style="font-size: 10px; margin-left:10px;"><input type="checkbox" id="part-grid-toggle" checked> GRID</label>
             </div>
-
             <div class="setting-group">
-                <label>Scale</label>
+                <label>Size</label>
                 <input type="range" id="size-slider" min="0.2" max="10" step="0.1" value="1">
             </div>
         </div>
@@ -116,7 +109,7 @@
     <div id="top-bar" class="controls">
         <button id="playTestBtn" onclick="togglePlayTest()">PLAY TEST ▶</button>
         <button id="publishBtn" onclick="publishGame()" style="display:none;">PUBLISH 🚀</button>
-        <button id="dragModeBtn" onclick="toggleTool('drag')" style="display:none;">PROPERTIES / DRAG</button>
+        <button id="dragModeBtn" onclick="toggleTool('drag')" style="display:none;">DRAG PART</button>
         <button id="deleteModeBtn" onclick="toggleTool('delete')" style="display:none;">DELETE</button>
         <button onclick="exitGame()">EXIT</button>
     </div>
@@ -135,6 +128,7 @@
         import * as THREE from 'three';
         import { TransformControls } from 'three/addons/controls/TransformControls.js';
 
+        // --- SETUP ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x0a0a0c);
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -146,8 +140,8 @@
         const gridHelper = new THREE.GridHelper(100, 100, 0x00d4ff, 0x222222);
         scene.add(gridHelper);
 
-        // --- GRID TEXTURE GENERATOR ---
-        const createGridTexture = (color) => {
+        // --- GRID TEXTURE ---
+        const createGridTexture = (color = '#00d4ff') => {
             const canvas = document.createElement('canvas');
             canvas.width = 128; canvas.height = 128;
             const ctx = canvas.getContext('2d');
@@ -177,40 +171,34 @@
         let spawnPoint = null;
         let selectedObject = null;
 
-        // --- PROPERTY UI ELEMENTS ---
+        // --- UI REFS ---
         const propEditor = document.getElementById('property-editor');
         const partNameInp = document.getElementById('part-name');
         const partColorInp = document.getElementById('part-color');
         const partGridInp = document.getElementById('part-grid-toggle');
         const sizeSlider = document.getElementById('size-slider');
 
-        // Apply changes in real-time
-        const updateSelectedPart = () => {
-            if (!selectedObject) return;
+        // Update selected part in real-time
+        const applyProperties = () => {
+            if (!selectedObject || selectedObject === floor) return;
             selectedObject.userData.name = partNameInp.value;
             selectedObject.userData.color = partColorInp.value;
             selectedObject.userData.useGrid = partGridInp.checked;
             
-            if (selectedObject !== spawnPoint) {
+            if (selectedObject.userData.type !== 'spawn') {
                 selectedObject.material.color.set(partColorInp.value);
                 selectedObject.material.map = partGridInp.checked ? createGridTexture(partColorInp.value) : null;
                 selectedObject.material.needsUpdate = true;
             }
             const s = parseFloat(sizeSlider.value);
-            selectedObject.scale.set(s,s,s);
+            selectedObject.scale.set(s, s, s);
         };
 
-        [partNameInp, partColorInp, partGridInp, sizeSlider].forEach(el => {
-            el.addEventListener('input', updateSelectedPart);
-        });
+        [partNameInp, partColorInp, partGridInp, sizeSlider].forEach(el => el.addEventListener('input', applyProperties));
 
         window.toggleTool = (tool) => {
             currentTool = (currentTool === tool) ? 'place' : tool;
-            if (currentTool !== 'drag') { 
-                gizmo.detach(); 
-                propEditor.style.display = 'none'; 
-                selectedObject = null;
-            }
+            if (currentTool !== 'drag') { gizmo.detach(); propEditor.style.display = 'none'; selectedObject = null; }
             document.getElementById('deleteModeBtn').classList.toggle('active-tool', currentTool === 'delete');
             document.getElementById('dragModeBtn').classList.toggle('active-tool', currentTool === 'drag');
         };
@@ -220,89 +208,77 @@
 
         window.addEventListener('pointerdown', (e) => {
             if (e.target.closest('button') || e.target.closest('#settings-panel') || gizmo.dragging) return;
-            
             mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
-            
-            const intersects = raycaster.intersectObjects(objects);
-            if (intersects.length > 0) {
-                const hit = intersects[0];
-                
-                if (!isPlayMode && currentTool === 'drag' && hit.object !== floor) {
+            const hits = raycaster.intersectObjects(objects);
+
+            if (hits.length > 0) {
+                const hit = hits[0];
+                if (currentTool === 'drag' && hit.object !== floor) {
                     selectedObject = hit.object;
                     gizmo.attach(selectedObject);
                     propEditor.style.display = 'block';
-                    
-                    // Load properties into UI
-                    partNameInp.value = selectedObject.userData.name || "Block";
+                    // Load saved properties into UI
+                    partNameInp.value = selectedObject.userData.name || "Part";
                     partColorInp.value = selectedObject.userData.color || "#cccccc";
                     partGridInp.checked = selectedObject.userData.useGrid !== false;
                     sizeSlider.value = selectedObject.scale.x;
-                } else if (!isPlayMode && currentTool === 'place') {
-                    placeBlock(hit);
-                } else if (!isPlayMode && currentTool === 'delete' && hit.object !== floor) {
-                    if (hit.object === spawnPoint) spawnPoint = null;
+                } else if (currentTool === 'place') {
+                    placePart(hit);
+                } else if (currentTool === 'delete' && hit.object !== floor) {
                     scene.remove(hit.object);
                     objects.splice(objects.indexOf(hit.object), 1);
                     gizmo.detach();
-                    propEditor.style.display = 'none';
                 }
             }
         });
 
-        function placeBlock(hit) {
+        function placePart(hit) {
             const isSpawn = selectedItemType === 'spawn';
             const color = isSpawn ? "#00ffff" : "#cccccc";
-            const mat = isSpawn ? spawnMat : new THREE.MeshStandardMaterial({ 
-                color: color, 
-                map: createGridTexture(color) 
-            });
-            
+            const mat = isSpawn ? spawnMat : new THREE.MeshStandardMaterial({ color, map: createGridTexture(color) });
             const m = new THREE.Mesh(isSpawn ? spawnGeo : blockGeo, mat);
+            
             const pos = hit.object === floor ? 
                 new THREE.Vector3(Math.round(hit.point.x), isSpawn ? 0.1 : 0.5, Math.round(hit.point.z)) : 
                 hit.object.position.clone().add(hit.face.normal.multiplyScalar(isSpawn ? 0.6 : 1));
             
             m.position.copy(pos);
-            m.userData = { name: isSpawn ? "Spawn" : "Block", color: color, useGrid: true, type: selectedItemType };
-            
+            m.userData = { name: isSpawn ? "Spawn" : "Part", color, useGrid: true, type: selectedItemType };
             scene.add(m);
             objects.push(m);
-            if (isSpawn) { 
-                if(spawnPoint) { scene.remove(spawnPoint); objects.splice(objects.indexOf(spawnPoint), 1); }
-                spawnPoint = m; 
+            if (isSpawn) {
+                if (spawnPoint) { scene.remove(spawnPoint); objects.splice(objects.indexOf(spawnPoint), 1); }
+                spawnPoint = m;
             }
         }
 
         window.publishGame = async () => {
-            const blocksData = objects.filter(obj => obj !== floor).map(obj => ({
-                x: obj.position.x, y: obj.position.y, z: obj.position.z,
-                s: obj.scale.x,
-                name: obj.userData.name,
-                color: obj.userData.color,
-                useGrid: obj.userData.useGrid,
-                type: obj.userData.type
+            const blocksData = objects.filter(o => o !== floor).map(o => ({
+                x: o.position.x, y: o.position.y, z: o.position.z,
+                s: o.scale.x,
+                name: o.userData.name,
+                color: o.userData.color,
+                useGrid: o.userData.useGrid,
+                type: o.userData.type
             }));
-            // Save logic here...
-            console.log("Saving full data:", blocksData);
-            alert("Game Data Structure Updated & Saved!");
+            console.log("Saving Data:", blocksData);
+            alert("Published with per-part properties!");
         };
 
-        // --- CAMERA & RENDER LOOP ---
         function animate() {
             requestAnimationFrame(animate);
             renderer.render(scene, camera);
         }
         animate();
 
-        // Basic camera movement for editor
         window.addEventListener('keydown', (e) => {
-            const speed = 0.5;
-            if(e.code === 'KeyW') camera.translateZ(-speed);
-            if(e.code === 'KeyS') camera.translateZ(speed);
-            if(e.code === 'KeyA') camera.translateX(-speed);
-            if(e.code === 'KeyD') camera.translateX(speed);
+            const s = 0.5;
+            if(e.code === 'KeyW') camera.translateZ(-s);
+            if(e.code === 'KeyS') camera.translateZ(s);
+            if(e.code === 'KeyA') camera.translateX(-s);
+            if(e.code === 'KeyD') camera.translateX(s);
         });
 
         setTimeout(() => {
@@ -310,9 +286,15 @@
             document.getElementById('settings-panel').style.display = 'block';
             document.getElementById('item-selector').style.display = 'flex';
             ['publishBtn', 'dragModeBtn', 'deleteModeBtn'].forEach(id => document.getElementById(id).style.display = 'flex');
-        }, 1000);
+        }, 800);
 
-        window.selectItem = (t) => { selectedItemType = t; };
+        window.selectItem = (t) => {
+            selectedItemType = t;
+            document.querySelectorAll('.item-card').forEach(c => c.classList.remove('selected'));
+            document.getElementById(`card-${t}`).classList.add('selected');
+        };
+
+        window.exitGame = () => { window.location.reload(); };
     </script>
 </body>
 </html>
