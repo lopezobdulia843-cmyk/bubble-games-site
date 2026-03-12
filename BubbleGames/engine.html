@@ -1,546 +1,1045 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Bubble Games</title>
-    <style>
-        body { margin: 0; overflow: hidden; background: #050505; font-family: sans-serif; touch-action: none; color: white; }
-        .controls { position: absolute; z-index: 10; display: flex; gap: 10px; }
-        #top-bar { top: 20px; right: 20px; flex-direction: column; align-items: flex-end; }
-        
-        #settings-panel { 
-            position: absolute; top: 100px; left: 20px; 
-            background: rgba(0,0,0,0.85); padding: 15px; border-radius: 12px; 
-            border: 1px solid #00d4ff; width: 200px; z-index: 50;
-            backdrop-filter: blur(10px);
-        }
-        .setting-group { margin-bottom: 18px; }
-        .label-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .setting-group label { font-size: 11px; text-transform: uppercase; color: #00d4ff; font-weight: bold; }
-        
-        .num-input {
-            width: 50px; background: #111; border: 1px solid #444; color: #00d4ff;
-            font-size: 12px; border-radius: 4px; padding: 2px 4px; text-align: center;
-        }
-        .num-input:focus { border-color: #00d4ff; outline: none; }
+<meta charset="UTF-8">
+<title>Bubbler+ | Architect Engine</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+:root{--cyan:#00d4ff;--mag:#ff00cc;--green:#00ff88;--dark:#050508;--panel:rgba(5,5,15,0.94);--border:rgba(0,212,255,0.25);--red:#ff3355;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--dark);font-family:'Share Tech Mono',monospace;color:#fff;overflow:hidden;height:100vh;touch-action:none;}
+#app{display:flex;height:100vh;width:100vw;}
+#viewport{flex:1;position:relative;overflow:hidden;}
+canvas{display:block;}
+#hud{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;}
+#hud-tl{position:absolute;top:12px;left:12px;}
+#game-title{font-family:'Orbitron',sans-serif;font-size:16px;font-weight:900;color:var(--cyan);text-shadow:0 0 20px var(--cyan);letter-spacing:4px;}
+#coords{font-size:11px;color:var(--cyan);background:rgba(0,0,0,0.6);padding:5px 9px;border-radius:6px;border:1px solid rgba(0,212,255,0.18);line-height:1.7;margin-top:6px;}
+#hud-tr{position:absolute;top:12px;right:12px;display:flex;flex-direction:column;gap:5px;align-items:flex-end;pointer-events:auto;}
+.hbtn{font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;padding:7px 12px;border-radius:7px;cursor:pointer;letter-spacing:1px;transition:all .15s;border:1px solid var(--border);background:rgba(0,0,0,0.75);color:#fff;white-space:nowrap;}
+.hbtn:hover{border-color:var(--cyan);color:var(--cyan);}
+#playBtn{border-color:var(--green);color:var(--green);}
+#playBtn:hover,#playBtn.on{background:var(--green);color:#000;box-shadow:0 0 18px var(--green);}
+#publishBtn{border-color:var(--mag);color:var(--mag);}
+#publishBtn:hover{background:var(--mag);color:#000;}
+#exitBtn{border-color:var(--red);color:var(--red);}
+#exitBtn:hover{background:var(--red);color:#fff;}
+#learnBtn{border-color:#ffaa00;color:#ffaa00;}
+#learnBtn:hover{background:#ffaa00;color:#000;}
+#crosshair{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:14px;height:14px;border:2px solid rgba(255,255,255,.8);border-radius:50%;display:none;pointer-events:none;}
+#crosshair::before,#crosshair::after{content:'';position:absolute;background:rgba(255,255,255,.8);}
+#crosshair::before{width:1px;height:6px;left:50%;top:-8px;transform:translateX(-50%);}
+#crosshair::after{height:1px;width:6px;top:50%;left:-8px;transform:translateY(-50%);}
+#notif{position:absolute;top:55px;left:50%;transform:translateX(-50%);pointer-events:none;z-index:50;display:flex;flex-direction:column;gap:5px;align-items:center;}
+.notif{background:rgba(0,0,0,.88);border:1px solid var(--cyan);color:var(--cyan);padding:7px 14px;border-radius:7px;font-size:12px;animation:nin .2s ease,nout .3s 2.2s ease forwards;}
+.notif.err{border-color:var(--red);color:var(--red);}
+.notif.ok{border-color:var(--green);color:var(--green);}
+@keyframes nin{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+@keyframes nout{to{opacity:0}}
+#tool-bar{position:absolute;top:50%;left:12px;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px;pointer-events:auto;z-index:5;}
+.tbtn{width:40px;height:40px;border-radius:8px;border:1px solid #2a2a3a;background:rgba(0,0,0,.75);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:17px;transition:all .15s;}
+.tbtn:hover,.tbtn.on{border-color:var(--cyan);box-shadow:0 0 10px rgba(0,212,255,.4);}
+.tbtn.del.on{border-color:var(--red);box-shadow:0 0 10px rgba(255,51,85,.4);}
+#item-bar{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:7px;background:rgba(0,0,0,.88);padding:8px;border-radius:12px;border:1px solid var(--border);pointer-events:auto;z-index:5;}
+.icard{width:54px;height:54px;border-radius:8px;border:2px solid #2a2a3a;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:#08080f;transition:all .15s;gap:3px;}
+.icard:hover{border-color:var(--cyan);}
+.icard.sel{border-color:var(--cyan);background:rgba(0,212,255,.12);box-shadow:0 0 10px rgba(0,212,255,.25);}
+.iicon{width:24px;height:24px;border-radius:4px;}
+.i-block{background:#ccc;border:1px solid #999;}
+.i-spawn{background:#00ffff;box-shadow:0 0 7px #00ffff;border-radius:50%;}
+.i-slab{background:linear-gradient(to right,#00d4ff,#0055aa);height:10px!important;margin-top:7px;}
+.i-ramp{background:linear-gradient(45deg,#888,#ccc);clip-path:polygon(0 100%,100% 100%,100% 0);}
+.ilabel{font-size:9px;color:#aaa;letter-spacing:.5px;}
+#sidebar{width:340px;min-width:340px;background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;backdrop-filter:blur(20px);z-index:10;}
+#tabs{display:flex;border-bottom:1px solid var(--border);}
+.tab{flex:1;padding:9px 2px;text-align:center;cursor:pointer;font-size:9px;letter-spacing:1px;color:#444;transition:all .2s;font-family:'Orbitron',sans-serif;}
+.tab.on{color:var(--cyan);border-bottom:2px solid var(--cyan);}
+.tab-panel{display:none;flex:1;flex-direction:column;overflow:hidden;}
+.tab-panel.on{display:flex;}
+#editor-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:10px;gap:7px;min-height:0;} #editor-outer{flex:1;position:relative;min-height:0;display:flex;flex-direction:column;}
+#editor-top{display:flex;justify-content:space-between;align-items:center;}
+#code-editor{flex:1;min-height:0;background:#020204;border:1px solid rgba(0,212,255,.18);border-radius:8px;color:#e0e0e0;font-family:'Share Tech Mono',monospace;font-size:13px;line-height:1.7;padding:12px;resize:none;outline:none;tab-size:2;overflow:auto;scrollbar-width:thin;scrollbar-color:var(--cyan) transparent;display:block;width:100%;box-sizing:border-box;}
+#code-editor:focus{border-color:rgba(0,212,255,.35);}
+#btn-row{display:flex;gap:6px;}
+#run-btn{flex:1;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;padding:9px;border-radius:7px;cursor:pointer;letter-spacing:2px;background:linear-gradient(135deg,rgba(0,212,255,.15),rgba(0,255,136,.08));color:var(--cyan);border:1px solid var(--cyan);transition:all .2s;}
+#run-btn:hover{background:var(--cyan);color:#000;box-shadow:0 0 18px var(--cyan);}
+#attach-btn{font-family:'Orbitron',sans-serif;font-size:10px;padding:9px 10px;border-radius:7px;cursor:pointer;background:rgba(255,0,204,.08);color:var(--mag);border:1px solid var(--mag);transition:all .2s;white-space:nowrap;}
+#attach-btn:hover{background:var(--mag);color:#000;}
+#console-wrap{height:110px;border-top:1px solid var(--border);display:flex;flex-direction:column;}
+#console-title{font-size:9px;color:#333;letter-spacing:2px;padding:5px 10px;font-family:'Orbitron',sans-serif;}
+#console-log{flex:1;overflow-y:auto;padding:3px 10px 7px;font-size:11px;line-height:1.8;scrollbar-width:thin;scrollbar-color:#333 transparent;}
+.log-ok{color:var(--green);}.log-err{color:#ff4444;}.log-info{color:#777;}.log-warn{color:#ffaa00;}
+#ref-wrap{flex:1;overflow-y:auto;padding:10px;scrollbar-width:thin;scrollbar-color:var(--cyan) transparent;}
+.ref-sec{margin-bottom:14px;}
+.ref-ttl{font-family:'Orbitron',sans-serif;font-size:9px;color:var(--mag);letter-spacing:2px;margin-bottom:7px;padding-bottom:3px;border-bottom:1px solid rgba(255,0,204,.18);}
+.rc{background:rgba(0,0,0,.4);border-left:2px solid var(--cyan);padding:5px 8px;border-radius:0 5px 5px 0;margin-bottom:3px;font-size:11px;cursor:pointer;transition:all .15s;line-height:1.6;}
+.rc:hover{background:rgba(0,212,255,.07);border-left-color:var(--mag);}
+.rc .kw{color:var(--cyan);}
+.rc .cm{color:#444;font-size:10px;display:block;margin-top:1px;}
+#objects-wrap{flex:1;overflow-y:auto;padding:10px;scrollbar-width:thin;scrollbar-color:var(--cyan) transparent;}
+.oi{background:rgba(0,0,0,.4);border:1px solid #1e1e2e;border-radius:6px;padding:7px 10px;margin-bottom:5px;font-size:11px;transition:all .15s;display:flex;justify-content:space-between;align-items:center;}
+.oi:hover{border-color:var(--cyan);}
+.oi.hscript{border-color:rgba(255,0,204,.35);}
+.oi .oname{color:var(--cyan);font-weight:bold;}
+.oi .opos{color:#444;font-size:10px;}
+.sbadge{font-size:9px;color:var(--mag);background:rgba(255,0,204,.12);border:1px solid rgba(255,0,204,.3);border-radius:3px;padding:1px 5px;margin-left:5px;}
+.oi-actions{display:flex;gap:4px;align-items:center;}
+.oi-edit{color:var(--mag);cursor:pointer;padding:2px 5px;font-size:11px;border-radius:3px;}
+.oi-edit:hover{background:rgba(255,0,204,.15);}
+.oi-del{color:#ff4444;cursor:pointer;padding:2px 5px;border-radius:3px;}
+.oi-del:hover{background:rgba(255,68,68,.2);}
+/* PART SCRIPT MODAL */
+#psm{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(8px);}
+#psm.open{display:flex;}
+#psm-box{background:#070710;border:1px solid var(--mag);border-radius:12px;width:580px;max-width:95vw;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 40px rgba(255,0,204,.2);}
+#psm-hdr{padding:12px 16px;background:rgba(255,0,204,.06);border-bottom:1px solid rgba(255,0,204,.2);display:flex;align-items:center;justify-content:space-between;}
+#psm-title{font-family:'Orbitron',sans-serif;font-size:13px;color:var(--mag);letter-spacing:2px;}
+#psm-x{color:#555;cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;}
+#psm-x:hover{color:#fff;}
+#psm-sub{font-size:10px;color:#444;padding:6px 16px;border-bottom:1px solid #111;background:#040408;}
+#psm-ed{height:280px;background:#020204;color:#e0e0e0;font-family:'Share Tech Mono',monospace;font-size:12px;line-height:1.7;padding:12px;border:none;outline:none;resize:none;width:100%;tab-size:2;overflow:auto;scrollbar-width:thin;scrollbar-color:var(--mag) transparent;}
+#psm-ftr{padding:10px 16px;display:flex;gap:8px;border-top:1px solid #111;background:#040408;align-items:center;}
+#psm-save{font-family:'Orbitron',sans-serif;font-size:11px;padding:8px 16px;border-radius:6px;cursor:pointer;background:var(--mag);color:#000;border:none;font-weight:700;letter-spacing:1px;}
+#psm-cancel{font-family:'Orbitron',sans-serif;font-size:11px;padding:8px 16px;border-radius:6px;cursor:pointer;background:transparent;color:#555;border:1px solid #333;}
+#psm-cancel:hover{color:#fff;border-color:#555;}
+#psm-hint{flex:1;font-size:10px;color:#333;line-height:1.5;}
+/* PUBLISH MODAL */
+#pm{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(8px);}
+#pm.open{display:flex;}
+#pm-box{background:#070710;border:1px solid var(--mag);border-radius:14px;width:440px;max-width:95vw;overflow:hidden;box-shadow:0 0 50px rgba(255,0,204,.25);}
+#pm-hdr{padding:16px 20px;background:rgba(255,0,204,.07);border-bottom:1px solid rgba(255,0,204,.2);}
+#pm-hdr-title{font-family:'Orbitron',sans-serif;font-size:16px;color:var(--mag);letter-spacing:3px;}
+#pm-hdr-sub{font-size:11px;color:#555;margin-top:4px;}
+#pm-body{padding:20px;}
+.pmf{margin-bottom:16px;}
+.pml{font-size:10px;color:var(--cyan);letter-spacing:2px;margin-bottom:6px;display:block;}
+.pmi{width:100%;background:#0a0a14;border:1px solid #1e1e3a;color:#e0e0e0;font-family:'Share Tech Mono',monospace;font-size:13px;padding:9px 12px;border-radius:7px;outline:none;}
+.pmi:focus{border-color:var(--mag);}
+.pmtags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+.pmtag{font-size:10px;padding:3px 8px;border-radius:4px;border:1px solid #333;cursor:pointer;color:#555;transition:all .15s;}
+.pmtag.on{border-color:var(--cyan);color:var(--cyan);background:rgba(0,212,255,.1);}
+#pm-ftr{padding:12px 20px;display:flex;gap:8px;border-top:1px solid #111;background:#040408;}
+#pm-confirm{flex:1;font-family:'Orbitron',sans-serif;font-size:12px;padding:10px;border-radius:8px;cursor:pointer;background:linear-gradient(135deg,var(--mag),#aa00ff);color:#fff;border:none;font-weight:700;letter-spacing:2px;}
+#pm-cancel2{font-family:'Orbitron',sans-serif;font-size:11px;padding:10px 16px;border-radius:8px;cursor:pointer;background:transparent;color:#555;border:1px solid #333;}
+#pm-cancel2:hover{color:#fff;border-color:#555;}
+#pm-success{display:none;padding:24px;text-align:center;}
+.ps-icon{font-size:44px;margin-bottom:10px;}
+.ps-title{font-family:'Orbitron',sans-serif;font-size:16px;color:var(--green);letter-spacing:2px;margin-bottom:8px;}
+.ps-code{background:#0a0a14;border:1px solid var(--cyan);border-radius:8px;padding:12px 16px;font-size:16px;color:var(--cyan);letter-spacing:3px;margin:12px 0;cursor:pointer;font-family:'Orbitron',sans-serif;}
+.ps-hint{font-size:10px;color:#555;}
+#pm-exit-btn{font-family:'Orbitron',sans-serif;font-size:11px;padding:9px 20px;border-radius:7px;cursor:pointer;background:var(--green);color:#000;border:none;font-weight:700;letter-spacing:1px;margin-top:14px;}
+/* LOADING */
+#loading{position:fixed;inset:0;background:#050508;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
+#ltitle{font-family:'Orbitron',sans-serif;font-size:36px;font-weight:900;color:var(--cyan);text-shadow:0 0 40px var(--cyan);letter-spacing:10px;}
+#lsub{color:#333;letter-spacing:4px;font-size:11px;animation:blink 1s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+#lbar-w{width:280px;height:2px;background:#111;border-radius:1px;overflow:hidden;}
+#lbar{height:100%;background:var(--cyan);width:0;transition:width .3s;box-shadow:0 0 8px var(--cyan);}
+#grid-glow{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 85%,rgba(0,212,255,.04) 0%,transparent 70%);}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:rgba(0,212,255,.3);border-radius:2px;}
+/* ── EDITOR ── */
+#editor-outer{flex:1;position:relative;min-height:0;display:flex;flex-direction:column;}
+#code-editor{flex:1;background:#020204;border:1px solid rgba(0,212,255,.18);border-radius:8px;color:#e0e0e0;font-family:'Share Tech Mono',monospace;font-size:13px;line-height:1.7;padding:12px;resize:none;outline:none;tab-size:2;overflow:auto;scrollbar-width:thin;scrollbar-color:var(--cyan) transparent;display:block;width:100%;}
+#code-editor:focus{border-color:rgba(0,212,255,.45);}
+/* ── AUTOCOMPLETE ── */
+#ac-box{position:fixed;z-index:9999;background:#080814;border:1px solid var(--cyan);border-radius:10px;overflow:hidden;min-width:270px;max-width:360px;box-shadow:0 10px 40px rgba(0,0,0,.9),0 0 20px rgba(0,212,255,.1);display:none;}
+#ac-box.show{display:block;}
+#ac-header{padding:5px 12px;font-size:9px;color:#333;letter-spacing:2px;font-family:'Orbitron',sans-serif;background:#040408;border-bottom:1px solid #111;}
+.ac-item{padding:8px 12px;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #0e0e1a;transition:background .1s;}
+.ac-item:last-child{border-bottom:none;}
+.ac-item:hover,.ac-item.sel{background:rgba(0,212,255,.1);}
+.ac-label{color:#00d4ff;flex:1;}
+.ac-label b{color:#00ffcc;}
+.ac-hint{color:#333;font-size:10px;white-space:nowrap;}
+.ac-tag{font-size:8px;padding:2px 5px;border-radius:3px;margin-right:2px;flex-shrink:0;}
+.tag-cmd{background:rgba(0,212,255,.12);color:#00d4ff;}
+.tag-prop{background:rgba(204,136,255,.12);color:#cc88ff;}
+.tag-val{background:rgba(0,255,136,.1);color:#00ff88;}
+.tag-snip{background:rgba(255,170,0,.1);color:#ffaa00;}
+/* ── HELP TAB ── */
+.ref-notice{background:rgba(0,212,255,.07);border:1px solid rgba(0,212,255,.15);border-radius:7px;padding:8px 12px;font-size:11px;color:#00d4ff;margin-bottom:12px;text-align:center;}
+.ref-colors{display:flex;flex-wrap:wrap;gap:8px;padding:6px 0;font-size:11px;}
+.ref-colors span{cursor:pointer;padding:2px 6px;border-radius:4px;border:1px solid #1a1a2e;transition:all .15s;}
+.ref-colors span:hover{border-color:currentColor;background:rgba(255,255,255,.05);}
+.rc .cm{color:#555;font-size:10px;display:block;margin-top:2px;}
 
-        input[type="range"] { width: 100%; cursor: pointer; accent-color: #00d4ff; }
-
-        button { 
-            width: 140px; height: 50px; font-size: 14px; font-weight: bold;
-            background: rgba(0, 212, 255, 0.1); color: white;
-            border: 2px solid #00d4ff; border-radius: 10px; cursor: pointer;
-            backdrop-filter: blur(5px); margin-bottom: 5px;
-            display: flex; align-items: center; justify-content: center; transition: 0.2s;
-        }
-        
-        #publishBtn { background: #00d4ff; color: #000; }
-        #playTestBtn { background: #2ecc71; color: #000; border-color: #2ecc71; }
-        #playTestBtn.playing { background: #e74c3c; color: white; border-color: #e74c3c; }
-
-        .active-tool { background: #00d4ff !important; color: #000 !important; box-shadow: 0 0 15px #00d4ff; }
-        #deleteModeBtn.active-tool { background: #ff3232 !important; border-color: #ff3232 !important; color: white !important; box-shadow: 0 0 15px #ff3232; }
-
-        #item-selector { 
-            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 15px; background: rgba(0,0,0,0.8); padding: 10px;
-            border-radius: 15px; border: 2px solid #333; z-index: 20;
-        }
-        .item-card {
-            width: 60px; height: 60px; border-radius: 10px; border: 2px solid #444;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            cursor: pointer; background: #111; transition: 0.2s;
-        }
-        .item-card:hover { border-color: #00d4ff; }
-        .item-card.selected { border-color: #00d4ff; background: rgba(0, 212, 255, 0.2); }
-        .item-icon { width: 30px; height: 30px; margin-bottom: 2px; border-radius: 4px; }
-        .icon-block { background: #cccccc; border: 1px solid #999; }
-        .icon-spawn { background: #00ffff; box-shadow: 0 0 10px #00ffff; }
-        .item-label { font-size: 10px; color: white; text-transform: uppercase; }
-
-        #info { position: absolute; top: 10px; left: 10px; color: white; pointer-events: none; }
-        #coords { font-family: monospace; color: #00d4ff; margin-top: 5px; background: rgba(0,0,0,0.5); padding: 5px; border-radius: 5px; }
-        #crosshair { 
-            position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; 
-            border: 2px solid white; border-radius: 50%; transform: translate(-50%, -50%); 
-            display: none; pointer-events: none; 
-        }
-        #loading-overlay { position: fixed; inset: 0; background: #050505; z-index: 100; display: flex; align-items: center; justify-content: center; color: #00d4ff; font-weight: bold; }
-
-        .player-label {
-            position: absolute; background: rgba(0,0,0,0.8); color: #00d4ff;
-            padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;
-            border: 1px solid #00d4ff; pointer-events: none; white-space: nowrap;
-            transform: translate(-50%, -100%); z-index: 5;
-        }
-
-        #chat-container {
-            position: absolute; bottom: 100px; left: 20px; width: 250px;
-            height: 200px; display: flex; flex-direction: column;
-            z-index: 60; pointer-events: none;
-        }
-        #chat-messages {
-            flex-grow: 1; overflow-y: auto; background: rgba(0,0,0,0.4);
-            border-radius: 8px; padding: 10px; font-size: 13px;
-            display: flex; flex-direction: column; gap: 4px;
-            scrollbar-width: thin; scrollbar-color: #00d4ff transparent;
-        }
-        #chat-input {
-            margin-top: 5px; background: rgba(0,0,0,0.8); border: 1px solid #00d4ff;
-            color: white; padding: 8px; border-radius: 4px; pointer-events: auto;
-            outline: none;
-        }
-        .chat-msg { word-wrap: break-word; text-shadow: 1px 1px 2px black; }
-        .chat-user { color: #00d4ff; font-weight: bold; }
-
-        .toggle-container { display: flex; align-items: center; gap: 10px; margin-top: 10px; cursor: pointer; }
-    </style>
+</style>
 </head>
 <body>
-    <div id="loading-overlay">INITIALIZING...</div>
 
-    <div id="info">
-        <h2 id="gameNameDisplay" style="margin:0; color:#00d4ff;">BUBBLE GAMES</h2>
-        <p id="status">Status: LOADING...</p>
-        <div id="coords">POS - X: 0 | Y: 0 | Z: 0</div>
+<div id="loading"><div id="ltitle">BUBBLER+</div><div id="lsub">INITIALIZING ARCHITECT ENGINE</div><div id="lbar-w"><div id="lbar"></div></div></div>
+
+<!-- PART SCRIPT MODAL -->
+<div id="psm">
+  <div id="psm-box">
+    <div id="psm-hdr"><div id="psm-title">📜 PART SCRIPT</div><div id="psm-x" onclick="closePSM()">✕</div></div>
+    <div id="psm-sub">Part: <span id="psm-name" style="color:var(--mag)"></span> — script runs when ▶ PLAY starts</div>
+    <textarea id="psm-ed" spellcheck="false" placeholder="// This script belongs to this part only
+// Use 'self' to refer to this part
+
+modify.[self.COLOR.NEON_GREEN]
+modify.[self.GLOW.60]
+on.[TOUCH.self] >> launch.[PLAYER.UP.60]
+loop.[self.ROTATE.Y.8]"></textarea>
+    <div id="psm-ftr">
+      <button id="psm-save" onclick="savePSM()">💾 SAVE SCRIPT</button>
+      <button id="psm-cancel" onclick="closePSM()">CANCEL</button>
+      <div id="psm-hint">Use <span style="color:var(--mag)">self</span> as this part's name in all commands.</div>
+    </div>
+  </div>
+</div>
+
+<!-- PUBLISH MODAL -->
+<div id="pm">
+  <div id="pm-box">
+    <div id="pm-hdr"><div id="pm-hdr-title">🚀 PUBLISH GAME</div><div id="pm-hdr-sub">Save your world and share it</div></div>
+    <div id="pm-body">
+      <div class="pmf"><label class="pml">GAME NAME</label><input class="pmi" id="pm-name" placeholder="My Awesome World" maxlength="40"></div>
+      <div class="pmf"><label class="pml">DESCRIPTION (optional)</label><input class="pmi" id="pm-desc" placeholder="What's your game about?" maxlength="120"></div>
+      <div class="pmf"><label class="pml">GENRE TAGS</label>
+        <div class="pmtags">
+          <div class="pmtag" onclick="this.classList.toggle('on')">🏃 Parkour</div>
+          <div class="pmtag" onclick="this.classList.toggle('on')">👻 Horror</div>
+          <div class="pmtag" onclick="this.classList.toggle('on')">🎮 Adventure</div>
+          <div class="pmtag" onclick="this.classList.toggle('on')">🌌 Space</div>
+          <div class="pmtag" onclick="this.classList.toggle('on')">🎨 Art</div>
+          <div class="pmtag" onclick="this.classList.toggle('on')">⚔️ Action</div>
+        </div>
+      </div>
+      <div id="pm-success">
+        <div class="ps-icon">🚀</div>
+        <div class="ps-title">PUBLISHED!</div>
+        <div style="font-size:11px;color:#555;margin-bottom:4px">Your share code:</div>
+        <div class="ps-code" id="ps-code" onclick="copyCode()">------</div>
+        <div class="ps-hint">Click to copy · Share with friends!</div>
+        <button id="pm-exit-btn" onclick="exitAfterPublish()">EXIT TO LOBBY</button>
+      </div>
+    </div>
+    <div id="pm-ftr">
+      <button id="pm-confirm" onclick="doPublish()">🚀 PUBLISH NOW</button>
+      <button id="pm-cancel2" onclick="closePM()">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <div id="viewport">
+    <div id="grid-glow"></div>
+    <div id="hud">
+      <div id="hud-tl">
+        <div id="game-title">BUBBLER+</div>
+        <div id="coords">X:0.0 Y:0.0 Z:0.0<br><span id="mlbl" style="color:#444">BUILD MODE</span></div>
+      </div>
+      <div id="hud-tr">
+        <button class="hbtn" id="playBtn" onclick="togglePlay()">▶ PLAY</button>
+        <button class="hbtn" id="publishBtn" onclick="openPM()">🚀 PUBLISH</button>
+        <button class="hbtn" id="learnBtn" onclick="window.open('https://docs.google.com/document/d/1XseDwTmaX9dXL2mm81qePpxWIcT2G_7WFAPh3zPsmmc/edit?usp=sharing','_blank')">📖 LEARN</button>
+        <button class="hbtn" id="exitBtn" onclick="exitToLobby()">✕ EXIT</button>
+      </div>
+      <div id="crosshair"></div>
+      <div id="notif"></div>
+    </div>
+    <div id="item-bar">
+      <div class="icard sel" onclick="selItem('block')" id="c-block"><div class="iicon i-block"></div><div class="ilabel">BLOCK</div></div>
+      <div class="icard" onclick="selItem('slab')" id="c-slab"><div class="iicon i-slab"></div><div class="ilabel">SLAB</div></div>
+      <div class="icard" onclick="selItem('ramp')" id="c-ramp"><div class="iicon i-ramp"></div><div class="ilabel">RAMP</div></div>
+      <div class="icard" onclick="selItem('spawn')" id="c-spawn"><div class="iicon i-spawn"></div><div class="ilabel">SPAWN</div></div>
+    </div>
+    <div id="tool-bar">
+      <div class="tbtn on" id="t-place" onclick="setTool('place')" title="Place [P]">🧱</div>
+      <div class="tbtn del" id="t-delete" onclick="setTool('delete')" title="Delete [X]">🗑</div>
+      <div class="tbtn" id="t-drag" onclick="setTool('drag')" title="Drag [G]">✋</div>
+    </div>
+  </div>
+
+  <div id="sidebar">
+    <div id="tabs">
+      <div class="tab on" onclick="showTab('code')">✏️ SCRIPT</div>
+      <div class="tab" onclick="showTab('ref')">📖 HELP</div>
+      <div class="tab" onclick="showTab('objects')">🗂️ WORLD</div>
     </div>
 
-    <div id="chat-container">
-        <div id="chat-messages"></div>
-        <input type="text" id="chat-input" placeholder="Press Enter to chat..." autocomplete="off">
+    <div class="tab-panel on" id="tab-code">
+      <div id="editor-wrap">
+        <div id="editor-top">
+          <span style="font-size:10px;color:var(--cyan);letter-spacing:1px">⚙ SERVER SCRIPT</span>
+          <span style="font-size:9px;color:#444">Ctrl+Enter = Run</span>
+        </div>
+        <div id="editor-outer">
+          <textarea id="code-editor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="// Start typing — suggestions appear automatically!
+// Example: type  construct  then pick from the menu
+
+set.[PLAYER.SPEED.20]
+set.[WORLD.GRAVITY.15]
+set.[PLAYER.JUMP.40]
+
+construct.[FLOOR.SIZE.20,1,20]
+modify.[FLOOR.COLOR.#0d0d1a]
+place.[FLOOR.TO.0,0,0]
+
+construct.[SPAWN.SIZE.1,1,1]
+place.[SPAWN.TO.0,2,0]"></textarea>
+        </div>
+        <div id="btn-row">
+          <button id="run-btn" onclick="runServerScript()">▶ RUN</button>
+          <button id="attach-btn" onclick="attachToSelected()">📎 ATTACH TO PART</button>
+        </div>
+      </div>
+      <div id="console-wrap">
+        <div id="console-title">// OUTPUT</div>
+        <div id="console-log">
+          <div class="log-info">› Ready! Type in the editor above to start scripting.</div>
+        </div>
+      </div>
     </div>
 
-    <div id="settings-panel" style="display:none;">
-        <div class="setting-group">
-            <div class="label-container">
-                <label>Move Speed</label>
-                <input type="number" id="speed-num" class="num-input" step="0.01" value="0.12">
-            </div>
-            <input type="range" id="speed-slider" min="0.01" max="1.0" step="0.01" value="0.12">
+    <div class="tab-panel" id="tab-ref">
+      <div id="ref-wrap">
+        <div class="ref-notice">💡 Click any command to insert it into your script!</div>
+
+        <div class="ref-sec"><div class="ref-ttl">🎮 PLAYER SETTINGS</div>
+          <div class="rc" onclick="ins('set.[PLAYER.SPEED.20]')"><span class="kw">set.[PLAYER.SPEED.20]</span><span class="cm">How fast the player walks (1–100)</span></div>
+          <div class="rc" onclick="ins('set.[PLAYER.JUMP.40]')"><span class="kw">set.[PLAYER.JUMP.40]</span><span class="cm">How high the player jumps</span></div>
+          <div class="rc" onclick="ins('set.[WORLD.GRAVITY.15]')"><span class="kw">set.[WORLD.GRAVITY.15]</span><span class="cm">How strong gravity is (0 = float!)</span></div>
         </div>
 
-        <div class="setting-group">
-            <div class="label-container">
-                <label>Gravity</label>
-                <input type="number" id="gravity-num" class="num-input" step="0.001" value="0.015">
-            </div>
-            <input type="range" id="gravity-slider" min="0" max="0.1" step="0.001" value="0.015">
+        <div class="ref-sec"><div class="ref-ttl">🧱 CREATE A BLOCK</div>
+          <div class="rc" onclick="ins('construct.[MYBLOCK.SIZE.2,2,2]
+place.[MYBLOCK.TO.0,1,0]')"><span class="kw">construct.[MYBLOCK.SIZE.2,2,2]</span><span class="cm">Make a block called MYBLOCK (width, height, depth)</span></div>
+          <div class="rc" onclick="ins('construct.[SPAWN.SIZE.1,1,1]
+place.[SPAWN.TO.0,1,0]')"><span class="kw">construct.[SPAWN.SIZE.1,1,1]</span><span class="cm">Spawn point — player starts here (required!)</span></div>
         </div>
 
-        <div class="setting-group">
-            <label class="toggle-container">
-                <input type="checkbox" id="grid-toggle" checked>
-                <span style="font-size: 11px; color: #00d4ff;">GRID TEXTURES</span>
-            </label>
+        <div class="ref-sec"><div class="ref-ttl">🎨 CHANGE HOW IT LOOKS</div>
+          <div class="rc" onclick="ins('modify.[MYBLOCK.COLOR.NEON_GREEN]')"><span class="kw">modify.[MYBLOCK.COLOR.NEON_GREEN]</span><span class="cm">Change color (name or #hex like #ff00cc)</span></div>
+          <div class="rc" onclick="ins('modify.[MYBLOCK.GLOW.80]')"><span class="kw">modify.[MYBLOCK.GLOW.80]</span><span class="cm">Make it glow (0 = off, 100 = max)</span></div>
+          <div class="rc" onclick="ins('modify.[MYBLOCK.GHOST.ON]')"><span class="kw">modify.[MYBLOCK.GHOST.ON]</span><span class="cm">No collision — player passes through</span></div>
+          <div class="rc" onclick="ins('modify.[WORLD.SKY.DARKNESS]')"><span class="kw">modify.[WORLD.SKY.DARKNESS]</span><span class="cm">Sky: DARKNESS · WHITE · SUNSET · VOID · BLUE</span></div>
         </div>
 
-        <div id="part-settings" style="display:none; border-top: 1px solid #333; padding-top: 10px;">
-            <label>Part Size</label>
-            <input type="range" id="size-slider" min="0.2" max="10" step="0.1" value="1">
-            <p style="font-size: 9px; color: #888; margin-top:5px;">Click part to select</p>
+        <div class="ref-sec"><div class="ref-ttl">📍 MOVE THINGS</div>
+          <div class="rc" onclick="ins('place.[MYBLOCK.TO.10,5,0]')"><span class="kw">place.[MYBLOCK.TO.10,5,0]</span><span class="cm">Teleport a block to X,Y,Z</span></div>
+          <div class="rc" onclick="ins('place.[PLAYER.TO.0,5,0]')"><span class="kw">place.[PLAYER.TO.0,5,0]</span><span class="cm">Teleport the player</span></div>
         </div>
+
+        <div class="ref-sec"><div class="ref-ttl">⚡ WHEN PLAYER TOUCHES...</div>
+          <div class="rc" onclick="ins('on.[TOUCH.MYBLOCK] >> launch.[PLAYER.UP.70]')"><span class="kw">on.[TOUCH.MYBLOCK] >> launch.[PLAYER.UP.70]</span><span class="cm">Launch pad — sends player flying up</span></div>
+          <div class="rc" onclick="ins('on.[TOUCH.MYBLOCK] >> place.[PLAYER.TO.0,2,0]')"><span class="kw">on.[TOUCH.MYBLOCK] >> place.[PLAYER.TO.0,2,0]</span><span class="cm">Teleporter — moves player on touch</span></div>
+          <div class="rc" onclick="ins('on.[TOUCH.MYBLOCK] >> set.[WORLD.GRAVITY.0]')"><span class="kw">on.[TOUCH.MYBLOCK] >> set.[WORLD.GRAVITY.0]</span><span class="cm">Anti-gravity zone</span></div>
+          <div class="rc" onclick="ins('on.[CLICK.MYBLOCK] >> delete.[MYBLOCK]')"><span class="kw">on.[CLICK.MYBLOCK] >> delete.[MYBLOCK]</span><span class="cm">Click to remove a block</span></div>
+        </div>
+
+        <div class="ref-sec"><div class="ref-ttl">🌀 ANIMATION & AI</div>
+          <div class="rc" onclick="ins('loop.[MYBLOCK.ROTATE.Y.5]')"><span class="kw">loop.[MYBLOCK.ROTATE.Y.5]</span><span class="cm">Spin forever on Y axis</span></div>
+          <div class="rc" onclick="ins('loop.[MYBLOCK.PATH.(0,2,0)>>(0,8,0)]')"><span class="kw">loop.[MYBLOCK.PATH.(0,2,0)>>(0,8,0)]</span><span class="cm">Move back and forth between 2 points</span></div>
+          <div class="rc" onclick="ins('loop.[MONSTER.MOVE_TO.PLAYER.SPEED.5]')"><span class="kw">loop.[MONSTER.MOVE_TO.PLAYER.SPEED.5]</span><span class="cm">Chase the player (stalker AI!)</span></div>
+        </div>
+
+        <div class="ref-sec"><div class="ref-ttl">🌈 COLOR NAMES</div>
+          <div class="ref-colors">
+            <span onclick="ins('modify.[MYBLOCK.COLOR.NEON_GREEN]')" style="color:#00ff88">NEON_GREEN</span>
+            <span onclick="ins('modify.[MYBLOCK.COLOR.CYBER_BLUE]')" style="color:#00d4ff">CYBER_BLUE</span>
+            <span onclick="ins('modify.[MYBLOCK.COLOR.HOT_PINK]')" style="color:#ff00cc">HOT_PINK</span>
+            <span onclick="ins('modify.[MYBLOCK.COLOR.LAVA_RED]')" style="color:#ff4444">LAVA_RED</span>
+            <span onclick="ins('modify.[MYBLOCK.COLOR.SOLAR]')" style="color:#ffaa00">SOLAR</span>
+            <span onclick="ins('modify.[MYBLOCK.COLOR.VOID_PURPLE]')" style="color:#cc00ff">VOID_PURPLE</span>
+            <span onclick="ins('modify.[MYBLOCK.COLOR.PURE_WHITE]')" style="color:#eee">PURE_WHITE</span>
+            <span onclick="ins('modify.[MYBLOCK.COLOR.OBSIDIAN]')" style="color:#888">OBSIDIAN</span>
+          </div>
+        </div>
+
+        <div class="ref-sec"><div class="ref-ttl">📎 PART SCRIPTS</div>
+          <div class="rc" style="cursor:default;border-left-color:var(--mag);color:#888;font-size:11px;line-height:1.7">
+            Right-click a block in the 3D view → add a script just for that block.<br>
+            Use <span style="color:var(--mag)">self</span> to refer to the block by name.
+          </div>
+          <div class="rc" onclick="ins('modify.[self.COLOR.HOT_PINK]
+modify.[self.GLOW.60]
+on.[TOUCH.self] >> launch.[PLAYER.UP.50]')"><span class="kw">Example part script (click to insert)</span></div>
+        </div>
+      </div>
     </div>
 
-    <div id="item-selector" style="display:none;">
-        <div class="item-card selected" onclick="selectItem('block')" id="card-block">
-            <div class="item-icon icon-block"></div>
-            <div class="item-label">Block</div>
-        </div>
-        <div class="item-card" onclick="selectItem('spawn')" id="card-spawn">
-            <div class="item-icon icon-spawn"></div>
-            <div class="item-label">Spawn</div>
-        </div>
+    <div class="tab-panel" id="tab-objects">
+      <div id="objects-wrap">
+        <div style="color:#222;font-size:10px;padding:6px 0 8px;letter-spacing:2px;font-family:'Orbitron',sans-serif">// SCENE HIERARCHY</div>
+        <div style="color:#333;font-size:10px;margin-bottom:10px">📜 = has Part Script · Click 📜 to edit · Right-click part in 3D view</div>
+        <div id="obj-list"></div>
+      </div>
     </div>
+  </div>
+</div>
 
-    <div id="top-bar" class="controls">
-        <button id="playTestBtn" onclick="togglePlayTest()">PLAY TEST ▶</button>
-        <button id="publishBtn" onclick="publishGame()" style="display:none;">PUBLISH 🚀</button>
-        <button id="dragModeBtn" onclick="toggleTool('drag')" style="display:none;">DRAG PART</button>
-        <button id="deleteModeBtn" onclick="toggleTool('delete')" style="display:none;">DELETE</button>
-        <button onclick="exitGame()">EXIT</button>
-    </div>
-    <div id="crosshair"></div>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { TransformControls } from 'three/addons/controls/TransformControls.js';
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script type="importmap">
-    { 
-        "imports": { 
-            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-        } 
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0a0c);
+scene.fog = new THREE.Fog(0x0a0a0c, 60, 200);
+const camera = new THREE.PerspectiveCamera(75,1,0.1,1000);
+camera.rotation.order = 'YXZ';
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.9;
+const vp = document.getElementById('viewport');
+vp.appendChild(renderer.domElement);
+function resize(){ const w=vp.clientWidth,h=vp.clientHeight; renderer.setSize(w,h); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+window.addEventListener('resize',resize); resize();
+const ambient = new THREE.AmbientLight(0xffffff,0.8); scene.add(ambient);
+const sun = new THREE.DirectionalLight(0xffffff,1.5); sun.position.set(20,40,20);
+sun.castShadow=true; sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.near=0.5; sun.shadow.camera.far=200;
+sun.shadow.camera.left=-80; sun.shadow.camera.right=80;
+sun.shadow.camera.top=80; sun.shadow.camera.bottom=-80;
+scene.add(sun);
+scene.add(new THREE.DirectionalLight(0x4488ff,0.4));
+scene.add(new THREE.GridHelper(200,200,0x00d4ff11,0x11111140));
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(500,500), new THREE.MeshBasicMaterial({visible:false}));
+floor.rotation.x=-Math.PI/2; floor.name='__floor__'; scene.add(floor);
+const gizmo = new TransformControls(camera, renderer.domElement);
+gizmo.setMode('translate'); gizmo.setSize(0.7); scene.add(gizmo);
+let gDrag=false; gizmo.addEventListener('dragging-changed',e=>{ gDrag=e.value; });
+
+let isPlay=false, tool='place', selItem_='block';
+let moveSpeed=0.12, worldGrav=0.015, jumpStr=0.35;
+let velY=0, grounded=false, spawnPt=null;
+let edCam={pos:new THREE.Vector3(0,10,15),rx:-0.4,ry:0};
+const objects=[floor], sObjs={}, loops=[], events=[]; window.sObjs=sObjs;
+const partScripts={}; // uuid → script string
+let psmMesh=null;
+
+const COLS={NEON_GREEN:'#00ff88',CYBER_BLUE:'#00d4ff',HOT_PINK:'#ff00cc',LAVA_RED:'#ff3322',SOLAR:'#ffaa00',VOID_PURPLE:'#cc00ff',PURE_WHITE:'#ffffff',OBSIDIAN:'#222222',RED:'#ff2222',BLUE:'#2244ff',GREEN:'#22ff44',YELLOW:'#ffff00',ORANGE:'#ff8800',WHITE:'#ffffff',BLACK:'#111111',CYAN:'#00ffff',PURPLE:'#8800ff',PINK:'#ff66ff'};
+const SKY={DARKNESS:0x030305,PITCH_BLACK:0x000000,WHITE:0xffffff,SUNSET:0x1a0808,VOID:0x05000f,BLUE:0x0a1a3a,DAWN:0x1a0a15};
+
+function makeTex(){ const c=document.createElement('canvas'); c.width=c.height=128; const x=c.getContext('2d'); x.fillStyle='#181820'; x.fillRect(0,0,128,128); x.strokeStyle='#2a2a3a'; x.lineWidth=2; x.strokeRect(1,1,126,126); const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; return t; }
+const blockTex=makeTex();
+
+function mkObj(name,sx,sy,sz,type='block',fromScript=false){
+  let geo,mat;
+  if(type==='spawn'){ geo=new THREE.CylinderGeometry(0.6,0.8,0.25,24); mat=new THREE.MeshStandardMaterial({color:0x00ffff,emissive:0x00ffff,emissiveIntensity:2.5,transparent:true,opacity:0.85}); }
+  else { geo=new THREE.BoxGeometry(sx,sy,sz); mat=new THREE.MeshStandardMaterial({color:0xbbbbcc,map:blockTex}); }
+  const m=new THREE.Mesh(geo,mat); m.castShadow=true; m.receiveShadow=true;
+  m.userData={name,type,ghost:false,fromScript};
+  scene.add(m); objects.push(m);
+  sObjs[name]=m;
+  if(fromScript) scriptCreated.add(m.uuid);
+  if(type==='spawn') spawnPt=m;
+  updateObjList(); return m;
+}
+
+function rCol(c){ if(!c)return null; const u=c.toUpperCase(); if(COLS[u])return COLS[u]; return c.startsWith('#')?c:'#'+c; }
+
+// CONSOLE
+function clog(msg,t='info'){ const el=document.getElementById('console-log'); const d=document.createElement('div'); d.className='log-'+t; d.textContent='› '+msg; el.appendChild(d); el.scrollTop=el.scrollHeight; }
+function cclr(){ document.getElementById('console-log').innerHTML=''; }
+
+// SCRIPT ENGINE
+function runCode(code, selfName=null){
+  const lines=code.split('\n'); let ok=0;
+  for(let i=0;i<lines.length;i++){
+    let raw=lines[i].trim();
+    if(!raw||raw.startsWith('//')||raw.startsWith('#')) continue;
+    if(selfName) raw=raw.replace(/\bself\b/gi,selfName);
+    try{ execLine(raw); ok++; } catch(e){ clog(`Line ${i+1}: ${e.message}`,'err'); }
+  }
+  return ok;
+}
+
+function execLine(line){
+  if(line.includes('>>')){
+    const [tp,ap]=line.split('>>').map(s=>s.trim());
+    const tr=pb(tp), ac=pb(ap);
+    if(tr&&ac){ events.push({trigger:tr,action:ac}); clog(`Event: ${tr.cmd}[${tr.args.join(',')}]`,'info'); }
+    return;
+  }
+  if(line.toLowerCase().startsWith('loop.')){ const p=pb(line.slice(5)); if(!p)throw new Error('Bad loop'); applyLoop(p); return; }
+  const p=pb(line);
+  if(!p)throw new Error(`Cannot parse: ${line}`);
+  doCmd(p);
+}
+
+function pb(str){ const m=str.match(/^(\w+)\.\[(.+)\]$/); if(!m)return null; return{cmd:m[1].toLowerCase(),args:ssp(m[2])}; }
+
+function ssp(str){ const r=[]; let cur='',i=0; while(i<str.length){ if(str[i]==='.'){ const pv=cur.slice(-1),nx=str[i+1]||''; if(/\d/.test(pv)&&/\d/.test(nx)){cur+=str[i];}else{if(cur!=='')r.push(cur);cur='';} }else{cur+=str[i];} i++; } if(cur!=='')r.push(cur); return r; }
+
+function pc(s){ return s.replace(/[()]/g,'').split(',').map(Number); }
+
+function doCmd({cmd,args}){
+  switch(cmd){
+    case 'set': doSet(args); break;
+    case 'construct': doCons(args); break;
+    case 'modify': doMod(args); break;
+    case 'place': doPlace(args); break;
+    case 'move': doMove(args); break;
+    case 'delete': doDel(args); break;
+    case 'launch': doLaunch(args); break;
+    default: throw new Error(`Unknown command: ${cmd}`);
+  }
+}
+
+function doSet([t,p,v]){ const V=parseFloat(v),T=t.toUpperCase(),P=p.toUpperCase();
+  if(T==='PLAYER'){ if(P==='SPEED'){moveSpeed=Math.max(0.005,V/100);clog(`Speed→${v}`,'ok');}else if(P==='JUMP'){jumpStr=Math.max(0.01,V/100);clog(`Jump→${v}`,'ok');}else throw new Error(`PLAYER.${p} unknown`); }
+  else if(T==='WORLD'){ if(P==='GRAVITY'){worldGrav=Math.max(0,V/1000);clog(`Gravity→${v}`,'ok');}else throw new Error(`WORLD.${p} unknown`); }
+  else throw new Error(`set target: ${t}`);
+}
+
+function doCons([name,kw,...rest]){ if(kw.toUpperCase()!=='SIZE')throw new Error('Expected SIZE');
+  let sx=1,sy=1,sz=1; const ss=rest.join(',');
+  if(ss.includes(',')){ const p=ss.split(',').map(Number);sx=p[0]||1;sy=p[1]||1;sz=p[2]||1; }
+  else{sx=parseFloat(ss)||1;sy=sx;sz=sx;}
+  const type=/^SPAWN/i.test(name)?'spawn':'block';
+  const key=name.toLowerCase();
+  if(sObjs[key]){ clog(`"${name}" already in scene, skipping`,'info'); return; }
+  const m=mkObj(key,sx,sy,sz,type,true);
+  m.position.set(0,sy/2,0);
+  clog(`Constructed "${name}" [${sx}x${sy}x${sz}]`,'ok');
+}
+
+function doMod([tgt,prop,...vp]){ const val=vp.join('.'),P=prop.toUpperCase();
+  if(tgt.toUpperCase()==='WORLD'){doWorldMod(P,val);return;}
+  const m=sObjs[tgt.toLowerCase()]; if(!m)throw new Error(`"${tgt}" not found — construct first`);
+  if(P==='COLOR'){const h=rCol(val);m.material.color.set(h);m.material.map=null;m.material.needsUpdate=true;clog(`${tgt}.COLOR→${h}`,'ok');}
+  else if(P==='GLOW'){const gi=parseFloat(val)/100;m.material.emissive=m.material.color.clone();m.material.emissiveIntensity=gi;m.material.needsUpdate=true;clog(`${tgt}.GLOW→${val}%`,'ok');}
+  else if(P==='GHOST'){const on=val.toUpperCase()==='ON';m.userData.ghost=on;m.material.transparent=on;m.material.opacity=on?0.35:1;m.material.needsUpdate=true;clog(`${tgt}.GHOST→${on}`,'ok');}
+  else if(P==='SPIN'){const ax=val.toUpperCase();if(ax==='X')m.rotation.x=Math.PI/4;else if(ax==='Y')m.rotation.y=Math.PI/4;else m.rotation.z=Math.PI/4;clog(`${tgt} spun`,'ok');}
+  else if(P==='SIZE'){const ps=val.includes(',')?val.split(',').map(Number):[parseFloat(val)];m.scale.set(ps[0]||1,ps[1]||ps[0]||1,ps[2]||ps[0]||1);clog(`${tgt} resized`,'ok');}
+  else throw new Error(`modify prop: ${prop}`);
+}
+
+function doWorldMod(prop,val){
+  if(prop==='SKY'){const v=val.toUpperCase(),col=SKY[v];if(col!==undefined){scene.background=new THREE.Color(col);scene.fog=new THREE.Fog(col,60,200);if(v==='WHITE'){ambient.intensity=3;}else{ambient.intensity=0.8;}clog(`Sky→${val}`,'ok');}else{const h=rCol(val);if(h){scene.background=new THREE.Color(h);clog(`Sky→${h}`,'ok');}else throw new Error(`Sky: ${val}`);}}
+  else if(prop==='FOG'){scene.fog=val.toUpperCase()==='OFF'?null:new THREE.Fog(0x050508,5,30);clog(`Fog→${val}`,'ok');}
+  else throw new Error(`WORLD.${prop}`);
+}
+
+function doPlace([tgt,kw,...rest]){ if(kw.toUpperCase()!=='TO')throw new Error('Expected TO');
+  const c=pc(rest.join(',')); if(c.length<3)throw new Error('Need 3 coords');
+  if(tgt.toUpperCase()==='PLAYER'){if(isPlay){camera.position.set(c[0],c[1]+1.5,c[2]);velY=0;}clog(`Player→(${c.join(',')})`,'ok');return;}
+  const m=sObjs[tgt.toLowerCase()]; if(!m)throw new Error(`"${tgt}" not found`);
+  m.position.set(c[0],c[1],c[2]); clog(`"${tgt}"→(${c.join(',')})`,'ok');
+}
+
+function doMove([tgt,kw,...rest]){ if(kw.toUpperCase()!=='TO')throw new Error('Expected TO');
+  const m=sObjs[tgt.toLowerCase()]; if(!m)throw new Error(`"${tgt}" not found`);
+  const j=rest.join('.'); const sm=j.match(/SPEED\.(\d+(?:\.\d+)?)/i); const spd=sm?parseFloat(sm[1]):2;
+  const c=pc(rest[0]||'0,0,0'); if(c.length>=3){ loops.push({type:'move_to',mesh:m,target:new THREE.Vector3(c[0],c[1],c[2]),speed:spd*0.01}); clog(`Moving "${tgt}"→(${c.join(',')})`,'ok'); }
+}
+
+function doDel([tgt]){ const m=sObjs[tgt.toLowerCase()]; if(!m)throw new Error(`"${tgt}" not found`);
+  scene.remove(m); const i=objects.indexOf(m); if(i>-1)objects.splice(i,1); delete sObjs[tgt.toLowerCase()];
+  if(m===spawnPt)spawnPt=null; clog(`Deleted "${tgt}"`,'ok'); updateObjList();
+}
+
+function doLaunch([tgt,dir,str]){ if(tgt.toUpperCase()==='PLAYER'&&isPlay){ const v=parseFloat(str)/100; if((dir||'UP').toUpperCase()==='UP')velY=v; clog(`Launch! ↑${str}`,'ok'); } }
+
+function applyLoop({args}){ const[name,action,...rest]=args; const key=name.toLowerCase(),A=action.toUpperCase(); const m=sObjs[key]; if(!m)throw new Error(`"${name}" not found for loop`);
+  if(A==='ROTATE'){const[ax,spd]=rest;loops.push({type:'rotate',mesh:m,axis:(ax||'Y').toUpperCase(),speed:parseFloat(spd||5)*0.001});clog(`Loop rotate ${name}`,'ok');}
+  else if(A==='PATH'){const ps=rest.join('.').split('>>').map(p=>{const c=pc(p);return new THREE.Vector3(c[0]||0,c[1]||0,c[2]||0);}); loops.push({type:'path',mesh:m,points:ps,t:0,dir:1,speed:0.004});clog(`Loop path ${name}`,'ok');}
+  else if(A==='MOVE_TO'){const si=rest.findIndex(r=>r.toUpperCase()==='SPEED');const spd=si>-1?parseFloat(rest[si+1]||5):5;loops.push({type:'follow',mesh:m,speed:spd*0.005});clog(`Stalker: ${name}`,'ok');}
+  else throw new Error(`loop action: ${action}`);
+}
+
+function checkTrigger({cmd,args}){
+  if(cmd==='on'){const[type,tgt]=args;if(type.toUpperCase()==='TOUCH'){const m=sObjs[(tgt||'').toLowerCase()];if(!m||m.userData.ghost)return false;const dist=camera.position.distanceTo(m.position);const g=m.geometry.parameters;const r=Math.max(g.radiusTop||g.width||1,g.height||1,g.depth||1)*0.5*Math.max(...m.scale.toArray())+1.0;return dist<r;}}
+  return false;
+}
+function processEvents(){ for(const ev of events){ if(checkTrigger(ev.trigger)){ try{doCmd(ev.action);}catch(e){} } } }
+
+// scriptCreated: UUIDs of meshes spawned by construct commands — the ONLY ones ever deleted on re-run
+const scriptCreated = new Set();
+
+// RUN SERVER SCRIPT — NEVER deletes manually placed objects, ever
+window.runServerScript=function(){
+  const code=document.getElementById('code-editor').value;
+  cclr(); clog('Running Server Script...','info');
+  // Clear loops and events only
+  loops.length=0; events.length=0;
+  // Remove ONLY meshes that were created by a previous construct command
+  for(const uuid of [...scriptCreated]){
+    const m=objects.find(o=>o.uuid===uuid);
+    if(m){ scene.remove(m); const i=objects.indexOf(m); if(i>-1)objects.splice(i,1); if(m===spawnPt)spawnPt=null; }
+    scriptCreated.delete(uuid);
+  }
+  // Clear sObjs registry then re-populate from whatever is still in the scene
+  for(const n in sObjs) delete sObjs[n];
+  for(const m of objects){
+    if(m===floor) continue;
+    if(m.userData.name) sObjs[m.userData.name]=m;
+    if(m.userData.type==='spawn') spawnPt=m;
+  }
+  const ok=runCode(code);
+  let pc2=0;
+  for(const uuid in partScripts){ const mesh=objects.find(o=>o.uuid===uuid); if(mesh){const sn=mesh.userData.name||uuid; clog(`Part script on "${sn}"...`,'info'); runCode(partScripts[uuid],sn); pc2++;} }
+  clog(`Done — ${ok} cmds, ${pc2} part script(s)`,'ok');
+  updateObjList(); notify(`Ran ✓ ${ok} commands`,'ok');
+};
+
+// ACTIVATE SCRIPTS FOR PLAY — only starts loops/events, zero objects deleted
+function activateScriptsForPlay(){
+  cclr(); clog('Activating play scripts...','info');
+  loops.length=0; events.length=0;
+  for(const n in sObjs) delete sObjs[n];
+  for(const m of objects){
+    if(m===floor) continue;
+    if(m.userData.name) sObjs[m.userData.name]=m;
+    if(m.userData.type==='spawn') spawnPt=m;
+  }
+  const code=document.getElementById('code-editor').value;
+  const ok=runCode(code);
+  let pc2=0;
+  for(const uuid in partScripts){ const mesh=objects.find(o=>o.uuid===uuid); if(mesh){const sn=mesh.userData.name||uuid; runCode(partScripts[uuid],sn); pc2++;} }
+  clog(`Scripts active — ${ok} cmds, ${pc2} part scripts`,'ok');
+}
+
+// PHYSICS
+const keys={};
+const pH=1.4,pR=0.45,fMult=1.5;
+const dRay=new THREE.Raycaster(),uRay=new THREE.Raycaster(),sRay=new THREE.Raycaster();
+document.addEventListener('keydown',e=>{keys[e.code]=true;if(e.ctrlKey&&e.code==='Enter'){e.preventDefault();runServerScript();}if(!isPlay){if(e.code==='KeyP')setTool('place');if(e.code==='KeyX')setTool('delete');if(e.code==='KeyG')setTool('drag');}});
+document.addEventListener('keyup',e=>keys[e.code]=false);
+
+function chkWall(pos,dir){ const solid=objects.filter(o=>o!==floor&&!o.userData.ghost); for(const off of[-1.2,-0.7,-0.2]){sRay.set(new THREE.Vector3(pos.x,pos.y+off,pos.z),dir);const h=sRay.intersectObjects(solid);if(h.length>0&&h[0].distance<pR)return true;} return false; }
+
+// INPUT
+let isDrag=false,dragDist=0,prevMx=0,prevMy=0;
+renderer.domElement.addEventListener('pointerdown',e=>{ if(gDrag)return; isDrag=true;dragDist=0;prevMx=e.clientX;prevMy=e.clientY; if(!isPlay&&tool==='drag'){const h=raycast(e);if(h&&h.object!==floor)gizmo.attach(h.object);} });
+renderer.domElement.addEventListener('pointermove',e=>{ if(!isDrag||gDrag)return; const dx=e.clientX-prevMx,dy=e.clientY-prevMy; dragDist+=Math.abs(dx)+Math.abs(dy); camera.rotation.y-=dx*0.003; camera.rotation.x=Math.max(-Math.PI/2,Math.min(Math.PI/2,camera.rotation.x-dy*0.003)); prevMx=e.clientX;prevMy=e.clientY; });
+renderer.domElement.addEventListener('pointerup',e=>{ if(gDrag){isDrag=false;return;} const wd=dragDist>8;isDrag=false; if(wd||isPlay)return; handleClick(e); });
+renderer.domElement.addEventListener('contextmenu',e=>{ e.preventDefault(); if(isPlay)return; const h=raycast(e); if(h&&h.object!==floor) openPSM(h.object); });
+
+function raycast(e){ const rect=renderer.domElement.getBoundingClientRect(); const mx=((e.clientX-rect.left)/rect.width)*2-1,my=-((e.clientY-rect.top)/rect.height)*2+1; const r=new THREE.Raycaster(); r.setFromCamera(new THREE.Vector2(mx,my),camera); const hits=r.intersectObjects(objects); return hits.length>0?hits[0]:null; }
+
+function handleClick(e){
+  const hit=raycast(e); if(!hit)return;
+  for(const ev of events){ const{trigger,action}=ev; if(trigger.cmd==='on'){const[type,tgt]=trigger.args;if(type.toUpperCase()==='CLICK'){const m=sObjs[(tgt||'').toLowerCase()];if(m&&hit.object===m){try{doCmd(action);}catch(er){clog(er.message,'err');}}}}}
+  if(tool==='delete'&&hit.object!==floor){ const n=hit.object.userData.name;if(n)delete sObjs[n];gizmo.detach();scene.remove(hit.object);const i=objects.indexOf(hit.object);if(i>-1)objects.splice(i,1);if(hit.object===spawnPt)spawnPt=null;delete partScripts[hit.object.uuid];scriptCreated.delete(hit.object.uuid);updateObjList();notify('Deleted');return; }
+  if(tool==='place'){
+    const isSp=selItem_==='spawn',isSl=selItem_==='slab',isRamp=selItem_==='ramp';
+    const sx=isSl?2:1, sy=isSp?0.1:isSl?0.3:1, sz=isSl?2:1;
+    let pos;
+    if(hit.object===floor){
+      pos=new THREE.Vector3(Math.round(hit.point.x), sy/2, Math.round(hit.point.z));
+    } else {
+      // Get the face normal in world space
+      const worldNormal = hit.face.normal.clone().applyQuaternion(hit.object.quaternion).normalize();
+      // Get the half-extents of the hit object (accounting for scale)
+      const hg = hit.object.geometry.parameters;
+      const hw = ((hg.width||1) * hit.object.scale.x) / 2;
+      const hh = ((hg.height||1) * hit.object.scale.y) / 2;
+      const hd = ((hg.depth||1) * hit.object.scale.z) / 2;
+      // Half-extent of new block
+      const nw=sx/2, nh=sy/2, nd=sz/2;
+      // Offset = half of hit object in normal direction + half of new block
+      const absN = worldNormal.clone().set(Math.abs(worldNormal.x),Math.abs(worldNormal.y),Math.abs(worldNormal.z));
+      const hitHalf = absN.x*hw + absN.y*hh + absN.z*hd;
+      const newHalf = absN.x*nw + absN.y*nh + absN.z*nd;
+      pos = hit.object.position.clone().add(worldNormal.clone().multiplyScalar(hitHalf + newHalf));
+      // Snap to grid on X and Z, keep exact Y for stacking
+      pos.x = Math.round(pos.x * 2) / 2;
+      pos.z = Math.round(pos.z * 2) / 2;
     }
-    </script>
+    const type=isSp?'spawn':'block';
+    const uid=type+'_'+Date.now();
+    const m=mkObj(uid,sx,sy,sz,type);
+    m.position.copy(pos);
+    if(isRamp) m.rotation.z=Math.PI/8;
+    notify('Placed ✓','ok');
+  }
+}
 
-    <script type="module">
-        import * as THREE from 'three';
-        import { TransformControls } from 'three/addons/controls/TransformControls.js';
+// ANIMATE
+camera.position.set(0,8,14); camera.rotation.x=-0.4;
+function animate(){
+  requestAnimationFrame(animate);
+  if(isPlay){
+    const solid=objects.filter(o=>!o.userData.ghost);
+    dRay.set(camera.position,new THREE.Vector3(0,-1,0));
+    const gh=dRay.intersectObjects(solid);
+    if(gh.length>0&&gh[0].distance<=pH+0.05){ if(velY<=0){velY=0;grounded=true;camera.position.y=gh[0].point.y+pH;} }
+    else{grounded=false;velY-=worldGrav*(velY<0?fMult:1);}
+    if(velY>0){uRay.set(camera.position,new THREE.Vector3(0,1,0));const hh=uRay.intersectObjects(solid);if(hh.length>0&&hh[0].distance<0.4)velY=Math.min(0,velY);}
+    if(keys['Space']&&grounded){velY=jumpStr;grounded=false;}
+    camera.position.y+=velY;
+    if(camera.position.y<-20){if(spawnPt)camera.position.set(spawnPt.position.x,spawnPt.position.y+2,spawnPt.position.z);else camera.position.set(0,5,0);velY=0;notify('Respawned!');}
+    const mv=new THREE.Vector3();
+    if(keys['KeyW'])mv.z-=1;if(keys['KeyS'])mv.z+=1;if(keys['KeyA'])mv.x-=1;if(keys['KeyD'])mv.x+=1;
+    if(mv.length()>0){mv.applyQuaternion(camera.quaternion);mv.y=0;mv.normalize();if(!chkWall(camera.position,new THREE.Vector3(mv.x,0,0).normalize()))camera.position.x+=mv.x*moveSpeed;if(!chkWall(camera.position,new THREE.Vector3(0,0,mv.z).normalize()))camera.position.z+=mv.z*moveSpeed;}
+    processEvents();
+    document.getElementById('mlbl').textContent='PLAY — WASD+SPACE';
+  } else {
+    const fs=moveSpeed*2.5;
+    if(keys['KeyW'])camera.translateZ(-fs);if(keys['KeyS'])camera.translateZ(fs);if(keys['KeyA'])camera.translateX(-fs);if(keys['KeyD'])camera.translateX(fs);if(keys['Space'])camera.position.y+=fs;if(keys['ShiftLeft']||keys['ShiftRight'])camera.position.y-=fs;
+    document.getElementById('mlbl').textContent='BUILD — Space=Up Shift=Down';
+  }
+  for(let i=loops.length-1;i>=0;i--){ const lp=loops[i]; if(!scene.children.includes(lp.mesh)){loops.splice(i,1);continue;} if(lp.type==='rotate'){if(lp.axis==='X')lp.mesh.rotation.x+=lp.speed;else if(lp.axis==='Y')lp.mesh.rotation.y+=lp.speed;else lp.mesh.rotation.z+=lp.speed;}else if(lp.type==='path'){lp.t+=lp.speed*lp.dir;if(lp.t>=1){lp.t=1;lp.dir=-1;}if(lp.t<=0){lp.t=0;lp.dir=1;}lp.mesh.position.lerpVectors(lp.points[0],lp.points[1],lp.t);}else if(lp.type==='follow'){const d=camera.position.clone().sub(lp.mesh.position);d.y=0;if(d.length()>1)lp.mesh.position.add(d.normalize().multiplyScalar(lp.speed));}else if(lp.type==='move_to'){const d=lp.target.clone().sub(lp.mesh.position);if(d.length()>0.05)lp.mesh.position.add(d.normalize().multiplyScalar(lp.speed));else{lp.mesh.position.copy(lp.target);loops.splice(i,1);}}}
+  const p=camera.position;
+  document.getElementById('coords').innerHTML=`X:${p.x.toFixed(1)} Y:${p.y.toFixed(1)} Z:${p.z.toFixed(1)}<br><span id="mlbl" style="color:#444">${document.getElementById('mlbl')?.textContent||''}</span>`;
+  renderer.render(scene,camera);
+}
+animate();
 
-        const SUPABASE_URL = 'https://sideqpofgknyfagrjnke.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_ULjlm97u7-dg8ekTPU84aA_rA1CtUnH';
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// UI
+window.togglePlay=function(){
+  if(!isPlay&&!spawnPt){notify('Place a Spawn Point first!','err');return;}
+  isPlay=!isPlay;
+  const btn=document.getElementById('playBtn'),ch=document.getElementById('crosshair'),ib=document.getElementById('item-bar'),tb=document.getElementById('tool-bar');
+  if(isPlay){
+    edCam.pos.copy(camera.position);edCam.rx=camera.rotation.x;edCam.ry=camera.rotation.y;
+    camera.position.set(spawnPt.position.x,spawnPt.position.y+2,spawnPt.position.z);
+    velY=0;grounded=false;
+    btn.textContent='⏹ STOP';btn.classList.add('on');ch.style.display='block';ib.style.display='none';tb.style.display='none';
+    gizmo.detach();
+    activateScriptsForPlay();
+    notify('Play mode — WASD + SPACE','ok');
+  } else {
+    camera.position.copy(edCam.pos);camera.rotation.x=edCam.rx;camera.rotation.y=edCam.ry;
+    btn.textContent='▶ PLAY';btn.classList.remove('on');ch.style.display='none';ib.style.display='flex';tb.style.display='flex';
+    loops.length=0;events.length=0;
+    notify('Back to build mode');
+  }
+};
 
-        let currentUser = "Guest_" + Math.floor(Math.random() * 999);
-        async function getCreator() {
-            const { data: { user } } = await supabaseClient.auth.getUser();
-            if (user) currentUser = user.email.split('@')[0];
-        }
-        getCreator();
+window.setTool=function(t){ tool=t; document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('on')); const el=document.getElementById('t-'+t); if(el)el.classList.add('on'); if(t!=='drag')gizmo.detach(); };
+window.selItem=function(type){ selItem_=type; document.querySelectorAll('.icard').forEach(c=>c.classList.remove('sel')); const el=document.getElementById('c-'+type); if(el)el.classList.add('sel'); setTool('place'); };
+window.showTab=function(id){ document.querySelectorAll('.tab').forEach((t,i)=>{ t.classList.toggle('on',['code','ref','objects'][i]===id); }); document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('on')); document.getElementById('tab-'+id).classList.add('on'); if(id==='objects')updateObjList(); };
+window.ins=function(s){ const ta=document.getElementById('code-editor'),st=ta.selectionStart,before=ta.value.substring(0,st),after=ta.value.substring(ta.selectionEnd),nl=(before.length>0&&!before.endsWith('\n'))?'\n':''; ta.value=before+nl+s+'\n'+after; ta.selectionStart=ta.selectionEnd=st+nl.length+s.length+1; ta.focus(); showTab('code'); };
 
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x0a0a0c);
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
+// ══════════════════════════════════════════
+// AUTOCOMPLETE ENGINE — fixed screen-jump + part-script support
+// ══════════════════════════════════════════
+function makeAC(targetTA) {
+  const CMDS = ['set','construct','modify','place','move','delete','launch','loop','on'];
+  const PROPS_MODIFY = ['COLOR','GLOW','GHOST','SPIN','SIZE'];
+  const COLORS = ['NEON_GREEN','CYBER_BLUE','HOT_PINK','LAVA_RED','SOLAR','VOID_PURPLE','PURE_WHITE','OBSIDIAN','RED','BLUE','GREEN','YELLOW','ORANGE','CYAN','PURPLE','PINK'];
+  const SKIES = ['DARKNESS','WHITE','SUNSET','VOID','PITCH_BLACK','BLUE','DAWN'];
+  const LOOP_ACTIONS = ['ROTATE','PATH','MOVE_TO'];
+  const AXES = ['X','Y','Z'];
+  const SNIPPETS = [
+    {label:'set.[PLAYER.SPEED.20]',hint:'walk speed',tag:'snip'},
+    {label:'set.[PLAYER.JUMP.40]',hint:'jump height',tag:'snip'},
+    {label:'set.[WORLD.GRAVITY.15]',hint:'gravity strength',tag:'snip'},
+    {label:'construct.[MYBLOCK.SIZE.2,2,2]',hint:'create a block',tag:'snip'},
+    {label:'modify.[MYBLOCK.COLOR.NEON_GREEN]',hint:'change color',tag:'snip'},
+    {label:'place.[MYBLOCK.TO.0,1,0]',hint:'move to position',tag:'snip'},
+    {label:'on.[TOUCH.MYBLOCK] >> launch.[PLAYER.UP.70]',hint:'launch pad',tag:'snip'},
+    {label:'loop.[MYBLOCK.ROTATE.Y.5]',hint:'spin forever',tag:'snip'},
+  ];
 
-        scene.add(new THREE.AmbientLight(0xffffff, 1.2));
-        const grid = new THREE.GridHelper(100, 100, 0x00d4ff, 0x222222);
-        scene.add(grid);
+  const ta = targetTA;
+  const box = document.getElementById('ac-box');
+  if(!ta||!box) return;
 
-        const createGridTexture = () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = 256; canvas.height = 256;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#111111'; ctx.fillRect(0, 0, 256, 256);
-            ctx.strokeStyle = '#00d4ff'; ctx.lineWidth = 4;
-            ctx.strokeRect(0, 0, 256, 256);
-            const tex = new THREE.CanvasTexture(canvas);
-            tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-            return tex;
-        };
-        const gridTexture = createGridTexture();
+  let items=[], selIdx=0, active=false;
 
-        const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshBasicMaterial({ visible: false }));
-        floor.rotation.x = -Math.PI / 2;
-        scene.add(floor);
+  // ── Get the current line up to cursor ──
+  function curLine(){
+    const v=ta.value, p=ta.selectionStart;
+    return v.substring(v.lastIndexOf('\n',p-1)+1, p);
+  }
 
-        const objects = [floor]; 
-        const blockGeo = new THREE.BoxGeometry(1, 1, 1);
-        const spawnGeo = new THREE.BoxGeometry(0.8, 0.2, 0.8);
-        const spawnMat = new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 2 });
-        
-        const raycaster = new THREE.Raycaster();
-        const downRay = new THREE.Raycaster(); 
-        const upRay = new THREE.Raycaster();
-        const sideRay = new THREE.Raycaster();
-        const mouse = new THREE.Vector2();
+  // ── Insert completion: replace current line, NO scroll jump ──
+  function pick(text){
+    const v=ta.value, p=ta.selectionStart;
+    const lineStart=v.lastIndexOf('\n',p-1)+1;
+    // Save scroll position
+    const sx=ta.scrollLeft, sy=ta.scrollTop;
+    ta.value = v.substring(0,lineStart) + text + v.substring(p);
+    ta.selectionStart = ta.selectionEnd = lineStart + text.length;
+    // Restore scroll — prevents ANY jump
+    ta.scrollLeft=sx; ta.scrollTop=sy;
+    ta.focus();
+    hide();
+  }
 
-        const gizmo = new TransformControls(camera, renderer.domElement);
-        gizmo.setMode('translate');
-        gizmo.setSize(0.6); 
-        scene.add(gizmo);
+  // ── Position the dropdown right below the cursor character ──
+  function positionBox(){
+    // Use a hidden span trick to find exact cursor pixel position
+    const rect = ta.getBoundingClientRect();
+    const v = ta.value, p = ta.selectionStart;
+    const style = window.getComputedStyle(ta);
+    const lh = parseFloat(style.lineHeight)||22;
+    const pt = parseFloat(style.paddingTop)||12;
+    const pl = parseFloat(style.paddingLeft)||12;
 
-        let remotePlayers = {};
-        const gameId = localStorage.getItem('currentGameId') || 'lobby';
-        const channel = supabaseClient.channel(`room_${gameId}`);
+    // Count lines before cursor
+    const before = v.substring(0,p);
+    const lines = before.split('\n');
+    const curLineIdx = lines.length - 1; // 0-based
+    const curLineLen = lines[curLineIdx].length;
 
-        const chatInput = document.getElementById('chat-input');
-        const chatMessages = document.getElementById('chat-messages');
+    // Approx char width (monospace)
+    const charW = parseFloat(style.fontSize)*0.605;
+    const approxX = rect.left + pl + curLineLen * charW;
+    const approxY = rect.top + pt + (curLineIdx+1)*lh - ta.scrollTop;
 
-        function addChatMessage(user, text) {
-            const div = document.createElement('div');
-            div.className = 'chat-msg';
-            div.innerHTML = `<span class="chat-user">${user}:</span> ${text}`;
-            chatMessages.appendChild(div);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
+    const boxH = Math.min(items.length*40+32, 260);
+    const spaceBelow = window.innerHeight - approxY - 8;
+    const top = spaceBelow > boxH ? approxY : approxY - lh - boxH;
+    const left = Math.min(Math.max(approxX - 20, rect.left), rect.right - 300);
 
-        chatInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && chatInput.value.trim() !== '') {
-                const msg = chatInput.value.trim();
-                channel.send({ type: 'broadcast', event: 'chat', payload: { user: currentUser, text: msg } });
-                addChatMessage("You", msg);
-                chatInput.value = '';
-                chatInput.blur();
-            }
-        });
+    box.style.top = Math.max(4, top)+'px';
+    box.style.left = Math.max(4, left)+'px';
+  }
 
-        channel.on('broadcast', { event: 'chat' }, ({ payload }) => { addChatMessage(payload.user, payload.text); });
-        channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
-            leftPresences.forEach(p => {
-                const id = p.key;
-                if (remotePlayers[id]) {
-                    scene.remove(remotePlayers[id].mesh);
-                    remotePlayers[id].label.remove();
-                    delete remotePlayers[id];
-                }
-            });
-        });
+  function render(){
+    box.innerHTML = '<div id="ac-header">↑↓ navigate · Tab or Enter to pick · Esc to close</div>' +
+      items.map((it,i)=>`<div class="ac-item${i===selIdx?' sel':''}" data-i="${i}">
+        <span class="ac-tag tag-${it.tag||'cmd'}">${(it.tag||'cmd').toUpperCase()}</span>
+        <span class="ac-label">${escH(it.label)}</span>
+        <span class="ac-hint">${escH(it.hint||'')}</span>
+      </div>`).join('');
+    box.querySelectorAll('.ac-item').forEach(el=>{
+      el.addEventListener('mousedown',e=>{e.preventDefault();pick(items[+el.dataset.i].label);});
+    });
+  }
 
-        channel.on('broadcast', { event: 'move' }, ({ payload }) => {
-            if (payload.id === currentUser) return;
-            if (payload.y < -10) {
-                if (remotePlayers[payload.id]) {
-                    scene.remove(remotePlayers[payload.id].mesh);
-                    remotePlayers[payload.id].label.style.display = 'none';
-                }
-                return;
-            }
-            if (!remotePlayers[payload.id]) {
-                const bodyGeo = new THREE.BoxGeometry(0.8, 1.6, 0.8);
-                const bodyMat = new THREE.MeshStandardMaterial({ color: 0x00d4ff });
-                const mesh = new THREE.Mesh(bodyGeo, bodyMat);
-                scene.add(mesh);
-                const label = document.createElement('div');
-                label.className = 'player-label';
-                label.innerText = payload.id;
-                document.body.appendChild(label);
-                remotePlayers[payload.id] = { mesh, label };
-            }
-            remotePlayers[payload.id].mesh.position.set(payload.x, payload.y - 0.8, payload.z);
-        }).subscribe();
+  function show(list){
+    if(!list.length){hide();return;}
+    items=list; selIdx=0; active=true;
+    render(); positionBox(); box.classList.add('show');
+  }
+  function hide(){ box.classList.remove('show'); active=false; items=[]; selIdx=0; }
+  function moveSel(d){ selIdx=(selIdx+d+items.length)%items.length; render(); positionBox(); }
+  function escH(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-        let isDraggingGizmo = false;
-        gizmo.addEventListener('dragging-changed', (e) => { isDraggingGizmo = e.value; });
+  function getNames(){
+    return Object.keys(window.sObjs||{}).map(n=>n.toUpperCase()).concat(['WORLD']);
+  }
 
-        let isPlayMode = false; 
-        let currentTool = 'place'; 
-        let selectedItemType = 'block'; 
-        let moveSpeed = 0.12; 
-        let worldGravity = 0.015; 
-        let velocityY = 0;
-        let isGrounded = false;
-        let spawnPoint = null;
-        let editorCamPos = new THREE.Vector3();
-        let editorCamRot = new THREE.Euler();
-        const playerHeight = 1.4; 
-        const jumpStrength = 0.35; 
-        const fallMultiplier = 1.5; 
-        const playerRadius = 0.45; 
+  function suggest(line){
+    const l=line.trimStart();
+    if(!l || l.startsWith('//') || l.startsWith('#')) return [];
 
-        const speedSlider = document.getElementById('speed-slider');
-        const speedNum = document.getElementById('speed-num');
-        const gravSlider = document.getElementById('gravity-slider');
-        const gravNum = document.getElementById('gravity-num');
-        const gridToggle = document.getElementById('grid-toggle');
+    // Partial command name only (no dot yet)
+    if(!l.includes('.')){
+      const q=l.toLowerCase();
+      const hits=CMDS.filter(c=>c.startsWith(q)&&c!==q);
+      if(hits.length) return hits.map(c=>({label:c+'.[',hint:'command',tag:'cmd'}));
+      if(q==='') return SNIPPETS;
+      return [];
+    }
 
-        speedSlider.oninput = (e) => { moveSpeed = parseFloat(e.target.value); speedNum.value = moveSpeed; };
-        speedNum.oninput = (e) => { moveSpeed = parseFloat(e.target.value) || 0; speedSlider.value = moveSpeed; };
-        gravSlider.oninput = (e) => { worldGravity = parseFloat(e.target.value); gravNum.value = worldGravity; };
-        gravNum.oninput = (e) => { worldGravity = parseFloat(e.target.value) || 0; gravSlider.value = worldGravity; };
+    const m=l.match(/^(\w+)\.\[(.*)$/);
+    if(!m) return [];
+    const cmd=m[1].toLowerCase(), inside=m[2];
 
-        gridToggle.onchange = () => {
-            objects.forEach(obj => {
-                if (obj !== floor && obj !== spawnPoint) {
-                    obj.material.map = gridToggle.checked ? gridTexture : null;
-                    obj.material.needsUpdate = true;
-                }
-            });
-        };
+    // Handle the  >>  side for event lines
+    const arrowIdx = inside.indexOf('>>');
+    if(arrowIdx!==-1){
+      const afterArrow = inside.substring(arrowIdx+2).trimStart();
+      return suggestCmd(afterArrow, null);
+    }
 
-        document.getElementById('size-slider').oninput = (e) => {
-            if (gizmo.object) {
-                const s = parseFloat(e.target.value);
-                gizmo.object.scale.set(s, s, s);
-            }
-        };
+    return suggestCmd(inside, cmd);
+  }
 
-        window.togglePlayTest = () => {
-            const btn = document.getElementById('playTestBtn');
-            isPlayMode = !isPlayMode;
-            if (isPlayMode) {
-                if (!spawnPoint) { alert("❌ Need a Spawn Point!"); isPlayMode = false; return; }
-                editorCamPos.copy(camera.position); editorCamRot.copy(camera.rotation);
-                btn.innerText = "STOP TEST ⏹"; btn.classList.add('playing');
-                document.getElementById('status').innerText = "Status: PLAY TESTING";
-                document.getElementById('crosshair').style.display = 'block';
-                ['publishBtn', 'dragModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(id => document.getElementById(id).style.display = 'none');
-                gizmo.detach();
-                camera.position.set(spawnPoint.position.x, spawnPoint.position.y + 1, spawnPoint.position.z);
-                velocityY = 0;
-            } else {
-                btn.innerText = "PLAY TEST ▶"; btn.classList.remove('playing');
-                document.getElementById('status').innerText = "Status: BUILDING MODE";
-                document.getElementById('crosshair').style.display = 'none';
-                ['publishBtn', 'dragModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(id => document.getElementById(id).style.display = 'flex');
-                camera.position.copy(editorCamPos); camera.rotation.copy(editorCamRot);
-            }
-        };
+  function suggestCmd(inside, cmd){
+    const parts=inside.split('.');
+    const p0=(parts[0]||'').toUpperCase();
+    const p1=(parts[1]||'').toUpperCase();
+    const p2=(parts[2]||'').toUpperCase();
 
-        window.exitGame = () => { localStorage.removeItem('currentGameId'); localStorage.removeItem('editMode'); window.location.href = 'index.html'; };
-        
-        window.toggleTool = (tool) => {
-            currentTool = (currentTool === tool) ? 'place' : tool;
-            if (currentTool !== 'drag') { gizmo.detach(); document.getElementById('part-settings').style.display = 'none'; }
-            document.getElementById('deleteModeBtn').classList.toggle('active-tool', currentTool === 'delete');
-            document.getElementById('dragModeBtn').classList.toggle('active-tool', currentTool === 'drag');
-        };
+    if(cmd==='set'||cmd===null&&['PLAYER','WORLD'].some(x=>x.startsWith(p0))){
+      if(cmd==='set'||cmd===null){
+        if(parts.length===1) return ['PLAYER','WORLD'].filter(x=>x.startsWith(p0)).map(x=>({label:`set.[${x}.`,hint:'target',tag:'prop'}));
+        if(parts.length===2&&p0==='PLAYER') return ['SPEED','JUMP'].filter(x=>x.startsWith(p1)).map(x=>({label:`set.[PLAYER.${x}.`,hint:'number 1–100',tag:'prop'}));
+        if(parts.length===2&&p0==='WORLD') return ['GRAVITY'].filter(x=>x.startsWith(p1)).map(x=>({label:`set.[WORLD.GRAVITY.`,hint:'number 0–50',tag:'prop'}));
+      }
+    }
 
-        window.selectItem = (type) => {
-            selectedItemType = type; currentTool = 'place'; gizmo.detach();
-            document.querySelectorAll('.item-card').forEach(c => c.classList.remove('selected'));
-            document.getElementById(`card-${type}`).classList.add('selected');
-        };
+    if(cmd==='construct'){
+      if(parts.length===1) return [{label:`construct.[${p0||'NAME'}.SIZE.`,hint:'name your block',tag:'prop'}];
+      if(parts.length===2) return [{label:`construct.[${p0}.SIZE.`,hint:'then: width,height,depth',tag:'prop'}];
+      if(parts.length===3) return [{label:`construct.[${p0}.SIZE.2,2,2]`,hint:'width,height,depth',tag:'val'}];
+    }
 
-        window.publishGame = async () => {
-            if (!spawnPoint) { alert("❌ Need a Spawn Point!"); return; }
-            const blocksData = objects.filter(obj => obj !== floor).map(obj => ({ 
-                x: obj.position.x, y: obj.position.y, z: obj.position.z, s: obj.scale.x, type: (obj === spawnPoint) ? 'spawn' : 'block' 
-            }));
-            const config = { gravity: worldGravity, speed: moveSpeed };
-            const editId = localStorage.getItem('currentGameId');
-            try {
-                if (localStorage.getItem('editMode') === 'true' && editId) {
-                    await supabaseClient.from('games').update({ blocks: blocksData, config: config }).eq('id', editId);
-                    alert("✅ Game Updated!");
-                } else {
-                    const name = prompt("Name your game:"); if (!name) return;
-                    await supabaseClient.from('games').insert([{ name, blocks: blocksData, creator: currentUser, config: config }]);
-                    alert("🚀 Game Published!");
-                }
-                exitGame();
-            } catch (err) { alert("❌ Save Failed: " + err.message); }
-        };
+    if(cmd==='modify'){
+      if(parts.length===1){
+        const names=getNames().filter(n=>n.startsWith(p0));
+        return names.length ? names.map(n=>({label:`modify.[${n}.`,hint:'block name',tag:'prop'}))
+          : p0 ? [{label:`modify.[${p0}.`,hint:'block name',tag:'prop'}] : [];
+      }
+      if(parts.length===2){
+        if(p0==='WORLD') return ['SKY','FOG'].filter(x=>x.startsWith(p1)).map(x=>({label:`modify.[WORLD.${x}.`,hint:'world property',tag:'prop'}));
+        return PROPS_MODIFY.filter(x=>x.startsWith(p1)).map(x=>({label:`modify.[${p0}.${x}.`,hint:'property',tag:'prop'}));
+      }
+      if(parts.length===3){
+        if(p1==='COLOR') return COLORS.filter(x=>x.startsWith(p2)).map(x=>({label:`modify.[${p0}.COLOR.${x}]`,hint:'',tag:'val'}));
+        if(p1==='GLOW') return [{label:`modify.[${p0}.GLOW.80]`,hint:'0–100',tag:'val'}];
+        if(p1==='GHOST') return ['ON','OFF'].filter(x=>x.startsWith(p2)).map(x=>({label:`modify.[${p0}.GHOST.${x}]`,hint:'',tag:'val'}));
+        if(p1==='SKY') return SKIES.filter(x=>x.startsWith(p2)).map(x=>({label:`modify.[WORLD.SKY.${x}]`,hint:'',tag:'val'}));
+        if(p1==='SPIN') return AXES.filter(x=>x.startsWith(p2)).map(x=>({label:`modify.[${p0}.SPIN.${x}]`,hint:'axis',tag:'val'}));
+        if(p1==='SIZE') return [{label:`modify.[${p0}.SIZE.2,2,2]`,hint:'width,height,depth',tag:'val'}];
+      }
+    }
 
-        async function init() {
-            const id = localStorage.getItem('currentGameId');
-            const isEditMode = localStorage.getItem('editMode') === 'true';
-            if (isEditMode) {
-                isPlayMode = false;
-                ['publishBtn', 'dragModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(i => document.getElementById(i).style.display = 'flex');
-            } else {
-                isPlayMode = true;
-                document.getElementById('crosshair').style.display = 'block'; document.getElementById('playTestBtn').style.display = 'none';
-            }
-            if (id) {
-                const { data: game } = await supabaseClient.from('games').select('*').eq('id', id).single();
-                if (game && game.blocks) {
-                    document.getElementById('gameNameDisplay').innerText = game.name.toUpperCase();
-                    game.blocks.forEach(d => {
-                        const isSpawn = d.type === 'spawn';
-                        const mat = isSpawn ? spawnMat : new THREE.MeshStandardMaterial({ color: 0xcccccc, map: gridToggle.checked ? gridTexture : null });
-                        const mesh = new THREE.Mesh(isSpawn ? spawnGeo : blockGeo, mat);
-                        mesh.position.set(d.x, d.y, d.z); if (d.s) mesh.scale.set(d.s, d.s, d.s);
-                        scene.add(mesh); objects.push(mesh); if (isSpawn) spawnPoint = mesh;
-                    });
-                }
-            }
-            if(spawnPoint) camera.position.set(spawnPoint.position.x, spawnPoint.position.y + playerHeight, spawnPoint.position.z);
-            else camera.position.set(0, playerHeight, 5);
-            setTimeout(() => document.getElementById('loading-overlay').style.display = 'none', 500);
-        }
-        init();
+    if(cmd==='place'){
+      if(parts.length===1){
+        const names=['PLAYER',...getNames().filter(n=>n!=='WORLD')].filter(n=>n.startsWith(p0));
+        return names.map(n=>({label:`place.[${n}.TO.`,hint:n==='PLAYER'?'teleport player':'block name',tag:'prop'}));
+      }
+      if(parts.length===2) return [{label:`place.[${p0}.TO.`,hint:'then X,Y,Z',tag:'prop'}];
+      if(parts.length===3) return [{label:`place.[${p0}.TO.0,1,0]`,hint:'X,Y,Z coords',tag:'val'}];
+    }
 
-        camera.rotation.order = "YXZ";
-        let isDraggingCam = false; let dragDistance = 0; let prevMouse = { x: 0, y: 0 };
-        const keys = {};
+    if(cmd==='loop'){
+      if(parts.length===1) return getNames().filter(n=>n!=='WORLD'&&n.startsWith(p0)).map(n=>({label:`loop.[${n}.`,hint:'block name',tag:'prop'}));
+      if(parts.length===2) return LOOP_ACTIONS.filter(x=>x.startsWith(p1)).map(x=>({label:`loop.[${p0}.${x}.`,hint:'',tag:'prop'}));
+      if(parts.length===3){
+        if(p1==='ROTATE') return AXES.filter(x=>x.startsWith(p2)).map(x=>({label:`loop.[${p0}.ROTATE.${x}.5]`,hint:'speed 1–20',tag:'val'}));
+        if(p1==='PATH') return [{label:`loop.[${p0}.PATH.(0,2,0)>>(0,8,0)]`,hint:'start >> end',tag:'val'}];
+        if(p1==='MOVE_TO') return [{label:`loop.[${p0}.MOVE_TO.PLAYER.SPEED.5]`,hint:'chases player',tag:'val'}];
+      }
+    }
 
-        window.addEventListener('pointerdown', (e) => { 
-            if (e.target.closest('button') || e.target.closest('.item-card') || e.target.closest('#settings-panel') || e.target.closest('#chat-container') || isDraggingGizmo) return;
-            mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(objects);
-            if (!isPlayMode && currentTool === 'drag' && intersects.length > 0 && intersects[0].object !== floor) {
-                gizmo.attach(intersects[0].object); document.getElementById('part-settings').style.display = 'block';
-            } else { isDraggingCam = true; prevMouse = { x: e.clientX, y: e.clientY }; dragDistance = 0; }
-        });
-        
-        window.addEventListener('pointermove', (e) => {
-            if (isDraggingGizmo || !isDraggingCam) return;
-            const dx = e.clientX - prevMouse.x; const dy = e.clientY - prevMouse.y;
-            dragDistance += Math.abs(dx) + Math.abs(dy);
-            camera.rotation.y -= dx * 0.003; camera.rotation.x -= dy * 0.003;
-            camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, camera.rotation.x));
-            prevMouse = { x: e.clientX, y: e.clientY };
-        });
+    if(cmd==='on'){
+      if(parts.length===1) return ['TOUCH','CLICK'].filter(x=>x.startsWith(p0)).map(x=>({label:`on.[${x}.`,hint:'trigger type',tag:'prop'}));
+      if(parts.length===2){
+        const names=getNames().filter(n=>n!=='WORLD'&&n.startsWith(p1));
+        if(names.length) return names.map(n=>({label:`on.[${p0}.${n}] >> `,hint:'then pick action',tag:'prop'}));
+        return [{label:`on.[${p0}.${p1||'NAME'}] >> `,hint:'block name',tag:'prop'}];
+      }
+    }
 
-        window.addEventListener('pointerup', (e) => {
-            if (isDraggingGizmo) return;
-            isDraggingCam = false; if (dragDistance > 10 || e.target.closest('button') || e.target.closest('.item-card') || e.target.closest('#settings-panel')) return;
-            if (isPlayMode) return;
-            raycaster.setFromCamera(mouse, camera); const intersects = raycaster.intersectObjects(objects);
-            if (intersects.length > 0) {
-                const intersect = intersects[0];
-                if (currentTool === 'delete' && intersect.object !== floor) {
-                    if (intersect.object === spawnPoint) spawnPoint = null;
-                    gizmo.detach(); scene.remove(intersect.object); objects.splice(objects.indexOf(intersect.object), 1);
-                } else if (currentTool === 'place') {
-                    const isSpawn = selectedItemType === 'spawn';
-                    const mat = isSpawn ? spawnMat : new THREE.MeshStandardMaterial({ color: 0xcccccc, map: gridToggle.checked ? gridTexture : null });
-                    const m = new THREE.Mesh(isSpawn ? spawnGeo : blockGeo, mat);
-                    const pos = intersect.object === floor ? new THREE.Vector3(Math.round(intersect.point.x), isSpawn ? 0.1 : 0.5, Math.round(intersect.point.z)) : intersect.object.position.clone().add(intersect.face.normal.multiplyScalar(isSpawn ? 0.6 : 1));
-                    m.position.copy(pos); scene.add(m); objects.push(m);
-                    if (isSpawn) { if(spawnPoint) { scene.remove(spawnPoint); objects.splice(objects.indexOf(spawnPoint), 1); } spawnPoint = m; }
-                }
-            }
-        });
+    if(cmd==='delete'&&parts.length===1){
+      const names=getNames().filter(n=>n!=='WORLD'&&n.startsWith(p0));
+      return names.length ? names.map(n=>({label:`delete.[${n}]`,hint:'remove',tag:'val'}))
+        : [{label:`delete.[${p0||'NAME'}]`,hint:'block name',tag:'val'}];
+    }
+    if(cmd==='launch') return [{label:`launch.[PLAYER.UP.70]`,hint:'send player flying',tag:'val'}];
 
-        window.addEventListener('keydown', (e) => { keys[e.code] = true; });
-        window.addEventListener('keyup', (e) => keys[e.code] = false);
+    return [];
+  }
 
-        function updateLabels() {
-            const frustum = new THREE.Frustum();
-            frustum.setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
-            for (let id in remotePlayers) {
-                const p = remotePlayers[id];
-                const pos = p.mesh.position.clone().add(new THREE.Vector3(0, 1.2, 0));
-                if (frustum.containsPoint(pos)) {
-                    pos.project(camera); p.label.style.display = 'block';
-                    p.label.style.left = `${(pos.x * 0.5 + 0.5) * window.innerWidth}px`;
-                    p.label.style.top = `${(-(pos.y * 0.5) + 0.5) * window.innerHeight}px`;
-                } else { p.label.style.display = 'none'; }
-            }
-        }
+  ta.addEventListener('input',()=>{
+    const sugs=suggest(curLine());
+    sugs.length ? show(sugs) : hide();
+  });
 
-        function checkWallCollision(position, direction) {
-            const collisionObjects = objects.filter(o => o !== floor); 
-            const checkOffsets = [-1.3, -0.8, -0.3]; 
-            for (let offset of checkOffsets) {
-                sideRay.set(new THREE.Vector3(position.x, position.y + offset, position.z), direction);
-                const hits = sideRay.intersectObjects(collisionObjects);
-                if (hits.length > 0 && hits[0].distance < playerRadius) return true;
-            }
-            return false;
-        }
+  ta.addEventListener('keydown',e=>{
+    if(active){
+      if(e.key==='ArrowDown'){e.preventDefault();moveSel(1);return;}
+      if(e.key==='ArrowUp'){e.preventDefault();moveSel(-1);return;}
+      if(e.key==='Tab'||e.key==='Enter'){
+        if(items[selIdx]){e.preventDefault();pick(items[selIdx].label);return;}
+      }
+      if(e.key==='Escape'){hide();return;}
+    }
+    if(e.ctrlKey&&e.code==='Enter'){e.preventDefault();window.runServerScript();}
+  });
 
-        let lastSend = 0;
-        function animate() {
-            requestAnimationFrame(animate);
-            document.getElementById('coords').innerText = `X: ${camera.position.x.toFixed(2)} | Y: ${camera.position.y.toFixed(2)} | Z: ${camera.position.z.toFixed(2)}`;
+  ta.addEventListener('blur',()=>setTimeout(hide,160));
+  ta.addEventListener('scroll',()=>{ if(active) positionBox(); });
+}
 
-            if (isPlayMode) {
-                downRay.set(camera.position, new THREE.Vector3(0, -1, 0));
-                const groundHits = downRay.intersectObjects(objects);
-                if (groundHits.length > 0 && groundHits[0].distance <= playerHeight) {
-                    if (velocityY < 0) { velocityY = 0; isGrounded = true; camera.position.y = groundHits[0].point.y + playerHeight; }
-                } else { isGrounded = false; velocityY -= (velocityY < 0 ? worldGravity * fallMultiplier : worldGravity); }
+// Boot autocomplete on the main editor
+// Module scripts are deferred so DOM is ready
+const _acMainTa=document.getElementById('code-editor');
+if(_acMainTa) makeAC(_acMainTa);
+// Also boot when part-script modal opens (handled in openPSM)
 
-                if (velocityY > 0) {
-                    upRay.set(camera.position, new THREE.Vector3(0, 1, 0));
-                    const headHits = upRay.intersectObjects(objects.filter(o => o !== floor));
-                    if (headHits.length > 0 && headHits[0].distance < 0.4) { velocityY = 0; }
-                }
-                
-                if (keys['Space'] && isGrounded && document.activeElement !== chatInput) { velocityY = jumpStrength; isGrounded = false; }
-                camera.position.y += velocityY;
-                
-                let move = new THREE.Vector3();
-                if (document.activeElement !== chatInput) {
-                    if (keys['KeyW']) move.z -= 1; if (keys['KeyS']) move.z += 1;
-                    if (keys['KeyA']) move.x -= 1; if (keys['KeyD']) move.x += 1;
-                }
-                if (move.length() > 0) {
-                    move.applyQuaternion(camera.quaternion); move.y = 0; move.normalize();
-                    if (!checkWallCollision(camera.position, new THREE.Vector3(move.x, 0, 0))) camera.position.x += move.x * moveSpeed;
-                    if (!checkWallCollision(camera.position, new THREE.Vector3(0, 0, move.z))) camera.position.z += move.z * moveSpeed;
-                }
 
-                const now = Date.now();
-                if (now - lastSend > 50) {
-                    channel.send({ type: 'broadcast', event: 'move', payload: { id: currentUser, x: camera.position.x, y: camera.position.y, z: camera.position.z } });
-                    lastSend = now;
-                }
-            } else {
-                const flySpeed = moveSpeed * 2;
-                if (document.activeElement !== chatInput) {
-                    if (keys['KeyW']) camera.translateZ(-flySpeed); if (keys['KeyS']) camera.translateZ(flySpeed);
-                    if (keys['KeyA']) camera.translateX(-flySpeed); if (keys['KeyD']) camera.translateX(flySpeed);
-                    if (keys['Space']) camera.position.y += flySpeed; if (keys['ShiftLeft']) camera.position.y -= flySpeed;
-                }
-            }
-            updateLabels(); renderer.render(scene, camera);
-        }
-        animate();
-    </script>
+window.attachToSelected=function(){ if(!gizmo.object){notify('Use Drag tool to select a part first','err');return;} openPSM(gizmo.object); };
+
+// PART SCRIPT MODAL
+window.openPSM=function(mesh){ psmMesh=mesh; const name=mesh.userData.name||mesh.uuid.slice(0,8); document.getElementById('psm-name').textContent=name; document.getElementById('psm-ed').value=partScripts[mesh.uuid]||''; document.getElementById('psm').classList.add('open'); const psmTa=document.getElementById('psm-ed'); if(!psmTa._acInit){psmTa._acInit=true;makeAC(psmTa);} };
+window.closePSM=function(){ document.getElementById('psm').classList.remove('open'); psmMesh=null; };
+window.savePSM=function(){ if(!psmMesh)return; const code=document.getElementById('psm-ed').value.trim(); if(code){partScripts[psmMesh.uuid]=code;notify('Part script saved ✓','ok');}else{delete partScripts[psmMesh.uuid];notify('Script cleared');} closePSM(); updateObjList(); };
+
+function updateObjList(){
+  const list=document.getElementById('obj-list');
+  const all=objects.filter(o=>o!==floor);
+  if(all.length===0){list.innerHTML='<div style="color:#2a2a3a;font-size:11px;padding:8px">No objects yet!</div>';return;}
+  list.innerHTML=all.map(m=>{
+    const n=m.userData.name||m.uuid.slice(0,8),p=m.position,hs=!!partScripts[m.uuid];
+    return `<div class="oi${hs?' hscript':''}">
+      <div style="cursor:pointer" onclick="focusMesh('${m.uuid}')">
+        <div class="oname">${n}${hs?'<span class="sbadge">📜 SCRIPT</span>':''}</div>
+        <div class="opos">(${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${p.z.toFixed(1)})</div>
+      </div>
+      <div class="oi-actions">
+        <div class="oi-edit" onclick="openPSMbyUUID('${m.uuid}')" title="Edit Part Script">📜</div>
+        <div class="oi-del" onclick="delByUUID('${m.uuid}')">✕</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.focusMesh=function(uuid){ const m=objects.find(o=>o.uuid===uuid);if(!m)return;camera.position.set(m.position.x,m.position.y+4,m.position.z+8);camera.rotation.x=-0.4; };
+window.openPSMbyUUID=function(uuid){ const m=objects.find(o=>o.uuid===uuid);if(m)openPSM(m); };
+window.delByUUID=function(uuid){ const m=objects.find(o=>o.uuid===uuid);if(!m)return; const n=m.userData.name;if(n)delete sObjs[n];gizmo.detach();scene.remove(m);const i=objects.indexOf(m);if(i>-1)objects.splice(i,1);if(m===spawnPt)spawnPt=null;delete partScripts[uuid];scriptCreated.delete(uuid);updateObjList(); };
+
+// PUBLISH
+window.openPM=function(){ if(!spawnPt){notify('Need a Spawn Point to publish!','err');return;} document.getElementById('pm').classList.add('open'); document.getElementById('pm-success').style.display='none'; document.getElementById('pm-ftr').style.display='flex'; document.querySelectorAll('.pmf').forEach(f=>f.style.display=''); };
+window.closePM=function(){ document.getElementById('pm').classList.remove('open'); };
+window.doPublish=function(){
+  const name=document.getElementById('pm-name').value.trim();
+  if(!name){document.getElementById('pm-name').focus();notify('Enter a game name!','err');return;}
+  const worldData={
+    name, desc:document.getElementById('pm-desc').value.trim(),
+    tags:[...document.querySelectorAll('.pmtag.on')].map(t=>t.textContent.trim()),
+    settings:{gravity:worldGrav,speed:moveSpeed,jump:jumpStr},
+    serverScript:document.getElementById('code-editor').value,
+    objects:objects.filter(o=>o!==floor).map(m=>({
+      uuid:m.uuid,name:m.userData.name,type:m.userData.type,
+      x:m.position.x,y:m.position.y,z:m.position.z,
+      sx:m.scale.x,sy:m.scale.y,sz:m.scale.z,
+      rx:m.rotation.x,ry:m.rotation.y,rz:m.rotation.z,
+      color:m.material.color.getHexString(),
+      ghost:m.userData.ghost,
+      script:partScripts[m.uuid]||null
+    })),
+    published:new Date().toISOString()
+  };
+  const code=btoa(JSON.stringify({n:name,ts:Date.now()})).replace(/[^A-Z0-9]/gi,'').slice(0,8).toUpperCase();
+  worldData.code=code;
+  const saves=JSON.parse(localStorage.getItem('bubbler_saves')||'[]');
+  saves.unshift(worldData);
+  localStorage.setItem('bubbler_saves',JSON.stringify(saves.slice(0,20)));
+  document.querySelectorAll('.pmf').forEach(f=>f.style.display='none');
+  document.getElementById('pm-ftr').style.display='none';
+  document.getElementById('ps-code').textContent=code;
+  document.getElementById('pm-success').style.display='block';
+  notify('Published! 🚀','ok');
+};
+window.copyCode=function(){ const code=document.getElementById('ps-code').textContent; navigator.clipboard.writeText(code).then(()=>notify('Code copied!','ok')).catch(()=>{}); };
+window.exitAfterPublish=function(){ closePM(); doExit(); };
+
+window.exitToLobby=function(){
+  if(confirm('Exit? Unsaved changes will be lost.')) doExit();
+};
+function doExit(){
+  for(let i=objects.length-1;i>=0;i--){if(objects[i]!==floor){scene.remove(objects[i]);objects.splice(i,1);}}
+  for(const n in sObjs)delete sObjs[n]; for(const u in partScripts)delete partScripts[u];
+  loops.length=0;events.length=0;spawnPt=null;isPlay=false;
+  scene.background=new THREE.Color(0x0a0a0c);
+  document.getElementById('playBtn').textContent='▶ PLAY';
+  document.getElementById('playBtn').classList.remove('on');
+  document.getElementById('crosshair').style.display='none';
+  document.getElementById('item-bar').style.display='flex';
+  document.getElementById('tool-bar').style.display='flex';
+  camera.position.set(0,8,14);camera.rotation.x=-0.4;camera.rotation.y=0;
+  document.getElementById('code-editor').value='';
+  document.getElementById('game-title').textContent='BUBBLER+';
+  updateObjList();
+  notify('World reset — ready to build!');
+}
+
+function notify(msg,t=''){ const c=document.getElementById('notif'),d=document.createElement('div'); d.className='notif'+(t?' '+t:''); d.textContent=msg; c.appendChild(d); setTimeout(()=>d.remove(),2700); }
+
+// LOADING
+const bar=document.getElementById('lbar');let prog=0;
+const li=setInterval(()=>{prog+=Math.random()*20;bar.style.width=Math.min(prog,92)+'%';if(prog>=92)clearInterval(li);},120);
+setTimeout(()=>{bar.style.width='100%';setTimeout(()=>{const lo=document.getElementById('loading');lo.style.transition='opacity .4s';lo.style.opacity='0';setTimeout(()=>lo.style.display='none',400);},200);},1100);
+setTimeout(()=>notify('Right-click a part → add Part Script'),1800);
+setTimeout(()=>notify('P=Place · X=Delete · G=Drag · Ctrl+Enter=Run'),3400);
+</script>
+<!-- AUTOCOMPLETE DROPDOWN -->
+<div id="ac-dropdown"></div>
+<div id="ac-box"></div>
 </body>
 </html>
