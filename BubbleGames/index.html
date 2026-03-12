@@ -99,7 +99,7 @@
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // --- OWNER CONFIGURATION ---
-        const OWNER_EMAIL = "goomba@bubble.com"; // Change this to your actual admin email
+        const OWNER_EMAIL = "goomba@bubble.com"; 
         // ---------------------------
 
         let currentUser = "";
@@ -110,7 +110,6 @@
                 const { data: { user }, error } = await supabaseClient.auth.getUser();
                 
                 if (user && !error) {
-                    // 1. First, fetch the profile data
                     const { data: profile } = await supabaseClient
                         .from('profiles')
                         .select('username, role')
@@ -125,7 +124,6 @@
                         userRole = "Player";
                     }
 
-                    // 2. EMAIL OVERRIDE: If the email matches your admin email, force Owner status
                     if (user.email.toLowerCase() === OWNER_EMAIL.toLowerCase()) {
                         userRole = "Owner";
                     }
@@ -165,9 +163,10 @@
                 const card = createCard(game, isCreator, isOwner);
                 
                 if (isCreator) {
+                    // You always see your own games (Studio)
                     myGrid.appendChild(card);
-                } else if (game.is_public || isOwner) {
-                    // Owners can see ALL games in the global library, even private ones
+                } else if (game.is_public) {
+                    // Everyone (including Owner) only sees PUBLIC games from others
                     globalGrid.appendChild(card);
                 }
             });
@@ -179,7 +178,7 @@
             const statusClass = game.is_public ? 'status-public' : 'status-private';
             const statusText = game.is_public ? '🌐 Public' : '🔒 Private';
             
-            // If user is the creator OR they are the Owner email, they get full control
+            // Owners can moderate any game that is visible in the list
             const hasPower = isCreator || isOwner;
 
             card.innerHTML = `
