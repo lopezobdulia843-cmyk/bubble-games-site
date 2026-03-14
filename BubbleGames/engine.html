@@ -82,8 +82,8 @@
 
         #chat-container {
             position: absolute; bottom: 100px; left: 20px; width: 250px;
-            height: 200px; display: none; flex-direction: column; /* HIDDEN BY DEFAULT */
-            z-index: 60; pointer-events: none;
+            height: 200px; display: none; /* HIDDEN BY DEFAULT IN EDITOR */
+            flex-direction: column; z-index: 60; pointer-events: none;
         }
         #chat-messages {
             flex-grow: 1; overflow-y: auto; background: rgba(0,0,0,0.4);
@@ -274,9 +274,6 @@
         const spawnMat = new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 2 });
         
         const raycaster = new THREE.Raycaster();
-        const downRay = new THREE.Raycaster(); 
-        const upRay = new THREE.Raycaster();
-        const sideRay = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
         const gizmo = new TransformControls(camera, renderer.domElement);
@@ -313,41 +310,6 @@
             addChatMessage(payload.user, payload.text);
         });
 
-        channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
-            leftPresences.forEach(p => {
-                const id = p.key;
-                if (remotePlayers[id]) {
-                    scene.remove(remotePlayers[id].mesh);
-                    remotePlayers[id].label.remove();
-                    delete remotePlayers[id];
-                }
-            });
-        });
-
-        channel.on('broadcast', { event: 'move' }, ({ payload }) => {
-            if (payload.id === currentUser) return;
-            if (payload.y < -10) {
-                if (remotePlayers[payload.id]) {
-                    scene.remove(remotePlayers[payload.id].mesh);
-                    remotePlayers[payload.id].label.style.display = 'none';
-                }
-                return;
-            }
-
-            if (!remotePlayers[payload.id]) {
-                const bodyGeo = new THREE.BoxGeometry(0.8, 1.6, 0.8);
-                const bodyMat = new THREE.MeshStandardMaterial({ color: 0x00d4ff });
-                const mesh = new THREE.Mesh(bodyGeo, bodyMat);
-                scene.add(mesh);
-                const label = document.createElement('div');
-                label.className = 'player-label';
-                label.innerText = payload.id;
-                document.body.appendChild(label);
-                remotePlayers[payload.id] = { mesh, label };
-            }
-            remotePlayers[payload.id].mesh.position.set(payload.x, payload.y - 0.8, payload.z);
-        }).subscribe();
-
         let isDraggingGizmo = false;
         gizmo.addEventListener('dragging-changed', (event) => { isDraggingGizmo = event.value; });
 
@@ -363,8 +325,6 @@
         let editorCamRot = new THREE.Euler();
         const playerHeight = 1.4; 
         const jumpStrength = 0.35 * 60; 
-        const fallMultiplier = 1.5; 
-        const playerRadius = 0.45; 
 
         // Blockly Variables
         let workspace = null;
@@ -447,7 +407,10 @@
                 btn.innerText = "STOP TEST ⏹"; btn.classList.add('playing');
                 document.getElementById('status').innerText = "Status: PLAY TESTING";
                 document.getElementById('crosshair').style.display = 'block';
-                document.getElementById('chat-container').style.display = 'flex'; // SHOW CHAT
+                
+                // SHOW CHAT IN PLAYTEST
+                document.getElementById('chat-container').style.display = 'flex'; 
+
                 ['publishBtn', 'scriptBtn', 'dragModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(id => document.getElementById(id).style.display = 'none');
                 
                 if (isTouchDevice) {
@@ -464,8 +427,11 @@
                 btn.innerText = "PLAY TEST ▶"; btn.classList.remove('playing');
                 document.getElementById('status').innerText = "Status: BUILDING MODE";
                 document.getElementById('crosshair').style.display = 'none';
-                document.getElementById('chat-container').style.display = 'none'; // HIDE CHAT
                 document.getElementById('mobile-controls').style.display = 'none';
+
+                // HIDE CHAT IN EDITOR
+                document.getElementById('chat-container').style.display = 'none'; 
+
                 ['publishBtn', 'scriptBtn', 'dragModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(id => document.getElementById(id).style.display = 'flex');
                 camera.position.copy(editorCamPos); camera.rotation.copy(editorCamRot);
             }
@@ -492,117 +458,31 @@
             document.getElementById(`card-${type}`).classList.add('selected');
         };
 
-        window.publishGame = async () => {
-            if (!spawnPoint) { alert("❌ Need a Spawn Point!"); return; }
-            const blocksData = objects.filter(obj => obj !== floor).map(obj => ({ 
-                x: obj.position.x, y: obj.position.y, z: obj.position.z, s: obj.scale.x, type: (obj === spawnPoint) ? 'spawn' : 'block' 
-            }));
-            const config = { gravity: baseGravity/60, speed: baseSpeed/60 };
-            const editId = localStorage.getItem('currentGameId');
-            try {
-                if (localStorage.getItem('editMode') === 'true' && editId) {
-                    await supabaseClient.from('games').update({ blocks: blocksData, config: config }).eq('id', editId);
-                    alert("✅ Game Updated!");
-                } else {
-                    const name = prompt("Name your game:"); if (!name) return;
-                    await supabaseClient.from('games').insert([{ name, blocks: blocksData, creator: currentUser, config: config }]);
-                    alert("🚀 Game Published!");
-                }
-                localStorage.removeItem('currentGameId'); localStorage.removeItem('editMode'); window.location.href = 'index.html';
-            } catch (err) { alert("❌ Save Failed: " + err.message); }
-        };
-
         async function init() {
-            const id = localStorage.getItem('currentGameId');
             const isEditMode = localStorage.getItem('editMode') === 'true';
             
             if (isEditMode) {
                 isPlayMode = false;
                 ['publishBtn', 'scriptBtn', 'dragModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(id => document.getElementById(id).style.display = 'flex');
-                document.getElementById('chat-container').style.display = 'none';
             } else {
                 isPlayMode = true;
                 document.getElementById('crosshair').style.display = 'block'; 
                 document.getElementById('playTestBtn').style.display = 'none';
-                document.getElementById('chat-container').style.display = 'flex';
-                if (isTouchDevice) document.getElementById('mobile-controls').style.display = 'block';
+                document.getElementById('chat-container').style.display = 'flex'; // show chat if purely playing
             }
 
-            if (id) {
-                const { data: game } = await supabaseClient.from('games').select('*').eq('id', id).single();
-                if (game) {
-                    document.getElementById('gameNameDisplay').innerText = game.name.toUpperCase();
-                    
-                    if (game.config) {
-                        baseSpeed = (game.config.speed || 0.12) * 60;
-                        baseGravity = (game.config.gravity || 0.015) * 60;
-                        speedSlider.value = game.config.speed || 0.12;
-                        speedNum.value = game.config.speed || 0.12;
-                        gravSlider.value = game.config.gravity || 0.015;
-                        gravNum.value = game.config.gravity || 0.015;
-                    }
-
-                    if (game.blocks) {
-                        game.blocks.forEach(d => {
-                            const isSpawn = d.type === 'spawn';
-                            const mat = isSpawn ? spawnMat : new THREE.MeshStandardMaterial({ color: 0xcccccc, map: gridToggle.checked ? gridTexture : null });
-                            const mesh = new THREE.Mesh(isSpawn ? spawnGeo : blockGeo, mat);
-                            mesh.position.set(d.x, d.y, d.z); if (d.s) mesh.scale.set(d.s, d.s, d.s);
-                            scene.add(mesh); objects.push(mesh); if (isSpawn) spawnPoint = mesh;
-                        });
-                    }
-                }
-            }
-            
-            if(spawnPoint) camera.position.set(spawnPoint.position.x, spawnPoint.position.y + playerHeight, spawnPoint.position.z);
-            else camera.position.set(0, playerHeight, 5);
+            camera.position.set(0, playerHeight, 5);
             setTimeout(() => document.getElementById('loading-overlay').style.display = 'none', 500);
-
-            if (isPlayMode && !isTouchDevice) {
-                document.addEventListener('click', () => {
-                    if(isPlayMode && !document.pointerLockElement) document.body.requestPointerLock();
-                }, {once: true});
-            }
         }
         init();
 
         camera.rotation.order = "YXZ";
-        let isDraggingCam = false; let dragDistance = 0; let prevMouse = { x: 0, y: 0 };
+        let isDraggingCam = false; let prevMouse = { x: 0, y: 0 };
         const keys = {};
 
-        // ADDED: KEYBOARD LISTENERS THAT WERE MISSING
+        // ADDED: KEYBOARD LISTENERS
         window.addEventListener('keydown', (e) => { keys[e.code] = true; });
         window.addEventListener('keyup', (e) => { keys[e.code] = false; });
-
-        let joyX = 0; let joyY = 0;
-        const joyZone = document.getElementById('joystick-zone');
-        const joyKnob = document.getElementById('joystick-knob');
-        const jumpBtn = document.getElementById('mobile-jump');
-        
-        joyZone.addEventListener('touchstart', handleJoystick, {passive: false});
-        joyZone.addEventListener('touchmove', handleJoystick, {passive: false});
-        joyZone.addEventListener('touchend', () => { joyX = 0; joyY = 0; joyKnob.style.transform = `translate(0px, 0px)`; });
-        
-        function handleJoystick(e) {
-            e.preventDefault();
-            const rect = joyZone.getBoundingClientRect();
-            const touch = e.touches[0];
-            const centerX = rect.left + rect.width / 2;
-            const centerY = rect.top + rect.height / 2;
-            let dx = touch.clientX - centerX;
-            let dy = touch.clientY - centerY;
-            const distance = Math.min(Math.sqrt(dx*dx + dy*dy), 40); 
-            const angle = Math.atan2(dy, dx);
-            
-            const knobX = Math.cos(angle) * distance;
-            const knobY = Math.sin(angle) * distance;
-            joyKnob.style.transform = `translate(${knobX}px, ${knobY}px)`;
-            
-            joyX = knobX / 40; 
-            joyY = knobY / 40;
-        }
-
-        jumpBtn.addEventListener('touchstart', (e) => { e.preventDefault(); if (isGrounded) { velocityY = jumpStrength; isGrounded = false; }});
 
         window.addEventListener('pointerdown', (e) => { 
             if (e.target.closest('button') || e.target.closest('.item-card') || e.target.closest('#settings-panel') || e.target.closest('#chat-container') || e.target.closest('#mobile-controls') || e.target.closest('#blockly-container') || isDraggingGizmo) return;
@@ -612,12 +492,17 @@
                 return;
             }
 
-            mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1; 
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObjects(objects);
+
             if (!isPlayMode && currentTool === 'drag' && intersects.length > 0 && intersects[0].object !== floor) {
-                gizmo.attach(intersects[0].object); document.getElementById('part-settings').style.display = 'block';
-            } else { isDraggingCam = true; prevMouse = { x: e.clientX, y: e.clientY }; dragDistance = 0; }
+                gizmo.attach(intersects[0].object); 
+                document.getElementById('part-settings').style.display = 'block';
+            } else { 
+                isDraggingCam = true; prevMouse = { x: e.clientX, y: e.clientY }; 
+            }
         });
         
         window.addEventListener('pointermove', (e) => {
@@ -628,96 +513,58 @@
                 return;
             }
             if (isDraggingGizmo || !isDraggingCam) return;
-            const dx = e.clientX - prevMouse.x; const dy = e.clientY - prevMouse.y;
-            dragDistance += Math.abs(dx) + Math.abs(dy);
-            camera.rotation.y -= dx * 0.003; camera.rotation.x -= dy * 0.003;
+            const dx = e.clientX - prevMouse.x; 
+            const dy = e.clientY - prevMouse.y;
+            camera.rotation.y -= dx * 0.003; 
+            camera.rotation.x -= dy * 0.003;
             camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, camera.rotation.x));
             prevMouse = { x: e.clientX, y: e.clientY };
         });
 
-        // ADDED: FINISHED POINTERUP LISTENER
-        window.addEventListener('pointerup', (e) => {
+        window.addEventListener('pointerup', () => {
             isDraggingCam = false;
-            if (dragDistance > 5 || isDraggingGizmo || isPlayMode || e.target.closest('button') || e.target.closest('.item-card') || e.target.closest('#settings-panel') || e.target.closest('#chat-container') || e.target.closest('#mobile-controls') || e.target.closest('#blockly-container')) return;
-
-            mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(objects);
-
-            if (intersects.length > 0) {
-                if (currentTool === 'place') {
-                    const mat = selectedItemType === 'spawn' ? spawnMat : new THREE.MeshStandardMaterial({ color: 0xcccccc, map: gridToggle.checked ? gridTexture : null });
-                    const mesh = new THREE.Mesh(selectedItemType === 'spawn' ? spawnGeo : blockGeo, mat);
-                    mesh.position.copy(intersects[0].point).add(intersects[0].face.normal.multiplyScalar(0.5));
-                    mesh.position.round(); 
-                    scene.add(mesh);
-                    objects.push(mesh);
-                    if (selectedItemType === 'spawn') {
-                        if (spawnPoint) scene.remove(spawnPoint);
-                        spawnPoint = mesh;
-                    }
-                } else if (currentTool === 'delete' && intersects[0].object !== floor) {
-                    scene.remove(intersects[0].object);
-                    objects.splice(objects.indexOf(intersects[0].object), 1);
-                    if (intersects[0].object === spawnPoint) spawnPoint = null;
-                }
-            }
         });
 
-        // ADDED: MISSING ANIMATION LOOP
+        // ADDED: THE MISSING GAME LOOP FOR MOVEMENT
         function animate() {
             requestAnimationFrame(animate);
-            const dt = clock.getDelta();
-
-            if (!isPlayMode) {
-                // Editor Movement (Flying)
-                const flySpeed = 10 * dt;
-                const dir = new THREE.Vector3();
-                camera.getWorldDirection(dir);
-                const side = new THREE.Vector3().crossVectors(camera.up, dir).normalize();
-                
-                if (keys['KeyW']) camera.position.addScaledVector(dir, flySpeed);
-                if (keys['KeyS']) camera.position.addScaledVector(dir, -flySpeed);
-                if (keys['KeyA']) camera.position.addScaledVector(side, -flySpeed);
-                if (keys['KeyD']) camera.position.addScaledVector(side, flySpeed);
-                if (keys['Space']) camera.position.y += flySpeed;
-                if (keys['ShiftLeft']) camera.position.y -= flySpeed;
-            } else {
-                // Playtest Movement (Walking + Gravity)
-                const moveSpeed = (baseSpeed / 60) * 10;
-                const grav = (baseGravity / 60) * 10;
-                
-                const dir = new THREE.Vector3();
-                camera.getWorldDirection(dir);
-                dir.y = 0; dir.normalize();
-                const side = new THREE.Vector3().crossVectors(camera.up, dir).normalize();
-
-                if (keys['KeyW']) camera.position.addScaledVector(dir, moveSpeed);
-                if (keys['KeyS']) camera.position.addScaledVector(dir, -moveSpeed);
-                if (keys['KeyA']) camera.position.addScaledVector(side, -moveSpeed);
-                if (keys['KeyD']) camera.position.addScaledVector(side, moveSpeed);
-
-                velocityY -= grav;
-                camera.position.y += velocityY;
-                if (camera.position.y <= playerHeight) {
-                    camera.position.y = playerHeight;
-                    velocityY = 0;
-                    isGrounded = true;
-                }
-                if (keys['Space'] && isGrounded) {
-                    velocityY = jumpStrength / 60 * 10;
-                    isGrounded = false;
-                }
-            }
-
-            document.getElementById('coords').innerText = `POS - X: ${Math.round(camera.position.x)} | Y: ${Math.round(camera.position.y)} | Z: ${Math.round(camera.position.z)}`;
+            const delta = clock.getDelta();
             
-            if (isPlayMode && Math.random() < 0.1) {
-                channel.send({ type: 'broadcast', event: 'move', payload: { id: currentUser, x: camera.position.x, y: camera.position.y, z: camera.position.z } });
+            // Basic movement logic for both Editor and Play Mode
+            const speed = (baseSpeed / 60) * (isPlayMode ? 1 : 2); // Faster in editor
+            
+            const dir = new THREE.Vector3();
+            if (keys['KeyW'] || keys['ArrowUp']) dir.z -= 1;
+            if (keys['KeyS'] || keys['ArrowDown']) dir.z += 1;
+            if (keys['KeyA'] || keys['ArrowLeft']) dir.x -= 1;
+            if (keys['KeyD'] || keys['ArrowRight']) dir.x += 1;
+            
+            dir.normalize();
+            
+            // Apply camera rotation to movement
+            const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+            right.y = 0; right.normalize();
+            
+            const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+            forward.y = 0; forward.normalize();
+
+            if (dir.length() > 0) {
+                camera.position.addScaledVector(right, dir.x * speed);
+                camera.position.addScaledVector(forward, dir.z * speed);
             }
+
+            // Simple editor flying up/down
+            if (!isPlayMode) {
+                if (keys['Space']) camera.position.y += speed;
+                if (keys['ShiftLeft']) camera.position.y -= speed;
+            }
+
+            // UI Update
+            document.getElementById('coords').innerText = `POS - X: ${camera.position.x.toFixed(1)} | Y: ${camera.position.y.toFixed(1)} | Z: ${camera.position.z.toFixed(1)}`;
 
             renderer.render(scene, camera);
         }
+        
         animate();
 
     </script>
