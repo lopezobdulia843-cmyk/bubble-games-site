@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Bubble Games - Studio</title>
+    <title>Bubble Games</title>
     <style>
         body { margin: 0; overflow: hidden; background: #050505; font-family: sans-serif; touch-action: none; color: white; }
         .controls { position: absolute; z-index: 10; display: flex; gap: 10px; }
@@ -33,7 +33,6 @@
             backdrop-filter: blur(5px); margin-bottom: 5px;
             display: flex; align-items: center; justify-content: center; transition: 0.2s;
         }
-        button:hover { background: rgba(0, 212, 255, 0.3); }
         
         #publishBtn { background: #00d4ff; color: #000; }
         #playTestBtn { background: #2ecc71; color: #000; border-color: #2ecc71; }
@@ -41,7 +40,6 @@
 
         .active-tool { background: #00d4ff !important; color: #000 !important; box-shadow: 0 0 15px #00d4ff; }
         #deleteModeBtn.active-tool { background: #ff3232 !important; border-color: #ff3232 !important; color: white !important; box-shadow: 0 0 15px #ff3232; }
-        #scriptModeBtn.active-tool { background: #f39c12 !important; border-color: #f39c12 !important; color: white !important; box-shadow: 0 0 15px #f39c12; }
 
         #item-selector { 
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
@@ -92,31 +90,16 @@
             color: white; padding: 8px; border-radius: 4px; pointer-events: auto;
             outline: none;
         }
+        .chat-msg { word-wrap: break-word; text-shadow: 1px 1px 2px black; }
+        .chat-user { color: #00d4ff; font-weight: bold; }
 
-        #script-editor-panel {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(10, 10, 15, 0.95); padding: 20px; border-radius: 12px;
-            border: 2px solid #f39c12; width: 600px; height: 450px; z-index: 80;
-            display: none; flex-direction: column; box-shadow: 0 0 30px rgba(243, 156, 18, 0.3);
-        }
-        #script-textarea {
-            flex-grow: 1; background: #000; color: #00d4ff; font-family: 'Courier New', monospace;
-            border: 1px solid #333; padding: 10px; resize: none; outline: none; border-radius: 5px;
-            font-size: 14px; line-height: 1.4;
-        }
-        .script-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .toggle-container { display: flex; align-items: center; gap: 8px; cursor: pointer; color: #f39c12; font-size: 12px; }
-        
-        /* Script Indicator */
-        .script-icon {
-            position: absolute; background: #f39c12; color: black; font-weight: bold;
-            padding: 2px 5px; border-radius: 3px; font-size: 10px; pointer-events: none;
-            transform: translate(-50%, -50%); display: none; z-index: 5;
-        }
+        /* Custom Checkbox Style */
+        .toggle-container { display: flex; align-items: center; gap: 10px; margin-top: 10px; cursor: pointer; }
+        .toggle-container input { cursor: pointer; }
     </style>
 </head>
 <body>
-    <div id="loading-overlay">INITIALIZING ENGINE...</div>
+    <div id="loading-overlay">INITIALIZING...</div>
 
     <div id="info">
         <h2 id="gameNameDisplay" style="margin:0; color:#00d4ff;">BUBBLE GAMES</h2>
@@ -129,46 +112,52 @@
         <input type="text" id="chat-input" placeholder="Press Enter to chat..." autocomplete="off">
     </div>
 
-    <div id="script-editor-panel">
-        <div class="script-header">
-            <h3 style="margin:0; color:#f39c12;">📜 SCRIPT EDITOR</h3>
-            <label class="toggle-container">
-                <input type="checkbox" id="server-script-toggle"> SERVER SCRIPT
-            </label>
-        </div>
-        <textarea id="script-textarea" spellcheck="false" placeholder="// Example: part.position.y += Math.sin(Date.now()*0.005)*0.1;"></textarea>
-        <div style="font-size: 10px; color: #666; margin-top: 5px;">Tip: Type 'part.' or 'math.' for help</div>
-        <div class="script-buttons" style="display:flex; gap:10px; margin-top: 10px; justify-content: flex-end;">
-            <button onclick="closeScriptEditor()" style="width:100px; height:35px;">CANCEL</button>
-            <button id="saveScriptBtn" onclick="saveScript()" style="width:100px; height:35px; background:#f39c12; color:black;">SAVE</button>
-        </div>
-    </div>
-
     <div id="settings-panel" style="display:none;">
         <div class="setting-group">
-            <div class="label-container"><label>Speed</label><input type="number" id="speed-num" class="num-input" step="0.01" value="0.12"></div>
+            <div class="label-container">
+                <label>Move Speed</label>
+                <input type="number" id="speed-num" class="num-input" step="0.01" value="0.12">
+            </div>
             <input type="range" id="speed-slider" min="0.01" max="1.0" step="0.01" value="0.12">
         </div>
+
         <div class="setting-group">
-            <div class="label-container"><label>Gravity</label><input type="number" id="gravity-num" class="num-input" step="0.001" value="0.015"></div>
+            <div class="label-container">
+                <label>Gravity</label>
+                <input type="number" id="gravity-num" class="num-input" step="0.001" value="0.015">
+            </div>
             <input type="range" id="gravity-slider" min="0" max="0.1" step="0.001" value="0.015">
         </div>
+
+        <div class="setting-group">
+            <label class="toggle-container">
+                <input type="checkbox" id="grid-toggle" checked>
+                <span style="font-size: 11px; color: #00d4ff;">GRID TEXTURES</span>
+            </label>
+        </div>
+
         <div id="part-settings" style="display:none; border-top: 1px solid #333; padding-top: 10px;">
-            <label style="font-size:11px; color:#00d4ff;">SIZE</label>
+            <label>Part Size</label>
             <input type="range" id="size-slider" min="0.2" max="10" step="0.1" value="1">
+            <p style="font-size: 9px; color: #888; margin-top:5px;">Click part to select</p>
         </div>
     </div>
 
     <div id="item-selector" style="display:none;">
-        <div class="item-card selected" onclick="selectItem('block')" id="card-block"><div class="item-icon icon-block"></div><div class="item-label">Block</div></div>
-        <div class="item-card" onclick="selectItem('spawn')" id="card-spawn"><div class="item-icon icon-spawn"></div><div class="item-label">Spawn</div></div>
+        <div class="item-card selected" onclick="selectItem('block')" id="card-block">
+            <div class="item-icon icon-block"></div>
+            <div class="item-label">Block</div>
+        </div>
+        <div class="item-card" onclick="selectItem('spawn')" id="card-spawn">
+            <div class="item-icon icon-spawn"></div>
+            <div class="item-label">Spawn</div>
+        </div>
     </div>
 
     <div id="top-bar" class="controls">
         <button id="playTestBtn" onclick="togglePlayTest()">PLAY TEST ▶</button>
         <button id="publishBtn" onclick="publishGame()" style="display:none;">PUBLISH 🚀</button>
-        <button id="dragModeBtn" onclick="toggleTool('drag')" style="display:none;">MOVE</button>
-        <button id="scriptModeBtn" onclick="toggleTool('script')" style="display:none;">SCRIPT</button>
+        <button id="dragModeBtn" onclick="toggleTool('drag')" style="display:none;">DRAG PART</button>
         <button id="deleteModeBtn" onclick="toggleTool('delete')" style="display:none;">DELETE</button>
         <button onclick="exitGame()">EXIT</button>
     </div>
@@ -176,7 +165,12 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script type="importmap">
-    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+    { 
+        "imports": { 
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        } 
+    }
     </script>
 
     <script type="module">
@@ -188,6 +182,12 @@
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let currentUser = "Guest_" + Math.floor(Math.random() * 999);
+        async function getCreator() {
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            if (user) currentUser = user.email.split('@')[0];
+        }
+        getCreator();
+
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x0a0a0c);
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -196,214 +196,376 @@
         document.body.appendChild(renderer.domElement);
 
         scene.add(new THREE.AmbientLight(0xffffff, 1.2));
-        const objects = []; 
+        const grid = new THREE.GridHelper(100, 100, 0x00d4ff, 0x222222);
+        scene.add(grid);
+
+        // --- GRID TEXTURE GENERATOR ---
+        const createGridTexture = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256; canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#111111'; ctx.fillRect(0, 0, 256, 256);
+            ctx.strokeStyle = '#00d4ff'; ctx.lineWidth = 4;
+            ctx.strokeRect(0, 0, 256, 256);
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+            return tex;
+        };
+        const gridTexture = createGridTexture();
+
         const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshBasicMaterial({ visible: false }));
         floor.rotation.x = -Math.PI / 2;
         scene.add(floor);
-        objects.push(floor);
+
+        const objects = [floor]; 
+        const blockGeo = new THREE.BoxGeometry(1, 1, 1);
+        const spawnGeo = new THREE.BoxGeometry(0.8, 0.2, 0.8);
+        const spawnMat = new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 2 });
+        
+        const raycaster = new THREE.Raycaster();
+        const downRay = new THREE.Raycaster(); 
+        const upRay = new THREE.Raycaster();
+        const sideRay = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
 
         const gizmo = new TransformControls(camera, renderer.domElement);
+        gizmo.setMode('translate');
+        gizmo.setSize(0.6); 
         scene.add(gizmo);
 
-        let isPlayMode = false;
-        let isPC = !(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
-        let editorState = { pos: new THREE.Vector3(), rot: new THREE.Euler() };
-        let activeScriptBlock = null;
-        let spawnPoint = null;
-        let moveSpeed = 0.12;
-        let worldGravity = 0.015;
+        let remotePlayers = {};
+        const gameId = localStorage.getItem('currentGameId') || 'lobby';
+        const channel = supabaseClient.channel(`room_${gameId}`);
+
+        const chatInput = document.getElementById('chat-input');
+        const chatMessages = document.getElementById('chat-messages');
+
+        function addChatMessage(user, text) {
+            const div = document.createElement('div');
+            div.className = 'chat-msg';
+            div.innerHTML = `<span class="chat-user">${user}:</span> ${text}`;
+            chatMessages.appendChild(div);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && chatInput.value.trim() !== '') {
+                const msg = chatInput.value.trim();
+                channel.send({
+                    type: 'broadcast',
+                    event: 'chat',
+                    payload: { user: currentUser, text: msg }
+                });
+                addChatMessage("You", msg);
+                chatInput.value = '';
+                chatInput.blur();
+            }
+        });
+
+        channel.on('broadcast', { event: 'chat' }, ({ payload }) => {
+            addChatMessage(payload.user, payload.text);
+        });
+
+        channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
+            leftPresences.forEach(p => {
+                const id = p.key;
+                if (remotePlayers[id]) {
+                    scene.remove(remotePlayers[id].mesh);
+                    remotePlayers[id].label.remove();
+                    delete remotePlayers[id];
+                }
+            });
+        });
+
+        channel.on('broadcast', { event: 'move' }, ({ payload }) => {
+            if (payload.id === currentUser) return;
+            if (payload.y < -10) {
+                if (remotePlayers[payload.id]) {
+                    scene.remove(remotePlayers[payload.id].mesh);
+                    remotePlayers[payload.id].label.style.display = 'none';
+                }
+                return;
+            }
+
+            if (!remotePlayers[payload.id]) {
+                const bodyGeo = new THREE.BoxGeometry(0.8, 1.6, 0.8);
+                const bodyMat = new THREE.MeshStandardMaterial({ color: 0x00d4ff });
+                const mesh = new THREE.Mesh(bodyGeo, bodyMat);
+                scene.add(mesh);
+                const label = document.createElement('div');
+                label.className = 'player-label';
+                label.innerText = payload.id;
+                document.body.appendChild(label);
+                remotePlayers[payload.id] = { mesh, label };
+            }
+            remotePlayers[payload.id].mesh.position.set(payload.x, payload.y - 0.8, payload.z);
+        }).subscribe();
+
+        let isDraggingGizmo = false;
+        gizmo.addEventListener('dragging-changed', (event) => {
+            isDraggingGizmo = event.value;
+        });
+
+        let isPlayMode = false; 
+        let currentTool = 'place'; 
+        let selectedItemType = 'block'; 
+        let moveSpeed = 0.12; 
+        let worldGravity = 0.015; 
         let velocityY = 0;
         let isGrounded = false;
-        let currentTool = 'place';
-        let selectedItemType = 'block';
+        let spawnPoint = null;
+        let editorCamPos = new THREE.Vector3();
+        let editorCamRot = new THREE.Euler();
+        const playerHeight = 1.4; 
+        const jumpStrength = 0.35; 
+        const fallMultiplier = 1.5; 
+        const playerRadius = 0.45; 
 
-        // UI Refs
-        const scriptTextArea = document.getElementById('script-textarea');
+        const speedSlider = document.getElementById('speed-slider');
+        const speedNum = document.getElementById('speed-num');
+        const gravSlider = document.getElementById('gravity-slider');
+        const gravNum = document.getElementById('gravity-num');
+        const gridToggle = document.getElementById('grid-toggle');
 
-        // Autocomplete hints
-        scriptTextArea.addEventListener('input', (e) => {
-            const val = scriptTextArea.value;
-            const lastWord = val.split(/[\s\n]+/).pop();
-            if (lastWord === "part.") {
-                const start = scriptTextArea.selectionStart;
-                scriptTextArea.value = val.slice(0, start) + "position.y" + val.slice(start);
-                scriptTextArea.selectionStart = scriptTextArea.selectionEnd = start;
+        speedSlider.oninput = (e) => { moveSpeed = parseFloat(e.target.value); speedNum.value = moveSpeed; };
+        speedNum.oninput = (e) => { moveSpeed = parseFloat(e.target.value) || 0; speedSlider.value = moveSpeed; };
+        gravSlider.oninput = (e) => { worldGravity = parseFloat(e.target.value); gravNum.value = worldGravity; };
+        gravNum.oninput = (e) => { worldGravity = parseFloat(e.target.value) || 0; gravSlider.value = worldGravity; };
+
+        gridToggle.onchange = () => {
+            objects.forEach(obj => {
+                if (obj !== floor && obj !== spawnPoint) {
+                    obj.material.map = gridToggle.checked ? gridTexture : null;
+                    obj.material.needsUpdate = true;
+                }
+            });
+        };
+
+        document.getElementById('size-slider').oninput = (e) => {
+            if (gizmo.object) {
+                const s = parseFloat(e.target.value);
+                gizmo.object.scale.set(s, s, s);
             }
-        });
+        };
 
         window.togglePlayTest = () => {
-            isPlayMode = !isPlayMode;
             const btn = document.getElementById('playTestBtn');
-            
+            isPlayMode = !isPlayMode;
             if (isPlayMode) {
-                if (!spawnPoint) { alert("Add a Spawn Point first!"); isPlayMode = false; return; }
-                
-                // Save Editor State
-                editorState.pos.copy(camera.position);
-                editorState.rot.copy(camera.rotation);
-                
+                if (!spawnPoint) { alert("❌ Need a Spawn Point!"); isPlayMode = false; return; }
+                editorCamPos.copy(camera.position);
+                editorCamRot.copy(camera.rotation);
                 btn.innerText = "STOP TEST ⏹"; btn.classList.add('playing');
+                document.getElementById('status').innerText = "Status: PLAY TESTING";
                 document.getElementById('crosshair').style.display = 'block';
-                ['publishBtn', 'dragModeBtn', 'scriptModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(id => document.getElementById(id).style.display = 'none');
-                
-                camera.position.set(spawnPoint.position.x, spawnPoint.position.y + 1.5, spawnPoint.position.z);
+                ['publishBtn', 'dragModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(id => document.getElementById(id).style.display = 'none');
                 gizmo.detach();
-
-                if (isPC) renderer.domElement.requestPointerLock();
+                camera.position.set(spawnPoint.position.x, spawnPoint.position.y + 1, spawnPoint.position.z);
+                velocityY = 0;
             } else {
                 btn.innerText = "PLAY TEST ▶"; btn.classList.remove('playing');
+                document.getElementById('status').innerText = "Status: BUILDING MODE";
                 document.getElementById('crosshair').style.display = 'none';
-                ['publishBtn', 'dragModeBtn', 'scriptModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(id => document.getElementById(id).style.display = 'flex');
-                
-                camera.position.copy(editorState.pos);
-                camera.rotation.copy(editorState.rot);
-                document.exitPointerLock?.();
+                ['publishBtn', 'dragModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(id => document.getElementById(id).style.display = 'flex');
+                camera.position.copy(editorCamPos); camera.rotation.copy(editorCamRot);
             }
         };
 
-        // Mouse Lock Handler
-        document.addEventListener('mousemove', (e) => {
-            if (isPlayMode && document.pointerLockElement === renderer.domElement) {
-                camera.rotation.y -= e.movementX * 0.002;
-                camera.rotation.x -= e.movementY * 0.002;
-                camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, camera.rotation.x));
-            }
-        });
-
-        window.saveScript = () => {
-            if (activeScriptBlock) {
-                activeScriptBlock.userData.scriptCode = scriptTextArea.value;
-                activeScriptBlock.userData.isServer = document.getElementById('server-script-toggle').checked;
-                
-                // Create Script Indicator (The "Little Icon")
-                if (!activeScriptBlock.userData.indicator) {
-                    const div = document.createElement('div');
-                    div.className = 'script-icon';
-                    div.innerText = '</>';
-                    document.body.appendChild(div);
-                    activeScriptBlock.userData.indicator = div;
-                }
-            }
-            closeScriptEditor();
+        window.exitGame = () => { localStorage.removeItem('currentGameId'); localStorage.removeItem('editMode'); window.location.href = 'index.html'; };
+        
+        window.toggleTool = (tool) => {
+            currentTool = (currentTool === tool) ? 'place' : tool;
+            if (currentTool !== 'drag') { gizmo.detach(); document.getElementById('part-settings').style.display = 'none'; }
+            document.getElementById('deleteModeBtn').classList.toggle('active-tool', currentTool === 'delete');
+            document.getElementById('dragModeBtn').classList.toggle('active-tool', currentTool === 'drag');
         };
 
-        window.closeScriptEditor = () => {
-            document.getElementById('script-editor-panel').style.display = 'none';
-            activeScriptBlock = null;
+        window.selectItem = (type) => {
+            selectedItemType = type; currentTool = 'place'; gizmo.detach();
+            document.querySelectorAll('.item-card').forEach(c => c.classList.remove('selected'));
+            document.getElementById(`card-${type}`).classList.add('selected');
         };
 
         window.publishGame = async () => {
-            const blocksData = objects.filter(obj => obj !== floor).map(obj => ({
-                x: obj.position.x, y: obj.position.y, z: obj.position.z,
-                s: obj.scale.x, type: (obj === spawnPoint) ? 'spawn' : 'block',
-                script: obj.userData.scriptCode || null,
-                isServer: obj.userData.isServer || false
+            if (!spawnPoint) { alert("❌ Need a Spawn Point!"); return; }
+            const blocksData = objects.filter(obj => obj !== floor).map(obj => ({ 
+                x: obj.position.x, y: obj.position.y, z: obj.position.z, s: obj.scale.x, type: (obj === spawnPoint) ? 'spawn' : 'block' 
             }));
-
             const config = { gravity: worldGravity, speed: moveSpeed };
             const editId = localStorage.getItem('currentGameId');
-
             try {
-                await supabaseClient.from('games').update({ blocks: blocksData, config: config }).eq('id', editId);
-                alert("Game Published with Scripts!");
-            } catch (e) { alert("Error saving script to DB"); }
+                if (localStorage.getItem('editMode') === 'true' && editId) {
+                    await supabaseClient.from('games').update({ blocks: blocksData, config: config }).eq('id', editId);
+                    alert("✅ Game Updated!");
+                } else {
+                    const name = prompt("Name your game:"); if (!name) return;
+                    await supabaseClient.from('games').insert([{ name, blocks: blocksData, creator: currentUser, config: config }]);
+                    alert("🚀 Game Published!");
+                }
+                exitGame();
+            } catch (err) { alert("❌ Save Failed: " + err.message); }
         };
 
-        // Improved Collision (No more getting stuck)
-        function checkCollisions(pos) {
-            const ray = new THREE.Raycaster(pos, new THREE.Vector3(0, -1, 0), 0, 1.6);
-            const intersects = ray.intersectObjects(objects.filter(o => o !== floor));
-            isGrounded = intersects.length > 0;
-            if (isGrounded) {
-                velocityY = 0;
-                camera.position.y = intersects[0].object.position.y + (intersects[0].object.scale.y / 2) + 1.4;
+        async function init() {
+            const id = localStorage.getItem('currentGameId');
+            const isEditMode = localStorage.getItem('editMode') === 'true';
+            if (isEditMode) {
+                isPlayMode = false;
+                ['publishBtn', 'dragModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(id => document.getElementById(id).style.display = 'flex');
+            } else {
+                isPlayMode = true;
+                document.getElementById('crosshair').style.display = 'block'; document.getElementById('playTestBtn').style.display = 'none';
             }
+            if (id) {
+                const { data: game } = await supabaseClient.from('games').select('*').eq('id', id).single();
+                if (game && game.blocks) {
+                    document.getElementById('gameNameDisplay').innerText = game.name.toUpperCase();
+                    game.blocks.forEach(d => {
+                        const isSpawn = d.type === 'spawn';
+                        const mat = isSpawn ? spawnMat : new THREE.MeshStandardMaterial({ color: 0xcccccc, map: gridToggle.checked ? gridTexture : null });
+                        const mesh = new THREE.Mesh(isSpawn ? spawnGeo : blockGeo, mat);
+                        mesh.position.set(d.x, d.y, d.z); if (d.s) mesh.scale.set(d.s, d.s, d.s);
+                        scene.add(mesh); objects.push(mesh); if (isSpawn) spawnPoint = mesh;
+                    });
+                }
+            }
+            if(spawnPoint) camera.position.set(spawnPoint.position.x, spawnPoint.position.y + playerHeight, spawnPoint.position.z);
+            else camera.position.set(0, playerHeight, 5);
+            setTimeout(() => document.getElementById('loading-overlay').style.display = 'none', 500);
         }
+        init();
 
+        camera.rotation.order = "YXZ";
+        let isDraggingCam = false; let dragDistance = 0; let prevMouse = { x: 0, y: 0 };
         const keys = {};
-        window.addEventListener('keydown', (e) => { 
-            keys[e.code] = true; 
-            if (e.code === 'Space' && isGrounded && isPlayMode) velocityY = 0.25;
+
+        window.addEventListener('pointerdown', (e) => { 
+            if (e.target.closest('button') || e.target.closest('.item-card') || e.target.closest('#settings-panel') || e.target.closest('#chat-container') || isDraggingGizmo) return;
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(objects);
+            if (!isPlayMode && currentTool === 'drag' && intersects.length > 0 && intersects[0].object !== floor) {
+                gizmo.attach(intersects[0].object); document.getElementById('part-settings').style.display = 'block';
+            } else { isDraggingCam = true; prevMouse = { x: e.clientX, y: e.clientY }; dragDistance = 0; }
         });
+        
+        window.addEventListener('pointermove', (e) => {
+            if (isDraggingGizmo || !isDraggingCam) return;
+            const dx = e.clientX - prevMouse.x; const dy = e.clientY - prevMouse.y;
+            dragDistance += Math.abs(dx) + Math.abs(dy);
+            camera.rotation.y -= dx * 0.003; camera.rotation.x -= dy * 0.003;
+            camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, camera.rotation.x));
+            prevMouse = { x: e.clientX, y: e.clientY };
+        });
+
+        window.addEventListener('pointerup', (e) => {
+            if (isDraggingGizmo) return;
+            isDraggingCam = false; if (dragDistance > 10 || e.target.closest('button') || e.target.closest('.item-card') || e.target.closest('#settings-panel')) return;
+            if (isPlayMode) return;
+            raycaster.setFromCamera(mouse, camera); const intersects = raycaster.intersectObjects(objects);
+            if (intersects.length > 0) {
+                const intersect = intersects[0];
+                if (currentTool === 'delete' && intersect.object !== floor) {
+                    if (intersect.object === spawnPoint) spawnPoint = null;
+                    gizmo.detach(); scene.remove(intersect.object); objects.splice(objects.indexOf(intersect.object), 1);
+                } else if (currentTool === 'place') {
+                    const isSpawn = selectedItemType === 'spawn';
+                    const mat = isSpawn ? spawnMat : new THREE.MeshStandardMaterial({ color: 0xcccccc, map: gridToggle.checked ? gridTexture : null });
+                    const m = new THREE.Mesh(isSpawn ? spawnGeo : blockGeo, mat);
+                    const pos = intersect.object === floor ? new THREE.Vector3(Math.round(intersect.point.x), isSpawn ? 0.1 : 0.5, Math.round(intersect.point.z)) : intersect.object.position.clone().add(intersect.face.normal.multiplyScalar(isSpawn ? 0.6 : 1));
+                    m.position.copy(pos); scene.add(m); objects.push(m);
+                    if (isSpawn) { if(spawnPoint) { scene.remove(spawnPoint); objects.splice(objects.indexOf(spawnPoint), 1); } spawnPoint = m; }
+                }
+            }
+        });
+
+        window.addEventListener('keydown', (e) => { keys[e.code] = true; });
         window.addEventListener('keyup', (e) => keys[e.code] = false);
 
+        function updateLabels() {
+            const frustum = new THREE.Frustum();
+            frustum.setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+            for (let id in remotePlayers) {
+                const p = remotePlayers[id];
+                const pos = p.mesh.position.clone().add(new THREE.Vector3(0, 1.2, 0));
+                if (frustum.containsPoint(pos)) {
+                    pos.project(camera); p.label.style.display = 'block';
+                    p.label.style.left = `${(pos.x * 0.5 + 0.5) * window.innerWidth}px`;
+                    p.label.style.top = `${(-(pos.y * 0.5) + 0.5) * window.innerHeight}px`;
+                } else { p.label.style.display = 'none'; }
+            }
+        }
+
+        function checkWallCollision(position, direction) {
+            const collisionObjects = objects.filter(o => o !== floor); 
+            const checkOffsets = [-1.3, -0.8, -0.3]; 
+            for (let offset of checkOffsets) {
+                sideRay.set(new THREE.Vector3(position.x, position.y + offset, position.z), direction);
+                const hits = sideRay.intersectObjects(collisionObjects);
+                if (hits.length > 0 && hits[0].distance < playerRadius) return true;
+            }
+            return false;
+        }
+
+        let lastSend = 0;
         function animate() {
             requestAnimationFrame(animate);
-            
+            document.getElementById('coords').innerText = `X: ${camera.position.x.toFixed(2)} | Y: ${camera.position.y.toFixed(2)} | Z: ${camera.position.z.toFixed(2)}`;
+
             if (isPlayMode) {
-                // Gravity & Movement logic
-                velocityY -= worldGravity;
-                camera.position.y += velocityY;
-                checkCollisions(camera.position);
+                const solidObjects = objects.filter(o => o !== floor);
 
-                const dir = new THREE.Vector3();
-                camera.getWorldDirection(dir); dir.y = 0; dir.normalize();
-                const side = new THREE.Vector3().crossVectors(camera.up, dir).normalize();
+                downRay.set(camera.position, new THREE.Vector3(0, -1, 0));
+                const groundHits = downRay.intersectObjects(objects);
+                if (groundHits.length > 0 && groundHits[0].distance <= playerHeight) {
+                    if (velocityY < 0) { 
+                        velocityY = 0; isGrounded = true; 
+                        camera.position.y = groundHits[0].point.y + playerHeight; 
+                    }
+                } else { 
+                    isGrounded = false;
+                    velocityY -= (velocityY < 0 ? worldGravity * fallMultiplier : worldGravity);
+                }
 
-                // Speed only affects player in play mode
-                const currentSpeed = moveSpeed;
-                if (keys['KeyW']) camera.position.add(dir.multiplyScalar(currentSpeed));
-                if (keys['KeyS']) camera.position.sub(dir.multiplyScalar(currentSpeed));
-                if (keys['KeyA']) camera.position.add(side.multiplyScalar(currentSpeed));
-                if (keys['KeyD']) camera.position.sub(side.multiplyScalar(currentSpeed));
-            }
-
-            // Update Script Icons position
-            objects.forEach(obj => {
-                if (obj.userData.indicator) {
-                    const icon = obj.userData.indicator;
-                    if (!isPlayMode) {
-                        const proj = obj.position.clone().project(camera);
-                        icon.style.display = 'block';
-                        icon.style.left = (proj.x * 0.5 + 0.5) * window.innerWidth + 'px';
-                        icon.style.top = (-(proj.y * 0.5) + 0.5) * window.innerHeight + 'px';
-                    } else {
-                        icon.style.display = 'none';
+                if (velocityY > 0) {
+                    upRay.set(camera.position, new THREE.Vector3(0, 1, 0));
+                    const headHits = upRay.intersectObjects(solidObjects);
+                    if (headHits.length > 0 && headHits[0].distance < 0.4) {
+                        velocityY = 0; 
                     }
                 }
-            });
+                
+                if (keys['Space'] && isGrounded && document.activeElement !== chatInput) { velocityY = jumpStrength; isGrounded = false; }
+                camera.position.y += velocityY;
+                
+                let move = new THREE.Vector3();
+                if (document.activeElement !== chatInput) {
+                    if (keys['KeyW']) move.z -= 1; if (keys['KeyS']) move.z += 1;
+                    if (keys['KeyA']) move.x -= 1; if (keys['KeyD']) move.x += 1;
+                }
+                if (move.length() > 0) {
+                    move.applyQuaternion(camera.quaternion); move.y = 0; move.normalize();
+                    if (!checkWallCollision(camera.position, new THREE.Vector3(move.x, 0, 0))) camera.position.x += move.x * moveSpeed;
+                    if (!checkWallCollision(camera.position, new THREE.Vector3(0, 0, move.z))) camera.position.z += move.z * moveSpeed;
+                }
 
-            renderer.render(scene, camera);
-        }
-        
-        // Final Init for scripts/colors
-        setTimeout(() => { document.getElementById('loading-overlay').style.display = 'none'; }, 1000);
-        animate();
-
-        // Standard helpers
-        window.selectItem = (t) => { selectedItemType = t; };
-        window.toggleTool = (t) => { currentTool = t; gizmo.detach(); };
-        window.exitGame = () => { window.location.reload(); };
-
-        // Handle clicks for scripting/placing
-        window.addEventListener('pointerdown', (e) => {
-            if (e.target.closest('button') || e.target.closest('#settings-panel') || isPlayMode) return;
-            const mouse = new THREE.Vector2((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
-            const ray = new THREE.Raycaster(); ray.setFromCamera(mouse, camera);
-            const inter = ray.intersectObjects(objects);
-
-            if (inter.length > 0) {
-                const obj = inter[0].object;
-                if (currentTool === 'script' && obj !== floor) {
-                    activeScriptBlock = obj;
-                    scriptTextArea.value = obj.userData.scriptCode || "";
-                    document.getElementById('server-script-toggle').checked = obj.userData.isServer || false;
-                    document.getElementById('script-editor-panel').style.display = 'flex';
-                } else if (currentTool === 'place') {
-                    const geo = selectedItemType === 'spawn' ? new THREE.BoxGeometry(1,0.2,1) : new THREE.BoxGeometry(1,1,1);
-                    const mat = new THREE.MeshStandardMaterial({color: selectedItemType === 'spawn' ? 0x00ffff : 0xcccccc});
-                    const m = new THREE.Mesh(geo, mat);
-                    m.position.copy(inter[0].point).add(inter[0].face.normal.multiplyScalar(0.5));
-                    scene.add(m); objects.push(m);
-                    if (selectedItemType === 'spawn') spawnPoint = m;
-                } else if (currentTool === 'drag' && obj !== floor) {
-                    gizmo.attach(obj);
-                } else if (currentTool === 'delete' && obj !== floor) {
-                    scene.remove(obj); objects.splice(objects.indexOf(obj), 1);
-                    if (obj.userData.indicator) obj.userData.indicator.remove();
+                const now = Date.now();
+                if (now - lastSend > 50) {
+                    channel.send({ type: 'broadcast', event: 'move', payload: { id: currentUser, x: camera.position.x, y: camera.position.y, z: camera.position.z } });
+                    lastSend = now;
+                }
+            } else {
+                const flySpeed = moveSpeed * 2;
+                if (document.activeElement !== chatInput) {
+                    if (keys['KeyW']) camera.translateZ(-flySpeed); if (keys['KeyS']) camera.translateZ(flySpeed);
+                    if (keys['KeyA']) camera.translateX(-flySpeed); if (keys['KeyD']) camera.translateX(flySpeed);
+                    if (keys['Space']) camera.position.y += flySpeed; if (keys['ShiftLeft']) camera.position.y -= flySpeed;
                 }
             }
-        });
+            updateLabels(); renderer.render(scene, camera);
+        }
+        animate();
     </script>
 </body>
 </html>
+
