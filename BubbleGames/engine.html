@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Bubble Games</title>
     <style>
         body { margin: 0; overflow: hidden; background: #050505; font-family: sans-serif; touch-action: none; color: white; }
@@ -93,9 +94,15 @@
         .chat-msg { word-wrap: break-word; text-shadow: 1px 1px 2px black; }
         .chat-user { color: #00d4ff; font-weight: bold; }
 
-        /* Custom Checkbox Style */
         .toggle-container { display: flex; align-items: center; gap: 10px; margin-top: 10px; cursor: pointer; }
         .toggle-container input { cursor: pointer; }
+
+        /* --- MOBILE CONTROLS UI --- */
+        #mobile-ui { display: none; position: absolute; inset: 0; pointer-events: none; z-index: 40; }
+        #joystick-zone { position: absolute; bottom: 30px; left: 30px; width: 120px; height: 120px; background: rgba(0,212,255,0.1); border: 2px solid rgba(0,212,255,0.5); border-radius: 50%; pointer-events: auto; }
+        #joystick-knob { position: absolute; top: 50%; left: 50%; width: 50px; height: 50px; background: rgba(0,212,255,0.8); border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 10px #00d4ff; }
+        #jump-btn { position: absolute; bottom: 40px; right: 40px; width: 80px; height: 80px; background: rgba(0,212,255,0.2); border: 2px solid #00d4ff; border-radius: 50%; color: white; font-weight: bold; font-size: 16px; display: flex; align-items: center; justify-content: center; pointer-events: auto; user-select: none; }
+        #touch-look-zone { position: absolute; top: 0; right: 0; width: 60%; height: 100%; pointer-events: auto; }
     </style>
 </head>
 <body>
@@ -110,6 +117,12 @@
     <div id="chat-container">
         <div id="chat-messages"></div>
         <input type="text" id="chat-input" placeholder="Press Enter to chat..." autocomplete="off">
+    </div>
+
+    <div id="mobile-ui">
+        <div id="touch-look-zone"></div>
+        <div id="joystick-zone"><div id="joystick-knob"></div></div>
+        <div id="jump-btn">JUMP</div>
     </div>
 
     <div id="settings-panel" style="display:none;">
@@ -321,6 +334,10 @@
         const fallMultiplier = 1.5; 
         const playerRadius = 0.45; 
 
+        // TIMING (FPS Independence)
+        const clock = new THREE.Clock();
+        let timeScale = 1;
+
         const speedSlider = document.getElementById('speed-slider');
         const speedNum = document.getElementById('speed-num');
         const gravSlider = document.getElementById('gravity-slider');
@@ -348,6 +365,8 @@
             }
         };
 
+        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
         window.togglePlayTest = () => {
             const btn = document.getElementById('playTestBtn');
             isPlayMode = !isPlayMode;
@@ -357,7 +376,10 @@
                 editorCamRot.copy(camera.rotation);
                 btn.innerText = "STOP TEST ⏹"; btn.classList.add('playing');
                 document.getElementById('status').innerText = "Status: PLAY TESTING";
-                document.getElementById('crosshair').style.display = 'block';
+                document.getElementById('crosshair').style.display = isTouchDevice ? 'none' : 'block';
+                
+                if(isTouchDevice) document.getElementById('mobile-ui').style.display = 'block';
+
                 ['publishBtn', 'dragModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(id => document.getElementById(id).style.display = 'none');
                 gizmo.detach();
                 camera.position.set(spawnPoint.position.x, spawnPoint.position.y + 1, spawnPoint.position.z);
@@ -366,6 +388,7 @@
                 btn.innerText = "PLAY TEST ▶"; btn.classList.remove('playing');
                 document.getElementById('status').innerText = "Status: BUILDING MODE";
                 document.getElementById('crosshair').style.display = 'none';
+                document.getElementById('mobile-ui').style.display = 'none';
                 ['publishBtn', 'dragModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(id => document.getElementById(id).style.display = 'flex');
                 camera.position.copy(editorCamPos); camera.rotation.copy(editorCamRot);
             }
@@ -414,7 +437,9 @@
                 ['publishBtn', 'dragModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(id => document.getElementById(id).style.display = 'flex');
             } else {
                 isPlayMode = true;
-                document.getElementById('crosshair').style.display = 'block'; document.getElementById('playTestBtn').style.display = 'none';
+                if(isTouchDevice) document.getElementById('mobile-ui').style.display = 'block';
+                else document.getElementById('crosshair').style.display = 'block'; 
+                document.getElementById('playTestBtn').style.display = 'none';
             }
             if (id) {
                 const { data: game } = await supabaseClient.from('games').select('*').eq('id', id).single();
@@ -439,8 +464,54 @@
         let isDraggingCam = false; let dragDistance = 0; let prevMouse = { x: 0, y: 0 };
         const keys = {};
 
+        // --- MOBILE INPUT LOGIC ---
+        let joyMove = { x: 0, z: 0 };
+        let joyActive = false;
+        let mobileJump = false;
+        const joyZone = document.getElementById('joystick-zone');
+        const joyKnob = document.getElementById('joystick-knob');
+        const touchLookZone = document.getElementById('touch-look-zone');
+        const jumpBtn = document.getElementById('jump-btn');
+
+        joyZone.addEventListener('touchstart', (e) => { e.preventDefault(); joyActive = true; updateJoy(e.touches[0]); }, {passive: false});
+        joyZone.addEventListener('touchmove', (e) => { e.preventDefault(); if(joyActive) updateJoy(e.touches[0]); }, {passive: false});
+        const endJoy = (e) => { e.preventDefault(); joyActive = false; joyMove = {x:0, z:0}; joyKnob.style.transform = 'translate(-50%, -50%)'; };
+        joyZone.addEventListener('touchend', endJoy); joyZone.addEventListener('touchcancel', endJoy);
+
+        function updateJoy(touch) {
+            const rect = joyZone.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            let dx = touch.clientX - centerX;
+            let dy = touch.clientY - centerY;
+            const distance = Math.min(rect.width / 2, Math.sqrt(dx*dx + dy*dy));
+            const angle = Math.atan2(dy, dx);
+            
+            joyKnob.style.transform = `translate(calc(-50% + ${Math.cos(angle) * distance}px), calc(-50% + ${Math.sin(angle) * distance}px))`;
+            
+            // Normalize for movement
+            joyMove.x = (Math.cos(angle) * distance) / (rect.width / 2);
+            joyMove.z = (Math.sin(angle) * distance) / (rect.height / 2);
+        }
+
+        let lastTouchLook = {x: 0, y: 0};
+        touchLookZone.addEventListener('touchstart', (e) => { e.preventDefault(); lastTouchLook = {x: e.touches[0].clientX, y: e.touches[0].clientY}; }, {passive: false});
+        touchLookZone.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const dx = e.touches[0].clientX - lastTouchLook.x;
+            const dy = e.touches[0].clientY - lastTouchLook.y;
+            camera.rotation.y -= dx * 0.005; 
+            camera.rotation.x -= dy * 0.005;
+            camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, camera.rotation.x));
+            lastTouchLook = {x: e.touches[0].clientX, y: e.touches[0].clientY};
+        }, {passive: false});
+
+        jumpBtn.addEventListener('touchstart', (e) => { e.preventDefault(); mobileJump = true; }, {passive: false});
+        jumpBtn.addEventListener('touchend', (e) => { e.preventDefault(); mobileJump = false; });
+
+        // --- PC INPUT LOGIC ---
         window.addEventListener('pointerdown', (e) => { 
-            if (e.target.closest('button') || e.target.closest('.item-card') || e.target.closest('#settings-panel') || e.target.closest('#chat-container') || isDraggingGizmo) return;
+            if (e.target.closest('button') || e.target.closest('.item-card') || e.target.closest('#settings-panel') || e.target.closest('#chat-container') || e.target.closest('#mobile-ui') || isDraggingGizmo) return;
             mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObjects(objects);
@@ -460,7 +531,7 @@
 
         window.addEventListener('pointerup', (e) => {
             if (isDraggingGizmo) return;
-            isDraggingCam = false; if (dragDistance > 10 || e.target.closest('button') || e.target.closest('.item-card') || e.target.closest('#settings-panel')) return;
+            isDraggingCam = false; if (dragDistance > 10 || e.target.closest('button') || e.target.closest('.item-card') || e.target.closest('#settings-panel') || e.target.closest('#mobile-ui')) return;
             if (isPlayMode) return;
             raycaster.setFromCamera(mouse, camera); const intersects = raycaster.intersectObjects(objects);
             if (intersects.length > 0) {
@@ -512,6 +583,10 @@
             requestAnimationFrame(animate);
             document.getElementById('coords').innerText = `X: ${camera.position.x.toFixed(2)} | Y: ${camera.position.y.toFixed(2)} | Z: ${camera.position.z.toFixed(2)}`;
 
+            // DELTA TIME NORMALIZATION (~60 FPS target baseline)
+            let delta = clock.getDelta();
+            timeScale = Math.min(delta * 60, 3); // Capped at 3 to prevent physics explosions if tab lags
+
             if (isPlayMode) {
                 const solidObjects = objects.filter(o => o !== floor);
 
@@ -524,7 +599,7 @@
                     }
                 } else { 
                     isGrounded = false;
-                    velocityY -= (velocityY < 0 ? worldGravity * fallMultiplier : worldGravity);
+                    velocityY -= (velocityY < 0 ? worldGravity * fallMultiplier : worldGravity) * timeScale;
                 }
 
                 if (velocityY > 0) {
@@ -535,18 +610,28 @@
                     }
                 }
                 
-                if (keys['Space'] && isGrounded && document.activeElement !== chatInput) { velocityY = jumpStrength; isGrounded = false; }
-                camera.position.y += velocityY;
+                if ((keys['Space'] || mobileJump) && isGrounded && document.activeElement !== chatInput) { 
+                    velocityY = jumpStrength; 
+                    isGrounded = false; 
+                    mobileJump = false; // Reset trigger
+                }
+                camera.position.y += velocityY * timeScale;
                 
                 let move = new THREE.Vector3();
                 if (document.activeElement !== chatInput) {
                     if (keys['KeyW']) move.z -= 1; if (keys['KeyS']) move.z += 1;
                     if (keys['KeyA']) move.x -= 1; if (keys['KeyD']) move.x += 1;
                 }
+                
+                // Add mobile joystick input
+                move.x += joyMove.x;
+                move.z += joyMove.z;
+
                 if (move.length() > 0) {
+                    if(move.length() > 1) move.normalize(); // Prevent fast diagonal movement
                     move.applyQuaternion(camera.quaternion); move.y = 0; move.normalize();
-                    if (!checkWallCollision(camera.position, new THREE.Vector3(move.x, 0, 0))) camera.position.x += move.x * moveSpeed;
-                    if (!checkWallCollision(camera.position, new THREE.Vector3(0, 0, move.z))) camera.position.z += move.z * moveSpeed;
+                    if (!checkWallCollision(camera.position, new THREE.Vector3(move.x, 0, 0))) camera.position.x += move.x * moveSpeed * timeScale;
+                    if (!checkWallCollision(camera.position, new THREE.Vector3(0, 0, move.z))) camera.position.z += move.z * moveSpeed * timeScale;
                 }
 
                 const now = Date.now();
@@ -555,7 +640,7 @@
                     lastSend = now;
                 }
             } else {
-                const flySpeed = moveSpeed * 2;
+                const flySpeed = moveSpeed * 2 * timeScale;
                 if (document.activeElement !== chatInput) {
                     if (keys['KeyW']) camera.translateZ(-flySpeed); if (keys['KeyS']) camera.translateZ(flySpeed);
                     if (keys['KeyA']) camera.translateX(-flySpeed); if (keys['KeyD']) camera.translateX(flySpeed);
@@ -568,4 +653,3 @@
     </script>
 </body>
 </html>
-
