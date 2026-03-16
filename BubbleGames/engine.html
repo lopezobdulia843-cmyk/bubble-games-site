@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Bubble Games</title>
+    <script src="https://cdn.jsdelivr.net/npm/fengari-web@0.1.4/dist/fengari-web.js" type="text/javascript"></script>
+    
     <style>
         body { margin: 0; overflow: hidden; background: #050505; font-family: sans-serif; touch-action: none; color: white; }
         .controls { position: absolute; z-index: 10; display: flex; gap: 10px; }
@@ -93,7 +95,6 @@
         .chat-msg { word-wrap: break-word; text-shadow: 1px 1px 2px black; }
         .chat-user { color: #00d4ff; font-weight: bold; }
 
-        /* Custom Checkbox Style */
         .toggle-container { display: flex; align-items: center; gap: 10px; margin-top: 10px; cursor: pointer; }
         .toggle-container input { cursor: pointer; }
     </style>
@@ -199,7 +200,6 @@
         const grid = new THREE.GridHelper(100, 100, 0x00d4ff, 0x222222);
         scene.add(grid);
 
-        // --- GRID TEXTURE GENERATOR ---
         const createGridTexture = () => {
             const canvas = document.createElement('canvas');
             canvas.width = 256; canvas.height = 256;
@@ -240,7 +240,7 @@
         const chatInput = document.getElementById('chat-input');
         const chatMessages = document.getElementById('chat-messages');
 
-        function addChatMessage(user, text) {
+        window.addChatMessage = function(user, text) {
             const div = document.createElement('div');
             div.className = 'chat-msg';
             div.innerHTML = `<span class="chat-user">${user}:</span> ${text}`;
@@ -256,14 +256,14 @@
                     event: 'chat',
                     payload: { user: currentUser, text: msg }
                 });
-                addChatMessage("You", msg);
+                window.addChatMessage("You", msg);
                 chatInput.value = '';
                 chatInput.blur();
             }
         });
 
         channel.on('broadcast', { event: 'chat' }, ({ payload }) => {
-            addChatMessage(payload.user, payload.text);
+            window.addChatMessage(payload.user, payload.text);
         });
 
         channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
@@ -345,6 +345,36 @@
             if (gizmo.object) {
                 const s = parseFloat(e.target.value);
                 gizmo.object.scale.set(s, s, s);
+            }
+        };
+
+        // 2. THE LUA BRIDGE (BUBBLE ENGINE API)
+        // This is where we expose the game's internal data directly to the global window so Lua can read/write to it.
+        window.BubbleEngine = {
+            getSpeed: () => moveSpeed,
+            setSpeed: (v) => { moveSpeed = v; speedSlider.value = v; speedNum.value = v; },
+            getGravity: () => worldGravity,
+            setGravity: (v) => { worldGravity = v; gravSlider.value = v; gravNum.value = v; },
+            getPlayerPos: () => ({ x: camera.position.x, y: camera.position.y, z: camera.position.z }),
+            getObjectCount: () => objects.length - 1, // Exclude floor
+            spawnPart: (x, y, z, size) => {
+                const mat = new THREE.MeshStandardMaterial({ color: 0xff0000, map: gridToggle.checked ? gridTexture : null });
+                const m = new THREE.Mesh(blockGeo, mat);
+                m.position.set(x, y, z);
+                if (size) m.scale.set(size, size, size);
+                scene.add(m); objects.push(m);
+            },
+            teleportPlayer: (x, y, z) => {
+                camera.position.set(x, y, z);
+                velocityY = 0;
+            },
+            killPlayer: () => {
+                window.addChatMessage("System", "Player died.");
+                if (spawnPoint) {
+                    window.BubbleEngine.teleportPlayer(spawnPoint.position.x, spawnPoint.position.y + playerHeight, spawnPoint.position.z);
+                } else {
+                    window.BubbleEngine.teleportPlayer(0, playerHeight, 5);
+                }
             }
         };
 
@@ -566,6 +596,44 @@
         }
         animate();
     </script>
+
+    <script type="application/lua">
+        local js = require "js"
+        local window = js.global
+        local engine = window.BubbleEngine
+        
+        -- Run an initial check of what the world knows
+        print("--- LUA SYSTEM BOOTED ---")
+        local totalObjects = engine:getObjectCount()
+        print("World Data Detected: " .. tostring(totalObjects) .. " objects loaded.")
+        print("Current Speed: " .. tostring(engine:getSpeed()))
+        print("Current Gravity: " .. tostring(engine:getGravity()))
+        
+        -- Send a global chat message confirming Lua is live
+        window:addChatMessage("Server", "Lua Engine Initialized and running.")
+
+        -- Create a game loop using JavaScript's setInterval so it constantly checks things
+        local function gameLoop()
+            -- Grab live player coordinates
+            local pos = engine:getPlayerPos()
+            
+            -- CHECK: Did the player fall into the void?
+            if pos.y < -5 then
+                print("LUA ALERT: Player fell out of bounds! Executing kill script.")
+                engine:killPlayer()
+            end
+            
+            -- CHECK: Is the player exploring the dark unknown? (e.g., wandering too far)
+            if pos.x > 50 or pos.x < -50 or pos.z > 50 or pos.z < -50 then
+                -- Spawn a red warning block behind them
+                engine:spawnPart(pos.x, pos.y + 5, pos.z - 2, 2)
+                window:addChatMessage("System", "You have wandered too far...")
+                engine:teleportPlayer(0, 2, 0)
+            end
+        end
+
+        -- Run the gameLoop function every 100 milliseconds (like a task.wait(0.1))
+        window:setInterval(gameLoop, 100)
+    </script>
 </body>
 </html>
-
