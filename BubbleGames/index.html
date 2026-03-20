@@ -21,43 +21,27 @@
         }
 
         body { 
-            margin: 0; 
-            background: var(--bg); 
-            color: white; 
-            font-family: 'Outfit', sans-serif; 
-            text-align: center; 
-            overflow-x: hidden;
-            background-image: radial-gradient(circle at 20% 30%, rgba(0, 212, 255, 0.05) 0%, transparent 40%),
-                              radial-gradient(circle at 80% 70%, rgba(255, 0, 200, 0.05) 0%, transparent 40%);
+            margin: 0; background: var(--bg); color: white; font-family: 'Outfit', sans-serif; 
+            text-align: center; overflow-x: hidden;
+            background-image: radial-gradient(circle at 10% 20%, rgba(0, 212, 255, 0.05) 0%, transparent 40%),
+                              radial-gradient(circle at 90% 80%, rgba(255, 0, 200, 0.05) 0%, transparent 40%);
         }
 
-        /* Fun Loading Animation */
         #loadingState { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: var(--bg); display: flex; flex-direction: column; align-items: center; 
-            justify-content: center; z-index: 1000; font-weight: 900; 
-            color: var(--primary); font-size: 2rem;
+            justify-content: center; z-index: 1000; font-weight: 900; color: var(--primary);
         }
-        .spinner {
-            width: 60px; height: 60px; border: 8px solid var(--glass);
-            border-top: 8px solid var(--primary); border-radius: 50%;
-            animation: spin 1s linear infinite; margin-bottom: 20px;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         nav { 
-            padding: 15px 40px; 
-            display: flex; justify-content: space-between; align-items: center; 
+            padding: 15px 40px; display: flex; justify-content: space-between; align-items: center; 
             background: rgba(10, 10, 12, 0.8); backdrop-filter: blur(15px); 
-            position: sticky; top: 0; z-index: 100;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: sticky; top: 0; z-index: 100; border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .logo { 
-            font-size: 28px; font-weight: 900; 
-            background: var(--bubble-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            font-size: 28px; font-weight: 900; background: var(--bubble-gradient);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
             text-transform: uppercase; letter-spacing: -1px;
         }
 
@@ -68,14 +52,7 @@
             background: var(--card); padding: 50px; border-radius: 35px; 
             border: 2px solid rgba(255, 255, 255, 0.05); display: inline-block; 
             margin-top: 80px; box-shadow: 0 30px 60px rgba(0,0,0,0.8);
-            position: relative; overflow: hidden;
         }
-        #authContainer::before {
-            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
-            background: conic-gradient(transparent, var(--primary), transparent 30%);
-            animation: rotate 4s linear infinite; opacity: 0.2; z-index: -1;
-        }
-        @keyframes rotate { 100% { transform: rotate(360deg); } }
 
         input { 
             display: block; margin: 15px auto; padding: 16px; width: 300px; 
@@ -103,69 +80,54 @@
         /* Game Cards */
         .game-card { 
             background: var(--card); border-radius: 28px; text-align: left; 
-            transition: 0.4s; overflow: hidden; position: relative;
-            border: 1px solid rgba(255,255,255,0.03);
+            transition: 0.4s; overflow: hidden; border: 1px solid rgba(255,255,255,0.03);
         }
-        .game-card:hover { 
-            transform: translateY(-10px) rotate(1deg); 
-            border-color: var(--primary);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-        }
+        .game-card:hover { transform: translateY(-8px); border-color: var(--primary); box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
         .card-inner { padding: 25px; }
         
+        /* Status Tags - UPDATED TO PUBLIC/PRIVATE */
         .status-tag { 
             float: right; font-size: 11px; padding: 5px 12px; border-radius: 50px; 
             font-weight: 900; text-transform: uppercase; letter-spacing: 1px;
         }
-        .status-private { background: #222; color: #888; }
-        .status-public { background: var(--success); color: #000; }
+        .status-private { background: #333; color: #aaa; }
+        .status-public { background: rgba(0, 255, 136, 0.15); color: var(--success); border: 1px solid var(--success); }
 
         .creator-label { font-size: 12px; color: var(--primary); font-weight: 900; }
         .game-name { margin: 15px 0 10px; font-size: 1.6rem; font-weight: 900; color: #fff; }
 
         .action-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 20px; }
-        .btn-base { 
-            border: none; padding: 14px; border-radius: 16px; cursor: pointer; 
-            font-weight: 900; transition: 0.2s; 
-        }
-        .btn-play { 
-            background: #fff; color: #000; grid-column: span 2; font-size: 18px; 
-            box-shadow: 0 5px 15px rgba(255,255,255,0.2);
-        }
+        .btn-base { border: none; padding: 14px; border-radius: 16px; cursor: pointer; font-weight: 900; transition: 0.2s; font-size: 12px; }
+        
+        .btn-play { background: #fff; color: #000; grid-column: span 2; font-size: 18px; margin-bottom: 5px; }
         .btn-play:hover { background: var(--primary); transform: scale(1.02); }
+        
         .btn-edit { background: var(--glass); color: var(--edit); border: 1px solid rgba(255,204,0,0.3); }
-        .btn-delete { background: rgba(255,68,68,0.1); color: var(--danger); }
+        .btn-rename { background: var(--glass); color: #00ffcc; border: 1px solid rgba(0,255,204,0.3); }
+        .btn-toggle { background: var(--glass); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
+        .btn-delete { background: rgba(255,68,68,0.1); color: var(--danger); border: 1px solid rgba(255,68,68,0.3); }
         
         .btn-logout { background: var(--glass); color: #fff; padding: 10px 20px; border-radius: 12px; border: none; font-weight: 700; cursor: pointer; }
         .owner-tag { background: var(--owner); color: #000; padding: 2px 8px; border-radius: 6px; font-size: 12px; }
-
-        /* Mobile Friendliness */
-        @media (max-width: 600px) {
-            .grid { grid-template-columns: 1fr; }
-            input { width: 80%; }
-        }
     </style>
 </head>
 
 <body>
 
-    <div id="loadingState">
-        <div class="spinner"></div>
-        SYNCING UNIVERSE...
-    </div>
+    <div id="loadingState">SYNCHRONIZING...</div>
 
     <div id="authContainer" style="display:none;">
         <h1 class="logo" style="font-size: 40px;">Bubble Games</h1>
-        <p style="color: #888; margin-bottom: 25px;">Enter the portal to start building.</p>
-        <input type="text" id="username" placeholder="Pick a cool username">
-        <input type="password" id="password" placeholder="Secret Password">
+        <p style="color: #888; margin-bottom: 25px;">Ready to create something epic?</p>
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
         <div id="loginSection">
-            <button id="loginBtn" class="btn-base btn-play">READY TO PLAY</button>
-            <p style="margin-top: 20px;">First time? <span id="toSignup" style="color:var(--primary);cursor:pointer;font-weight:900;">Create Account</span></p>
+            <button id="loginBtn" class="btn-base btn-play">LOG IN</button>
+            <p style="margin-top: 20px;">New around here? <span id="toSignup" style="color:var(--primary);cursor:pointer;font-weight:900;">Sign Up</span></p>
         </div>
         <div id="signupSection" style="display:none;">
-            <button id="signupBtn" class="btn-base btn-play" style="background:var(--success); color:black;">JOIN THE SQUAD</button>
-            <p style="margin-top: 20px;">Already a member? <span id="toLogin" style="color:var(--primary);cursor:pointer;font-weight:900;">Login</span></p>
+            <button id="signupBtn" class="btn-base btn-play" style="background:var(--success); color:black;">CREATE ACCOUNT</button>
+            <p style="margin-top: 20px;">Already have one? <span id="toLogin" style="color:var(--primary);cursor:pointer;font-weight:900;">Login</span></p>
         </div>
         <p id="msg" style="font-size: 14px; color: var(--danger); font-weight: bold;"></p>
     </div>
@@ -180,15 +142,15 @@
         </nav>
         <div class="container">
             <header style="margin: 40px 0;">
-                <h1 style="font-size: 4rem; font-weight: 900; line-height: 1; margin-bottom: 10px;">Build. Play. <span style="color: var(--primary)">Repeat.</span></h1>
-                <p style="font-size: 1.2rem; color: #888; margin-bottom: 30px;">The ultimate workshop for your wildest game ideas.</p>
-                <button id="newGameBtn" class="btn-launch">Create New World 🚀</button>
+                <h1 style="font-size: 4rem; font-weight: 900; line-height: 1; margin-bottom: 10px;">Build. Play. <span style="color: var(--primary)">Publish.</span></h1>
+                <p style="font-size: 1.2rem; color: #888; margin-bottom: 30px;">Turn your ideas into playable worlds.</p>
+                <button id="newGameBtn" class="btn-launch">Create New World 🛠️</button>
             </header>
             
             <h2 class="section-title"><span>📂</span> YOUR STUDIO</h2>
             <div class="grid" id="myGamesGrid"></div>
 
-            <h2 class="section-title"><span>🌎</span> GLOBAL DISCOVERY</h2>
+            <h2 class="section-title"><span>🌎</span> GLOBAL LIBRARY</h2>
             <div class="grid" id="globalGamesGrid"></div>
         </div>
     </div>
@@ -200,7 +162,6 @@
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         const OWNER_EMAIL = "goomba@bubble.com"; 
-
         let currentUser = "";
         let userRole = "Player";
 
@@ -211,16 +172,13 @@
                     const { data: profile } = await supabaseClient.from('profiles').select('username, role').eq('id', user.id).single();
                     currentUser = profile ? profile.username : user.email.split('@')[0];
                     userRole = (user.email.toLowerCase() === OWNER_EMAIL.toLowerCase()) ? "Owner" : (profile ? profile.role : "Player");
-                    
                     document.getElementById('loadingState').style.display = 'none';
                     showApp();
                 } else {
                     document.getElementById('loadingState').style.display = 'none';
                     document.getElementById('authContainer').style.display = 'inline-block';
                 }
-            } catch (e) {
-                document.getElementById('loadingState').innerText = "Database Error.";
-            }
+            } catch (e) { document.getElementById('loadingState').innerText = "Database Error."; }
         }
 
         async function showApp() {
@@ -229,7 +187,7 @@
             const isOwner = (userRole === "Owner");
             document.getElementById('userDisplay').innerHTML = isOwner 
                 ? `<span class="owner-tag">OWNER</span> ${currentUser.toUpperCase()}` 
-                : `HELLO, <span style="color:var(--primary); font-weight:900;">${currentUser.toUpperCase()}!</span>`;
+                : `<span style="color:var(--primary); font-weight:900;">${currentUser.toUpperCase()}</span>`;
             loadGames(isOwner);
         }
 
@@ -252,19 +210,23 @@
             const card = document.createElement('div');
             card.className = 'game-card';
             const statusClass = game.is_public ? 'status-public' : 'status-private';
-            const statusText = game.is_public ? 'LIVE' : 'DRAFT';
+            const statusText = game.is_public ? '🌐 Public' : '🔒 Private';
             const hasPower = isCreator || isOwner;
 
             card.innerHTML = `
                 <div class="card-inner">
                     <span class="status-tag ${statusClass}">${statusText}</span>
                     <span class="creator-label">@${game.creator}</span>
-                    <h3 class="game-name">${game.name || 'Epic World'}</h3>
+                    <h3 class="game-name">${game.name || 'Untitled World'}</h3>
                     <div class="action-row">
-                        <button class="btn-base btn-play" onclick="playGame('${game.id}')">PLAY NOW</button>
+                        <button class="btn-base btn-play" onclick="playGame('${game.id}')">▶ PLAY</button>
                         ${hasPower ? `
-                            <button class="btn-base btn-edit" onclick="editGame('${game.id}')">EDIT</button>
-                            <button class="btn-base btn-delete" onclick="deleteGame('${game.id}')">DELETE</button>
+                            <button class="btn-base btn-edit" onclick="editGame('${game.id}')">✎ Edit</button>
+                            <button class="btn-base btn-rename" onclick="renameGame('${game.id}', '${game.name}')">📝 Rename</button>
+                            <button class="btn-base btn-toggle" onclick="toggleVisibility('${game.id}', ${game.is_public})">
+                                ${game.is_public ? '🔒 Make Private' : '🌐 Make Public'}
+                            </button>
+                            <button class="btn-base btn-delete" onclick="deleteGame('${game.id}')">✖ Delete</button>
                         ` : ''}
                     </div>
                 </div>
@@ -272,11 +234,23 @@
             return card;
         }
 
-        // Logic functions remain the same to keep your database working!
+        window.renameGame = async (id, oldName) => {
+            const newName = prompt("New world name:", oldName);
+            if (newName && newName.trim() !== "") {
+                await supabaseClient.from('games').update({ name: newName.trim() }).eq('id', id);
+                location.reload();
+            }
+        };
+
+        window.toggleVisibility = async (id, currentStatus) => {
+            await supabaseClient.from('games').update({ is_public: !currentStatus }).eq('id', id);
+            location.reload();
+        };
+
+        window.deleteGame = async (id) => { if(confirm("Delete this world?")) { await supabaseClient.from('games').delete().eq('id', id); location.reload(); }};
         window.playGame = (id) => { localStorage.setItem('currentGameId', id); localStorage.setItem('editMode', 'false'); window.location.href = 'engine.html'; };
         window.editGame = (id) => { localStorage.setItem('currentGameId', id); localStorage.setItem('editMode', 'true'); window.location.href = 'engine.html'; };
-        window.deleteGame = async (id) => { if(confirm("Delete forever?")) { await supabaseClient.from('games').delete().eq('id', id); location.reload(); }};
-        
+
         async function handleAuth(mode) {
             const userInput = document.getElementById('username').value.trim();
             const passInput = document.getElementById('password').value;
