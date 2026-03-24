@@ -3,157 +3,222 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enterprise Data Core</title>
+    <title>Data Portal | Restoration</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #0a0a0a; color: #f4f4f5; }
-        .glass { background: rgba(23, 23, 23, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(63, 63, 70, 0.4); }
-        .accent-gradient { background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); }
+        :root {
+            --brand: #3ecf8e;
+            --brand-glow: rgba(62, 207, 142, 0.2);
+        }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: #020617; 
+            color: #f8fafc;
+            background-image: radial-gradient(circle at 0% 0%, #0f172a 0%, #020617 100%);
+            min-height: 100vh;
+        }
+        .glass { 
+            background: rgba(15, 23, 42, 0.7); 
+            backdrop-filter: blur(12px); 
+            border: 1px solid rgba(255, 255, 255, 0.05); 
+        }
+        .input-focus:focus {
+            border-color: var(--brand);
+            box-shadow: 0 0 0 2px var(--brand-glow);
+            outline: none;
+        }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
     </style>
 </head>
-<body class="min-h-screen">
+<body class="antialiased selection:bg-emerald-500/30">
 
-    <!-- Auth Overlay -->
-    <div id="auth-overlay" class="fixed inset-0 z-50 flex items-center justify-center bg-black px-4">
-        <div class="glass w-full max-w-md p-8 rounded-2xl">
-            <h2 class="text-3xl font-extrabold mb-2 bg-clip-text text-transparent accent-gradient">System Access</h2>
-            <p class="text-zinc-400 mb-6 text-sm">Initialize secure session to manage registry.</p>
-            <div class="space-y-4">
-                <input type="email" id="email" placeholder="Email Address" class="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-lg outline-none focus:border-blue-500 transition text-white">
-                <input type="password" id="pass" placeholder="Security Key" class="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-lg outline-none focus:border-blue-500 transition text-white">
-                <button onclick="handleAuth('login')" class="w-full accent-gradient text-white font-bold py-3 rounded-lg hover:opacity-90 transition">Sign In</button>
-                <button onclick="handleAuth('signup')" class="w-full text-zinc-400 text-sm hover:text-white transition">Create New Node Account</button>
+    <!-- Auth View -->
+    <div id="authSection" class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-950">
+        <div class="glass w-full max-w-md p-8 rounded-2xl shadow-2xl">
+            <div class="text-center mb-10">
+                <div class="h-12 w-12 bg-emerald-500/10 rounded-xl flex items-center justify-center mx-auto mb-4 border border-emerald-500/20">
+                    <svg class="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                </div>
+                <h1 class="text-2xl font-bold tracking-tight">Secure Access</h1>
+                <p class="text-slate-400 text-sm mt-1">Identify yourself to access the data stream.</p>
             </div>
-            <p id="auth-error" class="text-red-400 text-xs mt-4 italic text-center"></p>
+            <div class="space-y-4">
+                <input type="email" id="email" placeholder="Email Reference" class="glass w-full px-4 py-3 rounded-lg input-focus transition-all text-white">
+                <input type="password" id="password" placeholder="Secret Key" class="glass w-full px-4 py-3 rounded-lg input-focus transition-all text-white">
+                <button onclick="handleAuth('login')" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-3 rounded-lg transition-all active:scale-[0.98]">INITIALIZE SESSION</button>
+                <button onclick="handleAuth('signup')" class="w-full text-slate-500 hover:text-slate-300 text-xs font-semibold tracking-widest uppercase transition-colors">Register New Node</button>
+            </div>
+            <p id="authMsg" class="mt-4 text-center text-xs font-mono text-emerald-500 min-h-[1rem]"></p>
         </div>
     </div>
 
-    <!-- Main Dashboard -->
-    <div id="app" class="hidden">
-        <nav class="border-b border-zinc-800 p-4 sticky top-0 bg-black/50 backdrop-blur-md z-40">
-            <div class="max-w-6xl mx-auto flex justify-between items-center">
-                <div class="flex items-center gap-2">
-                    <div class="h-3 w-3 rounded-full bg-green-500 animate-pulse"></div>
-                    <span class="font-bold tracking-tight text-xl">CORE_LINK</span>
+    <!-- Main Workspace -->
+    <div id="mainSection" class="hidden opacity-0 transition-opacity duration-500">
+        <header class="border-b border-white/5 sticky top-0 bg-slate-950/50 backdrop-blur-xl z-40">
+            <div class="max-w-6xl mx-auto px-6 h-20 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="h-3 w-3 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_#3ecf8e]"></div>
+                    <span class="text-lg font-bold tracking-tighter uppercase">Data<span class="text-emerald-500">Entries</span></span>
                 </div>
-                <button onclick="signOut()" class="text-xs text-zinc-500 hover:text-white border border-zinc-800 px-3 py-1 rounded">Disconnect</button>
+                <div class="flex items-center gap-4">
+                    <span id="status" class="text-xs mono text-slate-500 hidden sm:block"></span>
+                    <button id="logoutBtn" onclick="supabase.auth.signOut()" class="text-xs bg-slate-800 hover:bg-red-500/20 hover:text-red-400 px-3 py-1.5 rounded-md transition-all border border-white/5">DISCONNECT</button>
+                </div>
             </div>
-        </nav>
+        </header>
 
-        <main class="max-w-6xl mx-auto p-6">
-            <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
-                <div>
-                    <h1 class="text-4xl font-extrabold tracking-tighter">Data Registry</h1>
-                    <p class="text-zinc-500">Real-time synchronized PostgreSQL uplink</p>
-                </div>
-                <button onclick="toggleModal(true)" class="accent-gradient px-6 py-3 rounded-xl font-bold shadow-lg shadow-blue-500/20 hover:scale-105 transition">
-                    + New Entry
-                </button>
-            </header>
+        <main class="max-w-6xl mx-auto px-6 py-12">
+            <div class="grid lg:grid-cols-12 gap-10">
+                <!-- Entry Creation -->
+                <aside class="lg:col-span-4">
+                    <div class="glass p-6 rounded-2xl sticky top-32">
+                        <h2 class="text-xl font-bold mb-6">New Entry</h2>
+                        <div class="space-y-4">
+                            <input type="text" id="title" placeholder="Entry Title" class="glass w-full px-4 py-3 rounded-lg input-focus transition-all text-white">
+                            <textarea id="content" rows="6" placeholder="Content details..." class="glass w-full px-4 py-3 rounded-lg input-focus transition-all resize-none text-white"></textarea>
+                            <button onclick="submitEntry()" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-3 rounded-lg transition-all flex items-center justify-center gap-2 group">
+                                SAVE TO CLOUD
+                                <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </aside>
 
-            <div id="loader" class="text-center py-20 text-zinc-600">Syncing with cloud infrastructure...</div>
-            <div id="registry-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Cards injected here -->
+                <!-- Data Stream -->
+                <section class="lg:col-span-8">
+                    <div class="flex justify-between items-end mb-8">
+                        <div>
+                            <h2 class="text-3xl font-black italic tracking-tight uppercase">Data Stream</h2>
+                            <p class="text-slate-500 mono text-xs uppercase mt-1">Real-time PostgreSQL Synchronization</p>
+                        </div>
+                    </div>
+
+                    <div id="listContainer" class="space-y-4">
+                        <!-- Dynamic content -->
+                    </div>
+                </section>
             </div>
         </main>
     </div>
 
-    <!-- Modal -->
-    <div id="modal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-4">
-        <div class="glass w-full max-w-lg p-8 rounded-2xl">
-            <h3 class="text-xl font-bold mb-4 text-white">Commit New Entry</h3>
-            <input type="text" id="new-title" placeholder="Title" class="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-lg mb-4 text-white outline-none">
-            <textarea id="new-desc" placeholder="Description Metadata" class="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-lg mb-6 h-32 text-white outline-none"></textarea>
-            <div class="flex gap-3">
-                <button onclick="createEntry()" class="flex-1 accent-gradient py-3 rounded-lg font-bold">Commit Data</button>
-                <button onclick="toggleModal(false)" class="px-6 py-3 border border-zinc-800 rounded-lg text-zinc-400">Cancel</button>
-            </div>
-        </div>
-    </div>
-
     <script>
-        const SUPABASE_URL = "https://sideqpofgknyfagrjnke.supabase.co";
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpZGVxcG9mZ2tueWZhZ3JqbmtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMTE1MzAsImV4cCI6MjA4ODY4NzUzMH0.A9lCoL2Zyfz_b0yasGsyC4mirSir_lxQt3McnLLOhK4";
-        
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        let userNode = null;
+        const SB_URL = "https://sideqpofgknyfagrjnke.supabase.co";
+        const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpZGVxcG9mZ2tueWZhZ3JqbmtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMTE1MzAsImV4cCI6MjA4ODY4NzUzMH0.A9lCoL2Zyfz_b0yasGsyC4mirSir_lxQt3McnLLOhK4";
+        const supabase = window.supabase.createClient(SB_URL, SB_KEY);
+
+        let localEntries = [];
+
+        // Auth Logic
+        async function handleAuth(type) {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const msg = document.getElementById('authMsg');
+            
+            if (!email || !password) return (msg.innerText = "Credentials Required");
+
+            msg.innerText = "Processing...";
+            const { error } = type === 'login' 
+                ? await supabase.auth.signInWithPassword({ email, password })
+                : await supabase.auth.signUp({ email, password });
+
+            if (error) msg.innerText = error.message.toUpperCase();
+        }
 
         // Session Observer
         supabase.auth.onAuthStateChange((event, session) => {
-            userNode = session?.user || null;
-            document.getElementById('auth-overlay').classList.toggle('hidden', !!userNode);
-            document.getElementById('app').classList.toggle('hidden', !userNode);
-            if(userNode) {
-                fetchRegistry();
-                subscribeRealtime();
+            const authSection = document.getElementById('authSection');
+            const mainSection = document.getElementById('mainSection');
+            const status = document.getElementById('status');
+
+            if (session) {
+                authSection.classList.add('hidden');
+                mainSection.classList.remove('hidden');
+                setTimeout(() => mainSection.classList.add('opacity-100'), 50);
+                status.innerText = "ACTIVE: " + session.user.email;
+                loadEntries();
+                initRealtime();
+            } else {
+                authSection.classList.remove('hidden');
+                mainSection.classList.add('hidden');
+                mainSection.classList.remove('opacity-100');
             }
         });
 
-        async function handleAuth(mode) {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('pass').value;
-            if(!email || !password) return;
+        // Data Management
+        async function loadEntries() {
+            const { data, error } = await supabase
+                .from('entries')
+                .select('*')
+                .order('created_at', { ascending: false });
             
-            const { error } = mode === 'login' 
-                ? await supabase.auth.signInWithPassword({ email, password })
-                : await supabase.auth.signUp({ email, password });
-            
-            if(error) document.getElementById('auth-error').innerText = error.message;
+            if (!error) {
+                localEntries = data;
+                renderUI();
+            }
         }
 
-        async function signOut() { await supabase.auth.signOut(); }
+        function renderUI() {
+            const container = document.getElementById('listContainer');
+            if (localEntries.length === 0) {
+                container.innerHTML = `<div class="glass p-12 text-center rounded-2xl text-slate-500 mono text-sm uppercase">No Records Found</div>`;
+                return;
+            }
 
-        function toggleModal(show) { document.getElementById('modal').style.display = show ? 'flex' : 'none'; }
-
-        async function fetchRegistry() {
-            const { data, error } = await supabase.from('registry').select('*').order('inserted_at', { ascending: false });
-            if (error) return console.error(error);
-            renderGrid(data);
-        }
-
-        function renderGrid(items) {
-            const grid = document.getElementById('registry-grid');
-            document.getElementById('loader').classList.add('hidden');
-            grid.innerHTML = items.map(item => `
-                <div class="glass p-6 rounded-2xl hover:border-blue-500/50 transition-all group">
+            container.innerHTML = localEntries.map(item => `
+                <div class="glass p-6 rounded-2xl group transition-all hover:border-emerald-500/30 relative">
                     <div class="flex justify-between items-start mb-4">
-                        <span class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Node_${item.id.slice(0,5)}</span>
-                        ${item.user_id === userNode.id ? `<button onclick="deleteItem('${item.id}')" class="opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-red-400 transition text-xs font-bold">[ PURGE ]</button>` : ''}
+                        <div class="space-y-1">
+                            <span class="text-[10px] mono text-emerald-500 uppercase tracking-widest">Ref: ${item.id.split('-')[0]}</span>
+                            <h3 class="text-xl font-bold text-white tracking-tight">${item.title}</h3>
+                        </div>
+                        <button onclick="removeEntry('${item.id}')" class="text-slate-600 hover:text-red-400 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        </button>
                     </div>
-                    <h3 class="text-lg font-semibold text-white mb-2">${item.title}</h3>
-                    <p class="text-zinc-400 text-sm leading-relaxed">${item.description || 'No data payload.'}</p>
-                    <div class="mt-6 pt-4 border-t border-zinc-800/50 flex justify-between items-center">
-                        <span class="text-[10px] text-zinc-600">${new Date(item.inserted_at).toLocaleString()}</span>
-                        <div class="h-2 w-2 rounded-full ${item.user_id === userNode.id ? 'bg-blue-500' : 'bg-zinc-700'}"></div>
+                    <p class="text-slate-400 leading-relaxed text-sm">${item.content || '<span class="italic text-slate-600">No content provided</span>'}</p>
+                    <div class="mt-6 flex items-center justify-between border-t border-white/5 pt-4">
+                        <span class="text-[10px] mono text-slate-600">${new Date(item.created_at).toLocaleString()}</span>
+                        <code class="text-[10px] text-slate-700">ID: ${item.id}</code>
                     </div>
                 </div>
             `).join('');
         }
 
-        async function createEntry() {
-            const title = document.getElementById('new-title').value;
-            const description = document.getElementById('new-desc').value;
-            if(!title) return;
+        async function submitEntry() {
+            const title = document.getElementById('title').value;
+            const content = document.getElementById('content').value;
+            const { data: { user } } = await supabase.auth.getUser();
 
-            const { error } = await supabase.from('registry').insert([{ title, description, user_id: userNode.id }]);
-            if(!error) {
-                toggleModal(false);
-                document.getElementById('new-title').value = '';
-                document.getElementById('new-desc').value = '';
+            if (!title) return alert("Title required.");
+
+            const { error } = await supabase.from('entries').insert([{ 
+                title, content, user_id: user.id 
+            }]);
+
+            if (error) alert(error.message);
+            else {
+                document.getElementById('title').value = '';
+                document.getElementById('content').value = '';
             }
         }
 
-        async function deleteItem(id) {
-            if(confirm("Confirm data purge?")) await supabase.from('registry').delete().eq('id', id);
+        async function removeEntry(id) {
+            if (confirm("Permanently delete this record?")) {
+                const { error } = await supabase.from('entries').delete().eq('id', id);
+                if (error) alert("Permission Denied: You may only delete your own records.");
+            }
         }
 
-        function subscribeRealtime() {
-            supabase.channel('schema-db-changes')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'registry' }, () => {
-                    fetchRegistry();
-                }).subscribe();
+        function initRealtime() {
+            supabase.channel('db-sync')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'entries' }, () => {
+                    loadEntries();
+                })
+                .subscribe();
         }
     </script>
 </body>
