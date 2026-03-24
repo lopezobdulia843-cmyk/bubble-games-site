@@ -2,342 +2,257 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bubble Games | Pop Into Play!</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Precision Studio | Neural Interface</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;900&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap');
-
-        :root { 
-            --primary: #00d4ff; 
-            --secondary: #ff00c8;
-            --bg: #050508; 
-            --card: #121218; 
-            --danger: #ff4444; 
-            --edit: #ffcc00; 
-            --success: #00ff88; 
-            --owner: #ffcf40;
-            --glass: rgba(255, 255, 255, 0.05);
-            --bubble-gradient: linear-gradient(135deg, #00d4ff 0%, #ff00c8 100%);
+        :root {
+            --bg: #030303;
+            --surface: #0a0a0a;
+            --accent: #00f2ff;
+            --accent-dim: rgba(0, 242, 255, 0.1);
+            --border: #1a1a1a;
+            --text: #ffffff;
+            --text-muted: #666666;
+            --error: #ff3333;
         }
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
-        body { 
-            margin: 0; background: var(--bg); color: white; font-family: 'Outfit', sans-serif; 
-            text-align: center; overflow-x: hidden; min-height: 100vh;
-            background-image: radial-gradient(circle at 10% 20%, rgba(0, 212, 255, 0.05) 0%, transparent 40%),
-                              radial-gradient(circle at 90% 80%, rgba(255, 0, 200, 0.05) 0%, transparent 40%);
+        body {
+            margin: 0; background: var(--bg); color: var(--text);
+            font-family: 'Inter', sans-serif; overflow-x: hidden;
         }
 
-        #loadingState { 
-            position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column; 
-            align-items: center; justify-content: center; z-index: 1000; font-weight: 900; 
-            color: var(--primary); letter-spacing: 2px; font-size: 1.2rem;
+        /* --- AUTHENTICATION UI --- */
+        #auth-gate {
+            display: flex; height: 100vh; align-items: center; justify-content: center;
+            background: radial-gradient(circle at center, #0a0a0a 0%, #000 100%);
         }
 
-        nav { 
-            padding: 15px 5%; display: flex; justify-content: space-between; align-items: center; 
-            background: rgba(10, 10, 12, 0.9); backdrop-filter: blur(15px); 
-            position: sticky; top: 0; z-index: 100; border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        .terminal-card {
+            background: var(--surface); border: 1px solid var(--border);
+            padding: 2.5rem; width: 100%; max-width: 400px;
+            box-shadow: 0 0 40px rgba(0,0,0,0.8);
         }
 
-        .logo { 
-            font-size: clamp(1.2rem, 5vw, 1.8rem); font-weight: 900; background: var(--bubble-gradient);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            text-transform: uppercase; letter-spacing: -1px;
+        input {
+            width: 100%; padding: 12px; margin: 8px 0; background: #000;
+            border: 1px solid var(--border); color: #fff; border-radius: 2px;
+            font-family: 'JetBrains Mono', monospace; box-sizing: border-box;
         }
 
-        .container { padding: 20px; max-width: 1200px; margin: auto; }
+        input:focus { border-color: var(--accent); outline: none; }
 
-        #authContainer { 
-            background: var(--card); padding: clamp(20px, 8vw, 50px); border-radius: 35px; 
-            border: 2px solid rgba(255, 255, 255, 0.05); display: inline-block; 
-            margin-top: clamp(40px, 10vh, 80px); width: 95%; max-width: 450px;
-            box-shadow: 0 30px 60px rgba(0,0,0,0.6);
+        .btn {
+            cursor: pointer; border: 1px solid var(--accent); background: var(--accent-dim);
+            color: var(--accent); padding: 12px 20px; font-weight: 900;
+            text-transform: uppercase; letter-spacing: 1px; transition: 0.2s;
+            width: 100%; margin-top: 10px; font-family: 'JetBrains Mono';
         }
 
-        input { 
-            display: block; margin: 15px auto; padding: 16px; width: 100%; 
-            border-radius: 15px; border: 2px solid #222; background: #000; 
-            color: white; outline: none; transition: 0.3s; font-size: 16px; 
+        .btn:hover { background: var(--accent); color: #000; }
+
+        /* --- DASHBOARD UI --- */
+        nav {
+            padding: 1rem 5%; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(3,3,3,0.8); backdrop-filter: blur(10px);
+            position: sticky; top: 0; z-index: 10;
         }
-        input:focus { border-color: var(--primary); box-shadow: 0 0 20px rgba(0, 212, 255, 0.2); }
 
-        .btn-launch { 
-            background: var(--bubble-gradient); color: white; padding: clamp(15px, 4vw, 20px) 40px; 
-            border-radius: 50px; font-weight: 900; font-size: clamp(1.1rem, 4vw, 1.4rem); cursor: pointer; 
-            border: none; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
-            box-shadow: 0 15px 30px rgba(255, 0, 200, 0.3); margin-bottom: 40px; width: 100%; max-width: 400px;
+        .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
+
+        .header-flex { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; }
+
+        .grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
         }
-        .btn-launch:active { transform: scale(0.96); }
 
-        .section-title { 
-            text-align: left; margin: 60px 0 30px; font-size: clamp(1.4rem, 5vw, 1.8rem); font-weight: 900;
-            display: flex; align-items: center; gap: 15px; 
+        .card {
+            background: var(--surface); border: 1px solid var(--border);
+            padding: 20px; position: relative; transition: 0.3s;
         }
-        .section-title span { background: var(--glass); padding: 10px; border-radius: 12px; }
 
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
+        .card:hover { border-color: var(--accent); transform: translateY(-2px); }
 
-        .game-card { 
-            background: var(--card); border-radius: 28px; text-align: left; 
-            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); overflow: hidden; 
-            border: 1px solid rgba(255,255,255,0.03); display: flex; flex-direction: column;
+        .badge {
+            font-size: 10px; font-weight: 900; padding: 4px 8px;
+            background: #111; color: var(--accent); border: 1px solid var(--accent);
+            text-transform: uppercase;
         }
-        .game-card:hover { transform: translateY(-5px); border-color: var(--primary); }
-        .card-inner { padding: 25px; flex-grow: 1; display: flex; flex-direction: column; }
-        
-        .status-tag { 
-            float: right; font-size: 10px; padding: 5px 12px; border-radius: 50px; 
-            font-weight: 900; text-transform: uppercase; letter-spacing: 1px;
+
+        .meta { font-family: 'JetBrains Mono'; font-size: 11px; color: var(--text-muted); margin-top: 15px; }
+
+        #engine-view {
+            position: fixed; inset: 0; background: #000; z-index: 100;
+            display: none; flex-direction: column;
         }
-        .status-private { background: #222; color: #888; }
-        .status-public { background: rgba(0, 255, 136, 0.1); color: var(--success); border: 1px solid rgba(0, 255, 136, 0.3); }
 
-        .creator-label { font-size: 12px; color: var(--primary); font-weight: 900; }
-        .game-name { margin: 15px 0 20px; font-size: 1.5rem; font-weight: 900; color: #fff; line-height: 1.2; word-wrap: break-word; }
-
-        .action-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: auto; }
-        .btn-base { border: none; padding: 12px; border-radius: 14px; cursor: pointer; font-weight: 900; transition: 0.2s; font-size: 11px; text-transform: uppercase; }
-        
-        .btn-play { background: #fff; color: #000; grid-column: span 2; font-size: 16px; margin-bottom: 5px; }
-        .btn-play:active { background: var(--primary); transform: scale(0.98); }
-        
-        .btn-edit { background: var(--glass); color: var(--edit); border: 1px solid rgba(255,204,0,0.2); }
-        .btn-rename { background: var(--glass); color: #00ffcc; border: 1px solid rgba(0,255,204,0.2); }
-        .btn-toggle { background: var(--glass); color: #fff; border: 1px solid rgba(255,255,255,0.1); }
-        .btn-delete { background: rgba(255,68,68,0.1); color: var(--danger); border: 1px solid rgba(255,68,68,0.2); }
-        
-        .btn-logout { background: var(--glass); color: #fff; padding: 10px 18px; border-radius: 12px; border: none; font-weight: 700; cursor: pointer; font-size: 12px; }
-        .owner-tag { background: var(--owner); color: #000; padding: 2px 8px; border-radius: 6px; font-size: 11px; margin-right: 5px; vertical-align: middle; }
-
-        @media (max-width: 600px) {
-            nav { padding: 15px 20px; }
-            .container { padding: 15px; }
-            header h1 { font-size: 2.5rem !important; }
-            #userDisplay { font-size: 12px; }
-        }
+        .status-dot { height: 8px; width: 8px; background: var(--accent); border-radius: 50%; display: inline-block; margin-right: 5px; }
     </style>
 </head>
-
 <body>
 
-    <div id="loadingState">SYNCHRONIZING...</div>
-
-    <div id="authContainer" style="display:none;">
-        <h1 class="logo" style="font-size: 36px; margin-bottom: 5px;">Bubble Games</h1>
-        <p style="color: #666; margin-bottom: 30px;">Professional Sandbox Engine</p>
-        <input type="text" id="username" placeholder="Username" autocomplete="username">
-        <input type="password" id="password" placeholder="Password" autocomplete="current-password">
-        <div id="loginSection">
-            <button id="loginBtn" class="btn-base btn-play">LOG IN</button>
-            <p style="margin-top: 20px; font-size: 14px;">New? <span id="toSignup" style="color:var(--primary);cursor:pointer;font-weight:900;">Create Account</span></p>
-        </div>
-        <div id="signupSection" style="display:none;">
-            <button id="signupBtn" class="btn-base btn-play" style="background:var(--success); color:black;">CREATE ACCOUNT</button>
-            <p style="margin-top: 20px; font-size: 14px;">Already have one? <span id="toLogin" style="color:var(--primary);cursor:pointer;font-weight:900;">Log In</span></p>
-        </div>
-        <p id="msg" style="font-size: 13px; color: var(--danger); font-weight: bold; margin-top: 15px;"></p>
+<!-- AUTH SECTION -->
+<div id="auth-gate">
+    <div class="terminal-card">
+        <h2 style="margin: 0 0 5px 0; font-weight: 900;">SYSTEM_ACCESS</h2>
+        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 25px;">Provide credentials for protocol initialization.</p>
+        <input type="email" id="email" placeholder="REGISTRY_EMAIL">
+        <input type="password" id="pass" placeholder="SECURITY_TOKEN">
+        <button class="btn" onclick="handleAuth('login')">Initialize Session</button>
+        <button class="btn" onclick="handleAuth('signup')" style="border-color: #333; color: #666; background: transparent; font-size: 11px;">Create New Identity</button>
+        <div id="auth-err" style="color: var(--error); font-size: 11px; margin-top: 15px; text-align: center; font-family: 'JetBrains Mono';"></div>
     </div>
+</div>
 
-    <div id="mainApp" style="display:none;">
-        <nav>
-            <div class="logo">Bubble Games</div>
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <span id="userDisplay"></span>
-                <button id="logoutBtn" class="btn-logout">LOGOUT</button>
+<!-- APP SECTION -->
+<div id="app-gate" style="display: none;">
+    <nav>
+        <div style="font-weight: 900; letter-spacing: 2px;">PRECISION_<span style="color: var(--accent);">STUDIO</span></div>
+        <div style="display: flex; gap: 20px; align-items: center; font-size: 12px; font-family: 'JetBrains Mono';">
+            <span id="user-display" style="color: var(--accent);"></span>
+            <button onclick="signOut()" style="background: none; border: none; color: var(--error); cursor: pointer; font-weight: 900;">DISCONNECT</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="header-flex">
+            <div>
+                <h1 style="margin: 0; font-size: 48px; font-weight: 900; letter-spacing: -2px;">Repository</h1>
+                <p style="color: var(--text-muted); margin: 5px 0 0 0;">Managing active computational deployments.</p>
             </div>
-        </nav>
-        <div class="container">
-            <header style="margin: clamp(30px, 8vh, 60px) 0;">
-                <h1 style="font-size: clamp(3rem, 10vw, 4.5rem); font-weight: 900; line-height: 0.9; margin-bottom: 15px;">Build. Play. <br><span style="color: var(--primary)">Publish.</span></h1>
-                <p style="font-size: 1.1rem; color: #888; margin-bottom: 35px; max-width: 600px; margin-inline: auto;">Create immersive interactive experiences with our high-performance studio.</p>
-                <button id="newGameBtn" class="btn-launch">Create New World 🛠️</button>
-            </header>
-            
-            <h2 class="section-title"><span>📂</span> STUDIO</h2>
-            <div class="grid" id="myGamesGrid"></div>
+            <button class="btn" onclick="createProject()" style="width: auto; padding: 12px 30px;">+ New Deployment</button>
+        </div>
 
-            <h2 class="section-title"><span>🌎</span> DISCOVER</h2>
-            <div class="grid" id="globalGamesGrid"></div>
+        <div id="project-grid" class="grid">
+            <!-- Dynamic Injection -->
         </div>
     </div>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script type="module">
-        const SUPABASE_URL = window.location.origin + '/supabase';
-        const SUPABASE_KEY = 'sb_publishable_ULjlm97u7-dg8ekTPU84aA_rA1CtUnH';
+<!-- ENGINE VIEW (FULLSCREEN) -->
+<div id="engine-view">
+    <div style="padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between;">
+        <div id="engine-title" style="font-weight: 900; font-family: 'JetBrains Mono';"></div>
+        <button class="btn" onclick="closeEngine()" style="width: auto; margin: 0; padding: 5px 15px; border-color: var(--error); color: var(--error); background: transparent;">CLOSE_STREAM</button>
+    </div>
+    <div style="flex: 1; display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono'; color: #111;">
+        <div style="text-align: center;">
+            <h1 style="font-size: 8vw; margin: 0;">LIVE_FEED</h1>
+            <p>STREAMING DATA FROM PROJECT_CORE...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- CONFIGURATION ---
+    const CONFIG = {
+        SB_URL: "YOUR_SUPABASE_URL",
+        SB_KEY: "YOUR_SUPABASE_ANON_KEY"
+    };
+
+    const supabase = window.supabase.createClient(CONFIG.SB_URL, CONFIG.SB_KEY);
+    let sessionUser = null;
+
+    // --- AUTH LOGIC ---
+    async function handleAuth(type) {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('pass').value;
+        const errDisplay = document.getElementById('auth-err');
         
-        let supabaseClient;
-        try {
-            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        } catch(e) { console.error("Initialization Error", e); }
+        const { data, error } = type === 'login' 
+            ? await supabase.auth.signInWithPassword({ email, password })
+            : await supabase.auth.signUp({ email, password, options: { data: { handle: email.split('@')[0] } } });
 
-        const OWNER_EMAIL = "goomba@bubble.com"; 
-        let currentUser = "";
-        let userRole = "Player";
+        if (error) errDisplay.innerText = error.message.toUpperCase();
+    }
 
-        async function init() {
-            try {
-                const { data: { user }, error } = await supabaseClient.auth.getUser();
-                if (user && !error) {
-                    const { data: profile } = await supabaseClient.from('profiles').select('username, role').eq('id', user.id).single();
-                    currentUser = profile ? profile.username : user.email.split('@')[0];
-                    userRole = (user.email.toLowerCase() === OWNER_EMAIL.toLowerCase()) ? "Owner" : (profile?.role || "Player");
-                    showApp();
-                } else {
-                    document.getElementById('loadingState').style.display = 'none';
-                    document.getElementById('authContainer').style.display = 'inline-block';
-                }
-            } catch (e) { 
-                document.getElementById('loadingState').innerText = "System Offline."; 
-                console.error(e);
-            }
-        }
+    async function signOut() {
+        await supabase.auth.signOut();
+        location.reload();
+    }
 
-        async function showApp() {
-            document.getElementById('loadingState').style.display = 'none';
-            document.getElementById('authContainer').style.display = 'none';
-            document.getElementById('mainApp').style.display = 'block';
+    // --- INITIALIZATION ---
+    supabase.auth.onAuthStateChange((event, session) => {
+        sessionUser = session?.user || null;
+        document.getElementById('auth-gate').style.display = sessionUser ? 'none' : 'flex';
+        document.getElementById('app-gate').style.display = sessionUser ? 'block' : 'none';
+        
+        if (sessionUser) {
+            document.getElementById('user-display').innerText = `ID: ${sessionUser.user_metadata.handle || 'ANON'}`;
+            fetchProjects();
             
-            const display = document.getElementById('userDisplay');
-            if (userRole === "Owner") {
-                display.innerHTML = `<span class="owner-tag">OWNER</span> ${currentUser.toUpperCase()}`;
-            } else {
-                display.innerHTML = `<span style="color:var(--primary); font-weight:900;">${currentUser.toUpperCase()}</span>`;
-            }
-            loadGames();
+            // Realtime Subscription
+            supabase.channel('schema-db-changes')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => fetchProjects())
+                .subscribe();
         }
+    });
 
-        async function loadGames() {
-            const myGrid = document.getElementById('myGamesGrid');
-            const globalGrid = document.getElementById('globalGamesGrid');
-            const { data: games, error } = await supabaseClient.from('games').select('*').order('created_at', { ascending: false });
-            
-            if (error) return;
+    // --- CORE DATA FUNCTIONS ---
+    async function fetchProjects() {
+        const { data, error } = await supabase
+            .from('projects')
+            .select('*')
+            .order('created_at', { ascending: false });
 
-            myGrid.innerHTML = ''; globalGrid.innerHTML = '';
-            const isOwner = (userRole === "Owner");
-
-            games.forEach(game => {
-                const isCreator = (game.creator === currentUser);
-                const card = createCard(game, isCreator, isOwner);
-                if (isCreator) myGrid.appendChild(card);
-                else if (game.is_public) globalGrid.appendChild(card);
-            });
-        }
-
-        function createCard(game, isCreator, isOwner) {
-            const card = document.createElement('div');
-            card.className = 'game-card';
-            const statusClass = game.is_public ? 'status-public' : 'status-private';
-            const statusText = game.is_public ? '🌐 Public' : '🔒 Private';
-            const hasPower = isCreator || isOwner;
-            const safeName = (game.name || 'Untitled World').replace(/'/g, "\\'");
-
-            card.innerHTML = `
-                <div class="card-inner">
-                    <span class="status-tag ${statusClass}">${statusText}</span>
-                    <span class="creator-label">@${game.creator}</span>
-                    <h3 class="game-name">${game.name || 'Untitled World'}</h3>
-                    <div class="action-row">
-                        <button class="btn-base btn-play" onclick="playGame('${game.id}')">▶ PLAY</button>
-                        ${hasPower ? `
-                            <button class="btn-base btn-edit" onclick="editGame('${game.id}')">✎ Edit</button>
-                            <button class="btn-base btn-rename" onclick="renameGame('${game.id}', '${safeName}')">📝 Rename</button>
-                            <button class="btn-base btn-toggle" onclick="toggleVisibility('${game.id}', ${game.is_public})">
-                                ${game.is_public ? '🔒 Private' : '🌐 Public'}
-                            </button>
-                            <button class="btn-base btn-delete" onclick="deleteGame('${game.id}')">✖ Delete</button>
-                        ` : ''}
-                    </div>
+        if (error) return console.error(error);
+        
+        const grid = document.getElementById('project-grid');
+        grid.innerHTML = data.length === 0 ? '<p style="color: #333; font-family: JetBrains Mono;">No active projects in sector.</p>' : '';
+        
+        data.forEach(p => {
+            const isOwner = p.creator_id === sessionUser.id;
+            const div = document.createElement('div');
+            div.className = 'card';
+            div.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <span class="badge">${p.is_public ? 'Global' : 'Internal'}</span>
+                    <div class="status-dot"></div>
+                </div>
+                <h3 style="margin: 15px 0 5px 0; font-size: 22px;">${p.title}</h3>
+                <p style="color: var(--text-muted); font-size: 13px; margin: 0;">Unit: ${p.creator_handle}</p>
+                <div class="meta">REF_ID: ${p.id.substring(0,8)}</div>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button class="btn" style="margin:0;" onclick="launchEngine('${p.title}')">Launch</button>
+                    ${isOwner ? `<button class="btn" style="margin:0; border-color: #333; color: #333; background: transparent;" onclick="deleteProject('${p.id}')">Delete</button>` : ''}
                 </div>
             `;
-            return card;
+            grid.appendChild(div);
+        });
+    }
+
+    async function createProject() {
+        const title = prompt("ENTER PROJECT DESIGNATION:");
+        if (!title) return;
+        const isPublic = confirm("BROADCAST TO GLOBAL REGISTRY?");
+
+        const { error } = await supabase.from('projects').insert([{
+            title,
+            is_public: isPublic,
+            creator_id: sessionUser.id,
+            creator_handle: sessionUser.user_metadata.handle || 'ANON'
+        }]);
+
+        if (error) alert(error.message);
+    }
+
+    async function deleteProject(id) {
+        if (confirm("EXECUTE DELETION PROTOCOL?")) {
+            await supabase.from('projects').delete().eq('id', id);
         }
+    }
 
-        window.renameGame = async (id, oldName) => {
-            const newName = prompt("New world name:", oldName);
-            if (newName && newName.trim() !== "" && newName !== oldName) {
-                await supabaseClient.from('games').update({ name: newName.trim() }).eq('id', id);
-                loadGames();
-            }
-        };
+    function launchEngine(title) {
+        document.getElementById('engine-title').innerText = `CORE_SESSION: ${title.toUpperCase()}`;
+        document.getElementById('engine-view').style.display = 'flex';
+    }
 
-        window.toggleVisibility = async (id, currentStatus) => {
-            await supabaseClient.from('games').update({ is_public: !currentStatus }).eq('id', id);
-            loadGames();
-        };
-
-        window.deleteGame = async (id) => { 
-            if(confirm("Permanently delete this world?")) { 
-                await supabaseClient.from('games').delete().eq('id', id); 
-                loadGames(); 
-            }
-        };
-
-        window.playGame = (id) => { 
-            localStorage.setItem('currentGameId', id); 
-            localStorage.setItem('editMode', 'false'); 
-            window.location.href = 'engine.html'; 
-        };
-
-        window.editGame = (id) => { 
-            localStorage.setItem('currentGameId', id); 
-            localStorage.setItem('editMode', 'true'); 
-            window.location.href = 'engine.html'; 
-        };
-
-        async function handleAuth(mode) {
-            const userInput = document.getElementById('username').value.trim();
-            const passInput = document.getElementById('password').value;
-            const msg = document.getElementById('msg');
-            
-            if (!userInput || !passInput) {
-                msg.innerText = "All fields required.";
-                return;
-            }
-
-            msg.style.color = "var(--primary)";
-            msg.innerText = "Processing...";
-            
-            const fakeEmail = `${userInput.toLowerCase()}@bubble.com`;
-            let result;
-
-            if (mode === 'signup') {
-                result = await supabaseClient.auth.signUp({
-                    email: fakeEmail, 
-                    password: passInput, 
-                    options: { data: { username: userInput, role: 'Player' } }
-                });
-            } else {
-                result = await supabaseClient.auth.signInWithPassword({
-                    email: fakeEmail, 
-                    password: passInput
-                });
-            }
-
-            if (result.error) {
-                msg.style.color = "var(--danger)";
-                msg.innerText = result.error.message;
-            } else {
-                location.reload();
-            }
-        }
-
-        document.getElementById('loginBtn').onclick = () => handleAuth('login');
-        document.getElementById('signupBtn').onclick = () => handleAuth('signup');
-        document.getElementById('toSignup').onclick = () => { document.getElementById('loginSection').style.display='none'; document.getElementById('signupSection').style.display='block'; };
-        document.getElementById('toLogin').onclick = () => { document.getElementById('loginSection').style.display='block'; document.getElementById('signupSection').style.display='none'; };
-        document.getElementById('logoutBtn').onclick = async () => { await supabaseClient.auth.signOut(); location.reload(); };
-        document.getElementById('newGameBtn').onclick = () => { 
-            localStorage.removeItem('currentGameId'); 
-            localStorage.setItem('editMode', 'true'); 
-            localStorage.setItem('isNewGame', 'true'); 
-            window.location.href = 'engine.html'; 
-        };
-
-        init();
-    </script>
+    function closeEngine() {
+        document.getElementById('engine-view').style.display = 'none';
+    }
+</script>
 </body>
 </html>
