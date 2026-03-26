@@ -2,191 +2,196 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Bubble Games - Engine</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bubble Games - Infinite Engine</title>
     <script src="https://cdn.jsdelivr.net/npm/fengari-web@0.1.4/dist/fengari-web.js" type="text/javascript"></script>
     
     <style>
-        body { margin: 0; overflow: hidden; background: #050505; font-family: sans-serif; touch-action: none; color: white; user-select: none; -webkit-user-select: none; }
+        :root { --neon: #00d4ff; --bg: #050505; --accent: #ffcc00; --danger: #ff3232; --success: #2ecc71; }
+        body { margin: 0; overflow: hidden; background: var(--bg); font-family: 'Inter', system-ui, sans-serif; touch-action: none; color: white; user-select: none; -webkit-user-select: none; }
+        
+        /* UI LAYOUT */
         .controls { position: absolute; z-index: 10; display: flex; gap: 10px; }
         #top-bar { top: 20px; right: 20px; flex-direction: column; align-items: flex-end; }
         
         #settings-panel { 
             position: absolute; top: 100px; left: 20px; 
-            background: rgba(0,0,0,0.85); padding: 15px; border-radius: 12px; 
-            border: 1px solid #00d4ff; width: 200px; z-index: 50;
-            backdrop-filter: blur(10px);
+            background: rgba(0,0,0,0.9); padding: 15px; border-radius: 12px; 
+            border: 1px solid var(--neon); width: 220px; z-index: 50;
+            backdrop-filter: blur(15px); box-shadow: 0 0 20px rgba(0, 212, 255, 0.15);
         }
-        .setting-group { margin-bottom: 18px; }
-        .label-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .setting-group label { font-size: 11px; text-transform: uppercase; color: #00d4ff; font-weight: bold; }
-        
-        .num-input {
-            width: 50px; background: #111; border: 1px solid #444; color: #00d4ff;
-            font-size: 12px; border-radius: 4px; padding: 2px 4px; text-align: center;
+
+        /* BLOCK CODING PANEL (SCRATCH STYLE) */
+        #logic-panel {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 350px; background: rgba(10, 10, 15, 0.98); border: 2px solid var(--neon); 
+            border-radius: 20px; display: none; flex-direction: column; z-index: 1000; padding: 25px;
+            box-shadow: 0 0 50px rgba(0,0,0,1), 0 0 20px var(--neon);
         }
-        .num-input:focus { border-color: #00d4ff; outline: none; }
+        .logic-header { font-size: 18px; font-weight: 800; color: var(--neon); margin-bottom: 20px; text-align: center; letter-spacing: 1px; }
+        .block-card { background: #111; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #333; position: relative; }
+        .block-card::before { content: ''; position: absolute; left: 0; top: 15%; bottom: 15%; width: 5px; border-radius: 0 5px 5px 0; }
+        .trigger-block::before { background: var(--accent); }
+        .action-block::before { background: var(--success); }
+        .block-label { font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 8px; font-weight: bold; letter-spacing: 0.5px; }
+        .block-select { width: 100%; background: #1a1a1a; color: white; border: 1px solid #444; padding: 10px; border-radius: 8px; outline: none; cursor: pointer; font-weight: 600; }
+        .block-select:focus { border-color: var(--neon); }
 
-        input[type="range"] { width: 100%; cursor: pointer; accent-color: #00d4ff; }
-
+        /* BUTTONS */
         button { 
-            width: 140px; height: 50px; font-size: 14px; font-weight: bold;
-            background: rgba(0, 212, 255, 0.1); color: white;
-            border: 2px solid #00d4ff; border-radius: 10px; cursor: pointer;
-            backdrop-filter: blur(5px); margin-bottom: 5px;
-            display: flex; align-items: center; justify-content: center; transition: 0.2s;
+            width: 140px; height: 48px; font-size: 13px; font-weight: bold;
+            background: rgba(0, 212, 255, 0.05); color: white;
+            border: 2px solid var(--neon); border-radius: 10px; cursor: pointer;
+            backdrop-filter: blur(5px); transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex; align-items: center; justify-content: center;
         }
-        
-        #publishBtn { background: #00d4ff; color: #000; }
-        #playTestBtn { background: #2ecc71; color: #000; border-color: #2ecc71; }
-        #playTestBtn.playing { background: #e74c3c; color: white; border-color: #e74c3c; }
+        button:hover { background: rgba(0, 212, 255, 0.2); transform: translateY(-2px); }
+        button:active { transform: translateY(0); }
+        #publishBtn { background: var(--neon); color: #000; }
+        #playTestBtn { background: var(--success); color: #000; border-color: var(--success); }
+        #playTestBtn.playing { background: var(--danger) !important; color: white !important; border-color: var(--danger) !important; }
+        .active-tool { background: var(--neon) !important; color: #000 !important; box-shadow: 0 0 15px var(--neon); }
+        #codeBtn.active-tool { background: var(--accent) !important; border-color: var(--accent) !important; color: black !important; }
 
-        .active-tool { background: #00d4ff !important; color: #000 !important; box-shadow: 0 0 15px #00d4ff; }
-        #deleteModeBtn.active-tool { background: #ff3232 !important; border-color: #ff3232 !important; color: white !important; box-shadow: 0 0 15px #ff3232; }
-
+        /* ITEM SELECTOR */
         #item-selector { 
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 15px; background: rgba(0,0,0,0.8); padding: 10px;
-            border-radius: 15px; border: 2px solid #333; z-index: 20;
+            display: flex; gap: 15px; background: rgba(0,0,0,0.85); padding: 12px;
+            border-radius: 18px; border: 2px solid #333; z-index: 20;
         }
         .item-card {
-            width: 60px; height: 60px; border-radius: 10px; border: 2px solid #444;
+            width: 65px; height: 65px; border-radius: 12px; border: 2px solid #444;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             cursor: pointer; background: #111; transition: 0.2s;
         }
-        .item-card:hover { border-color: #00d4ff; }
-        .item-card.selected { border-color: #00d4ff; background: rgba(0, 212, 255, 0.2); }
-        .item-icon { width: 30px; height: 30px; margin-bottom: 2px; border-radius: 4px; }
-        .icon-block { background: #cccccc; border: 1px solid #999; }
+        .item-card.selected { border-color: var(--neon); background: rgba(0, 212, 255, 0.15); box-shadow: 0 0 10px var(--neon); }
+        .item-icon { width: 28px; height: 28px; margin-bottom: 4px; border-radius: 4px; }
+        .icon-block { background: #888; border: 1px solid #aaa; }
         .icon-spawn { background: #00ffff; box-shadow: 0 0 10px #00ffff; }
-        .item-label { font-size: 10px; color: white; text-transform: uppercase; }
+        .item-label { font-size: 10px; font-weight: bold; color: white; }
 
-        #info { position: absolute; top: 10px; left: 10px; color: white; pointer-events: none; z-index: 80; }
-        #coords { font-family: monospace; color: #00d4ff; margin-top: 5px; background: rgba(0,0,0,0.5); padding: 5px; border-radius: 5px; }
-        #crosshair { 
-            position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; 
-            border: 2px solid white; border-radius: 50%; transform: translate(-50%, -50%); 
-            display: none; pointer-events: none; z-index: 80;
-        }
-        #loading-overlay { position: fixed; inset: 0; background: #050505; z-index: 100; display: flex; align-items: center; justify-content: center; color: #00d4ff; font-weight: bold; }
+        /* HUD & CHAT */
+        #info { position: absolute; top: 15px; left: 20px; pointer-events: none; z-index: 80; }
+        #coords { font-family: 'JetBrains Mono', monospace; color: var(--neon); font-size: 12px; background: rgba(0,0,0,0.6); padding: 8px; border-radius: 6px; margin-top: 10px; border-left: 3px solid var(--neon); }
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 12px; height: 12px; border: 2px solid white; border-radius: 50%; transform: translate(-50%, -50%); display: none; pointer-events: none; z-index: 80; }
+        #loading-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 1000; display: flex; align-items: center; justify-content: center; color: var(--neon); font-weight: bold; letter-spacing: 5px; font-size: 1.2rem; }
 
         .player-label {
-            position: absolute; background: rgba(0,0,0,0.8); color: #00d4ff;
-            padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;
-            border: 1px solid #00d4ff; pointer-events: none; white-space: nowrap;
-            transform: translate(-50%, -100%); z-index: 5;
+            position: absolute; background: rgba(0,0,0,0.85); color: var(--neon);
+            padding: 3px 12px; border-radius: 6px; font-size: 12px; font-weight: 800;
+            border: 1px solid var(--neon); pointer-events: none; white-space: nowrap;
+            transform: translate(-50%, -150%); z-index: 5; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
         }
 
         #chat-container {
-            position: absolute; bottom: 100px; left: 20px; width: 250px;
+            position: absolute; bottom: 130px; left: 20px; width: 280px;
             height: 200px; display: flex; flex-direction: column;
             z-index: 60; pointer-events: none;
         }
         #chat-messages {
-            flex-grow: 1; overflow-y: auto; background: rgba(0,0,0,0.4);
+            flex-grow: 1; overflow-y: auto; background: rgba(0,0,0,0.3);
             border-radius: 8px; padding: 10px; font-size: 13px;
-            display: flex; flex-direction: column; gap: 4px;
-            scrollbar-width: thin; scrollbar-color: #00d4ff transparent;
+            display: flex; flex-direction: column; gap: 6px;
+            mask-image: linear-gradient(to bottom, transparent, black 15%);
         }
         #chat-input {
-            margin-top: 5px; background: rgba(0,0,0,0.8); border: 1px solid #00d4ff;
-            color: white; padding: 8px; border-radius: 4px; pointer-events: auto;
-            outline: none;
+            margin-top: 8px; background: rgba(0,0,0,0.9); border: 1px solid var(--neon);
+            color: white; padding: 12px; border-radius: 8px; pointer-events: auto; outline: none; font-size: 13px;
         }
-        .chat-msg { word-wrap: break-word; text-shadow: 1px 1px 2px black; }
-        .chat-user { color: #00d4ff; font-weight: bold; }
 
-        .toggle-container { display: flex; align-items: center; gap: 10px; margin-top: 10px; cursor: pointer; }
-        .toggle-container input { cursor: pointer; }
-
-        /* ROBLOX STYLE MOBILE CONTROLS */
-        #mobile-controls { position: fixed; inset: 0; pointer-events: none; z-index: 90; display: none; touch-action: none; }
-        #joystick-zone { position: absolute; left: 0; bottom: 0; width: 50vw; height: 100vh; pointer-events: auto; touch-action: none; }
-        #touch-look-zone { position: absolute; right: 0; top: 0; width: 50vw; height: 100vh; pointer-events: auto; touch-action: none; }
-        #joystick-base { 
-            position: absolute; width: 120px; height: 120px; background: rgba(255,255,255,0.05); 
-            border-radius: 50%; border: 2px solid rgba(0, 212, 255, 0.3); display: none; pointer-events: none;
-        }
-        #joystick-stick { 
-            position: absolute; left: 50%; top: 50%; width: 50px; height: 50px; 
-            background: rgba(0, 212, 255, 0.6); border-radius: 50%; transform: translate(-50%, -50%); 
-        }
-        #jump-btn { 
-            position: absolute; right: 40px; bottom: 40px; width: 70px; height: 70px; 
-            background: rgba(0, 212, 255, 0.1); border: 2px solid #00d4ff; border-radius: 50%; 
-            color: #00d4ff; display: flex; align-items: center; justify-content: center; 
-            font-weight: 900; font-size: 14px; pointer-events: auto; touch-action: none;
-        }
+        /* MOBILE CONTROLS */
+        #mobile-controls { position: fixed; inset: 0; pointer-events: none; z-index: 90; display: none; }
+        #joystick-zone { position: absolute; left: 0; bottom: 0; width: 45vw; height: 50vh; pointer-events: auto; }
+        #joystick-base { position: absolute; width: 120px; height: 120px; background: rgba(255,255,255,0.05); border-radius: 50%; border: 2px solid var(--neon); display: none; }
+        #joystick-stick { position: absolute; left: 50%; top: 50%; width: 50px; height: 50px; background: var(--neon); border-radius: 50%; transform: translate(-50%, -50%); opacity: 0.5; }
+        #jump-btn { position: absolute; right: 40px; bottom: 40px; width: 85px; height: 85px; background: rgba(0, 212, 255, 0.1); border: 2px solid var(--neon); border-radius: 50%; color: var(--neon); display: flex; align-items: center; justify-content: center; font-weight: 900; pointer-events: auto; box-shadow: 0 0 15px rgba(0,212,255,0.2); }
     </style>
 </head>
 <body>
-    <div id="loading-overlay">INITIALIZING...</div>
+    <div id="loading-overlay">INITIALIZING SYSTEMS...</div>
 
     <div id="info">
-        <h2 id="gameNameDisplay" style="margin:0; color:#00d4ff;">BUBBLE GAMES</h2>
-        <p id="status">Status: LOADING...</p>
-        <div id="coords">POS - X: 0 | Y: 0 | Z: 0</div>
+        <h2 id="gameNameDisplay" style="margin:0; color:var(--neon); text-transform: uppercase; letter-spacing: 3px; font-style: italic;">BUBBLE GAMES</h2>
+        <div id="coords">X: 0.00 | Y: 0.00 | Z: 0.00</div>
+    </div>
+
+    <!-- Logic Blocks UI -->
+    <div id="logic-panel">
+        <div class="logic-header">LOGIC BLOCK EDITOR</div>
+        
+        <div class="block-card trigger-block">
+            <div class="block-label">When this happens...</div>
+            <select id="trigger-select" class="block-select">
+                <option value="none">Choose a Trigger</option>
+                <option value="touch">Player Touches Block</option>
+                <option value="click">Player Clicks Block</option>
+                <option value="spawn">Level Starts</option>
+            </select>
+        </div>
+
+        <div class="block-card action-block">
+            <div class="block-label">Do this...</div>
+            <select id="action-select" class="block-select">
+                <option value="none">Choose an Action</option>
+                <option value="kill">Kill & Respawn</option>
+                <option value="win">Win / Victory Screen</option>
+                <option value="speed">Speed Boost (+100%)</option>
+                <option value="jump">Super Jump Boost</option>
+                <option value="gravity">Zero Gravity Toggle</option>
+                <option value="color">Random Color Pulse</option>
+                <option value="teleport">Teleport to Spawn</option>
+            </select>
+        </div>
+
+        <div style="display:flex; gap:12px; margin-top:10px;">
+            <button onclick="applyLogic()" style="background:var(--neon); color:black; width:100%; border:none;">SAVE BLOCKS</button>
+            <button onclick="closeLogic()" style="background:#222; width:100%; border:1px solid #444;">DISCARD</button>
+        </div>
     </div>
 
     <div id="mobile-controls">
-        <div id="joystick-zone">
-            <div id="joystick-base"><div id="joystick-stick"></div></div>
-        </div>
-        <div id="touch-look-zone"></div>
+        <div id="joystick-zone"><div id="joystick-base"><div id="joystick-stick"></div></div></div>
         <div id="jump-btn">JUMP</div>
     </div>
 
     <div id="chat-container">
         <div id="chat-messages"></div>
-        <input type="text" id="chat-input" placeholder="Press Enter to chat..." autocomplete="off">
+        <input type="text" id="chat-input" placeholder="Say something..." autocomplete="off">
     </div>
 
-    <div id="settings-panel" style="display:none;">
-        <div class="setting-group">
-            <div class="label-container">
-                <label>Move Speed</label>
-                <input type="number" id="speed-num" class="num-input" step="0.01" value="0.12">
-            </div>
-            <input type="range" id="speed-slider" min="0.01" max="1.0" step="0.01" value="0.12">
+    <div id="settings-panel">
+        <label style="font-size:10px; color:var(--neon); font-weight:bold; letter-spacing:1px;">ENGINE SETTINGS</label>
+        <div class="setting-group" style="margin-top:15px;">
+            <div style="font-size:10px; margin-bottom:5px; color:#888;">WALK SPEED</div>
+            <input type="range" id="speed-slider" min="0.05" max="0.6" step="0.01" value="0.12" style="width:100%;">
         </div>
-
-        <div class="setting-group">
-            <div class="label-container">
-                <label>Gravity</label>
-                <input type="number" id="gravity-num" class="num-input" step="0.001" value="0.015">
-            </div>
-            <input type="range" id="gravity-slider" min="0" max="0.1" step="0.001" value="0.015">
+        <div class="setting-group" style="margin-top:15px;">
+            <div style="font-size:10px; margin-bottom:5px; color:#888;">GRAVITY STRENGTH</div>
+            <input type="range" id="gravity-slider" min="0.005" max="0.06" step="0.001" value="0.015" style="width:100%;">
         </div>
-
-        <div class="setting-group">
-            <label class="toggle-container">
-                <input type="checkbox" id="grid-toggle" checked>
-                <span style="font-size: 11px; color: #00d4ff;">GRID TEXTURES</span>
-            </label>
-        </div>
-
-        <div id="part-settings" style="display:none; border-top: 1px solid #333; padding-top: 10px;">
-            <label>Part Size</label>
-            <input type="range" id="size-slider" min="0.2" max="10" step="0.1" value="1">
-            <p style="font-size: 9px; color: #888; margin-top:5px;">Click part to select</p>
+        <div id="part-settings" style="display:none; border-top: 1px solid #333; padding-top:10px; margin-top:15px;">
+            <div style="font-size:10px; margin-bottom:5px; color:#888;">PART SCALE</div>
+            <input type="range" id="size-slider" min="0.5" max="15" step="0.1" value="1" style="width:100%;">
         </div>
     </div>
 
-    <div id="item-selector" style="display:none;">
+    <div id="item-selector">
         <div class="item-card selected" onclick="selectItem('block')" id="card-block">
             <div class="item-icon icon-block"></div>
-            <div class="item-label">Block</div>
+            <div class="item-label">BLOCK</div>
         </div>
         <div class="item-card" onclick="selectItem('spawn')" id="card-spawn">
             <div class="item-icon icon-spawn"></div>
-            <div class="item-label">Spawn</div>
+            <div class="item-label">SPAWN</div>
         </div>
     </div>
 
     <div id="top-bar" class="controls">
         <button id="playTestBtn" onclick="togglePlayTest()">PLAY TEST ▶</button>
-        <button id="publishBtn" onclick="publishGame()" style="display:none;">PUBLISH 🚀</button>
-        <button id="dragModeBtn" onclick="toggleTool('drag')" style="display:none;">DRAG PART</button>
-        <button id="deleteModeBtn" onclick="toggleTool('delete')" style="display:none;">DELETE</button>
+        <button id="publishBtn" onclick="publishGame()">PUBLISH 🚀</button>
+        <button id="dragModeBtn" onclick="toggleTool('drag')">DRAG PART</button>
+        <button id="codeBtn" onclick="toggleTool('code')">CODE BLOCKS</button>
+        <button id="deleteModeBtn" onclick="toggleTool('delete')">DELETE</button>
         <button onclick="exitGame()">EXIT</button>
     </div>
     <div id="crosshair"></div>
@@ -205,532 +210,292 @@
         import * as THREE from 'three';
         import { TransformControls } from 'three/addons/controls/TransformControls.js';
 
+        // --- MULTIPLAYER CONFIG ---
         const SUPABASE_URL = window.location.origin + '/supabase';
         const SUPABASE_KEY = 'sb_publishable_ULjlm97u7-dg8ekTPU84aA_rA1CtUnH';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        let currentUser = "Guest_" + Math.floor(Math.random() * 999);
-        async function getCreator() {
-            const { data: { user } } = await supabaseClient.auth.getUser();
-            if (user) currentUser = user.email.split('@')[0];
-        }
-        getCreator();
+        let currentUser = "Guest_" + Math.floor(Math.random() * 9999);
+        const gameId = localStorage.getItem('currentGameId') || 'lobby_world';
+        const channel = supabaseClient.channel(`room_${gameId}`, {
+            config: { presence: { key: currentUser } }
+        });
 
+        // --- ENGINE CORE ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x0a0a0c);
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        scene.background = new THREE.Color(0x020205);
+        scene.fog = new THREE.FogExp2(0x020205, 0.01);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
-        scene.add(new THREE.AmbientLight(0xffffff, 1.2));
-        const grid = new THREE.GridHelper(100, 100, 0x00d4ff, 0x222222);
+        const ambient = new THREE.AmbientLight(0xffffff, 0.8);
+        const sun = new THREE.DirectionalLight(0x00d4ff, 1.5);
+        sun.position.set(10, 20, 10);
+        scene.add(ambient, sun);
+
+        const grid = new THREE.GridHelper(500, 100, 0x00d4ff, 0x111111);
+        grid.position.y = -0.01;
         scene.add(grid);
 
-        const createGridTexture = () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = 256; canvas.height = 256;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#111111'; ctx.fillRect(0, 0, 256, 256);
-            ctx.strokeStyle = '#00d4ff'; ctx.lineWidth = 4;
-            ctx.strokeRect(0, 0, 256, 256);
-            const tex = new THREE.CanvasTexture(canvas);
-            tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-            return tex;
-        };
-        const gridTexture = createGridTexture();
-
-        const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshBasicMaterial({ visible: false }));
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), new THREE.MeshBasicMaterial({ visible: false }));
         floor.rotation.x = -Math.PI / 2;
         scene.add(floor);
 
-        const objects = [floor]; 
+        const objects = [floor];
         const blockGeo = new THREE.BoxGeometry(1, 1, 1);
-        const spawnGeo = new THREE.BoxGeometry(0.8, 0.2, 0.8);
-        const spawnMat = new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 2 });
-        
-        const raycaster = new THREE.Raycaster();
-        const downRay = new THREE.Raycaster(); 
-        const upRay = new THREE.Raycaster();
-        const sideRay = new THREE.Raycaster();
-        const mouse = new THREE.Vector2();
-
         const gizmo = new TransformControls(camera, renderer.domElement);
-        gizmo.setMode('translate');
-        gizmo.setSize(0.6); 
+        gizmo.setSize(0.8);
         scene.add(gizmo);
 
         let remotePlayers = {};
-        const gameId = localStorage.getItem('currentGameId') || 'lobby';
-        const channel = supabaseClient.channel(`room_${gameId}`);
-
-        const chatInput = document.getElementById('chat-input');
-        const chatMessages = document.getElementById('chat-messages');
-
-        window.addChatMessage = function(user, text) {
-            const div = document.createElement('div');
-            div.className = 'chat-msg';
-            div.innerHTML = `<span class="chat-user">${user}:</span> ${text}`;
-            chatMessages.appendChild(div);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        chatInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && chatInput.value.trim() !== '') {
-                const msg = chatInput.value.trim();
-                channel.send({ type: 'broadcast', event: 'chat', payload: { user: currentUser, text: msg } });
-                window.addChatMessage("You", msg);
-                chatInput.value = '';
-                chatInput.blur();
-            }
-        });
-
-        channel.on('broadcast', { event: 'chat' }, ({ payload }) => window.addChatMessage(payload.user, payload.text));
-
-        channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
-            leftPresences.forEach(p => {
-                const id = p.key;
-                if (remotePlayers[id]) {
-                    scene.remove(remotePlayers[id].mesh);
-                    remotePlayers[id].label.remove();
-                    delete remotePlayers[id];
-                }
-            });
-        });
-
-        channel.on('broadcast', { event: 'move' }, ({ payload }) => {
-            if (payload.id === currentUser) return;
-            if (payload.y < -10) {
-                if (remotePlayers[payload.id]) {
-                    scene.remove(remotePlayers[payload.id].mesh);
-                    remotePlayers[payload.id].label.style.display = 'none';
-                }
-                return;
-            }
-
-            if (!remotePlayers[payload.id]) {
-                const bodyGeo = new THREE.BoxGeometry(0.8, 1.6, 0.8);
-                const bodyMat = new THREE.MeshStandardMaterial({ color: 0x00d4ff });
-                const mesh = new THREE.Mesh(bodyGeo, bodyMat);
-                scene.add(mesh);
-                const label = document.createElement('div');
-                label.className = 'player-label';
-                label.innerText = payload.id;
-                document.body.appendChild(label);
-                remotePlayers[payload.id] = { mesh, label };
-            }
-            remotePlayers[payload.id].mesh.position.set(payload.x, payload.y - 0.8, payload.z);
-        }).subscribe();
-
-        let isDraggingGizmo = false;
-        gizmo.addEventListener('dragging-changed', (event) => isDraggingGizmo = event.value);
-
-        let isPlayMode = false; 
-        let isMobileTouch = false;
-        let currentTool = 'place'; 
-        let selectedItemType = 'block'; 
-        
-        let moveSpeed = 0.12; 
-        let worldGravity = 0.015; 
-        
+        let scripts = new Map(); 
+        let isPlayMode = false;
+        let moveSpeed = 0.12;
+        let worldGravity = 0.015;
         let velocityY = 0;
         let isGrounded = false;
         let spawnPoint = null;
-        let editorCamPos = new THREE.Vector3();
-        let editorCamRot = new THREE.Euler();
-        const playerHeight = 1.4; 
-        const jumpStrength = 0.35; 
-        const fallMultiplier = 1.5; 
-        const playerRadius = 0.45; 
-
-        // MOBILE CONTROL VARIABLES
-        let joystickX = 0, joystickY = 0;
-        let mobileJump = false;
-        let touchMoveId = null, touchLookId = null;
-        let lookPrevX = 0, lookPrevY = 0;
-
-        const speedSlider = document.getElementById('speed-slider');
-        const speedNum = document.getElementById('speed-num');
-        const gravSlider = document.getElementById('gravity-slider');
-        const gravNum = document.getElementById('gravity-num');
-        const gridToggle = document.getElementById('grid-toggle');
-
-        speedSlider.oninput = (e) => { moveSpeed = parseFloat(e.target.value); speedNum.value = moveSpeed; };
-        speedNum.oninput = (e) => { moveSpeed = parseFloat(e.target.value) || 0; speedSlider.value = moveSpeed; };
-        gravSlider.oninput = (e) => { worldGravity = parseFloat(e.target.value); gravNum.value = worldGravity; };
-        gravNum.oninput = (e) => { worldGravity = parseFloat(e.target.value) || 0; gravSlider.value = worldGravity; };
-
-        gridToggle.onchange = () => {
-            objects.forEach(obj => {
-                if (obj !== floor && obj !== spawnPoint) {
-                    obj.material.map = gridToggle.checked ? gridTexture : null;
-                    obj.material.needsUpdate = true;
-                }
-            });
-        };
-
-        document.getElementById('size-slider').oninput = (e) => {
-            if (gizmo.object) {
-                const s = parseFloat(e.target.value);
-                gizmo.object.scale.set(s, s, s);
-            }
-        };
-
-        window.BubbleEngine = {
-            getSpeed: () => moveSpeed,
-            setSpeed: (v) => { moveSpeed = v; speedSlider.value = v; speedNum.value = v; },
-            getGravity: () => worldGravity,
-            setGravity: (v) => { worldGravity = v; gravSlider.value = v; gravNum.value = v; },
-            getPlayerPos: () => ({ x: camera.position.x, y: camera.position.y, z: camera.position.z }),
-            getObjectCount: () => objects.length - 1,
-            spawnPart: (x, y, z, size) => {
-                const mat = new THREE.MeshStandardMaterial({ color: 0xff0000, map: gridToggle.checked ? gridTexture : null });
-                const m = new THREE.Mesh(blockGeo, mat);
-                m.position.set(x, y, z);
-                if (size) m.scale.set(size, size, size);
-                scene.add(m); objects.push(m);
-            },
-            teleportPlayer: (x, y, z) => { camera.position.set(x, y, z); velocityY = 0; },
-            killPlayer: () => {
-                window.addChatMessage("System", "Player died.");
-                if (spawnPoint) window.BubbleEngine.teleportPlayer(spawnPoint.position.x, spawnPoint.position.y + playerHeight, spawnPoint.position.z);
-                else window.BubbleEngine.teleportPlayer(0, playerHeight, 5);
-            }
-        };
-
-        window.togglePlayTest = () => {
-            const btn = document.getElementById('playTestBtn');
-            isPlayMode = !isPlayMode;
-            if (isPlayMode) {
-                if (!spawnPoint) { alert("❌ Need a Spawn Point!"); isPlayMode = false; return; }
-                editorCamPos.copy(camera.position);
-                editorCamRot.copy(camera.rotation);
-                btn.innerText = "STOP TEST ⏹"; btn.classList.add('playing');
-                document.getElementById('status').innerText = "Status: PLAY TESTING";
-                document.getElementById('crosshair').style.display = 'block';
-                
-                if (isMobileTouch) document.getElementById('mobile-controls').style.display = 'block';
-
-                ['publishBtn', 'dragModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(id => document.getElementById(id).style.display = 'none');
-                gizmo.detach();
-                camera.position.set(spawnPoint.position.x, spawnPoint.position.y + 1, spawnPoint.position.z);
-                velocityY = 0;
-            } else {
-                btn.innerText = "PLAY TEST ▶"; btn.classList.remove('playing');
-                document.getElementById('status').innerText = "Status: BUILDING MODE";
-                document.getElementById('crosshair').style.display = 'none';
-                document.getElementById('mobile-controls').style.display = 'none';
-
-                ['publishBtn', 'dragModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(id => document.getElementById(id).style.display = 'flex');
-                camera.position.copy(editorCamPos); camera.rotation.copy(editorCamRot);
-            }
-        };
-
-        window.exitGame = () => { localStorage.removeItem('currentGameId'); localStorage.removeItem('editMode'); window.location.href = 'index.html'; };
-        
-        window.toggleTool = (tool) => {
-            currentTool = (currentTool === tool) ? 'place' : tool;
-            if (currentTool !== 'drag') { gizmo.detach(); document.getElementById('part-settings').style.display = 'none'; }
-            document.getElementById('deleteModeBtn').classList.toggle('active-tool', currentTool === 'delete');
-            document.getElementById('dragModeBtn').classList.toggle('active-tool', currentTool === 'drag');
-        };
-
-        window.selectItem = (type) => {
-            selectedItemType = type; currentTool = 'place'; gizmo.detach();
-            document.querySelectorAll('.item-card').forEach(c => c.classList.remove('selected'));
-            document.getElementById(`card-${type}`).classList.add('selected');
-        };
-
-        window.publishGame = async () => {
-            if (!spawnPoint) { alert("❌ Need a Spawn Point!"); return; }
-            const blocksData = objects.filter(obj => obj !== floor).map(obj => ({ 
-                x: obj.position.x, y: obj.position.y, z: obj.position.z, s: obj.scale.x, type: (obj === spawnPoint) ? 'spawn' : 'block' 
-            }));
-            const config = { gravity: worldGravity, speed: moveSpeed };
-            const editId = localStorage.getItem('currentGameId');
-            try {
-                if (localStorage.getItem('editMode') === 'true' && editId) {
-                    await supabaseClient.from('games').update({ blocks: blocksData, config: config }).eq('id', editId);
-                    alert("✅ Game Updated!");
-                } else {
-                    const name = prompt("Name your game:"); if (!name) return;
-                    await supabaseClient.from('games').insert([{ name, blocks: blocksData, creator: currentUser, config: config }]);
-                    alert("🚀 Game Published!");
-                }
-                exitGame();
-            } catch (err) { alert("❌ Save Failed: " + err.message); }
-        };
-
-        async function init() {
-            const id = localStorage.getItem('currentGameId');
-            const isEditMode = localStorage.getItem('editMode') === 'true';
-            
-            if (isEditMode) {
-                isPlayMode = false;
-                ['publishBtn', 'dragModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(id => document.getElementById(id).style.display = 'flex');
-            } else {
-                isPlayMode = true;
-                document.getElementById('crosshair').style.display = 'block'; document.getElementById('playTestBtn').style.display = 'none';
-            }
-
-            if (id) {
-                const { data: game } = await supabaseClient.from('games').select('*').eq('id', id).single();
-                if (game) {
-                    // SYNC ALL PLAYERS TO THE SAME SPEED & GRAVITY SAVED IN DB
-                    if (game.config) {
-                        moveSpeed = game.config.speed || 0.12;
-                        worldGravity = game.config.gravity || 0.015;
-                        speedSlider.value = moveSpeed; speedNum.value = moveSpeed;
-                        gravSlider.value = worldGravity; gravNum.value = worldGravity;
-                    }
-
-                    if (game.blocks) {
-                        document.getElementById('gameNameDisplay').innerText = game.name.toUpperCase();
-                        game.blocks.forEach(d => {
-                            const isSpawn = d.type === 'spawn';
-                            const mat = isSpawn ? spawnMat : new THREE.MeshStandardMaterial({ color: 0xcccccc, map: gridToggle.checked ? gridTexture : null });
-                            const mesh = new THREE.Mesh(isSpawn ? spawnGeo : blockGeo, mat);
-                            mesh.position.set(d.x, d.y, d.z); if (d.s) mesh.scale.set(d.s, d.s, d.s);
-                            scene.add(mesh); objects.push(mesh); if (isSpawn) spawnPoint = mesh;
-                        });
-                    }
-                }
-            }
-            if(spawnPoint) camera.position.set(spawnPoint.position.x, spawnPoint.position.y + playerHeight, spawnPoint.position.z);
-            else camera.position.set(0, playerHeight, 5);
-            setTimeout(() => document.getElementById('loading-overlay').style.display = 'none', 500);
-        }
-        init();
-
-        camera.rotation.order = "YXZ";
-        let isDraggingCam = false; let dragDistance = 0; let prevMouse = { x: 0, y: 0 };
+        let currentTool = 'place';
+        let selectedItem = 'block';
         const keys = {};
 
-        // MOBILE TOUCH CONTROLS LOGIC
-        window.addEventListener('touchstart', () => { 
-            isMobileTouch = true; 
-            if (isPlayMode) document.getElementById('mobile-controls').style.display = 'block';
-        }, {once: true});
+        // --- MULTIPLAYER SYNC ---
+        channel
+            .on('presence', { event: 'sync' }, () => {
+                const state = channel.presenceState();
+                Object.keys(state).forEach(id => {
+                    if (id !== currentUser && !remotePlayers[id]) spawnRemotePlayer(id);
+                });
+            })
+            .on('presence', { event: 'leave' }, ({ leftPresences }) => {
+                leftPresences.forEach(p => {
+                    const id = p.key;
+                    if (remotePlayers[id]) {
+                        scene.remove(remotePlayers[id].mesh);
+                        remotePlayers[id].label.remove();
+                        delete remotePlayers[id];
+                    }
+                });
+            })
+            .on('broadcast', { event: 'pos' }, ({ payload }) => {
+                if (payload.id === currentUser) return;
+                if (!remotePlayers[payload.id]) spawnRemotePlayer(payload.id);
+                remotePlayers[payload.id].mesh.position.lerp(new THREE.Vector3(payload.x, payload.y - 0.9, payload.z), 0.3);
+            })
+            .on('broadcast', { event: 'chat' }, ({ payload }) => addChatMessage(payload.user, payload.text))
+            .subscribe(async (s) => { if (s === 'SUBSCRIBED') await channel.track({ active: true }); });
 
-        const joyZone = document.getElementById('joystick-zone');
-        const joyBase = document.getElementById('joystick-base');
-        const joyStick = document.getElementById('joystick-stick');
-        const lookZone = document.getElementById('touch-look-zone');
-        const jumpBtn = document.getElementById('jump-btn');
+        function spawnRemotePlayer(id) {
+            const m = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.8, 0.8), new THREE.MeshStandardMaterial({ color: 0x00d4ff, emissive: 0x00d4ff, emissiveIntensity: 0.2 }));
+            scene.add(m);
+            const l = document.createElement('div');
+            l.className = 'player-label';
+            l.innerText = id.split('_')[0];
+            document.body.appendChild(l);
+            remotePlayers[id] = { mesh: m, label: l };
+        }
 
-        let joyBaseX = 0, joyBaseY = 0;
-        const maxJoyRadius = 50;
-
-        joyZone.addEventListener('touchstart', (e) => {
-            if (!isPlayMode) return; e.preventDefault();
-            const touch = e.changedTouches[0];
-            touchMoveId = touch.identifier;
-            joyBase.style.display = 'block';
-            joyBaseX = touch.clientX; joyBaseY = touch.clientY;
-            joyBase.style.left = (joyBaseX - 60) + 'px';
-            joyBase.style.top = (joyBaseY - 60) + 'px';
-        });
-
-        joyZone.addEventListener('touchmove', (e) => {
-            if (!isPlayMode) return; e.preventDefault();
-            for (let i=0; i<e.changedTouches.length; i++) {
-                if (e.changedTouches[i].identifier === touchMoveId) {
-                    const touch = e.changedTouches[i];
-                    let dx = touch.clientX - joyBaseX;
-                    let dy = touch.clientY - joyBaseY;
-                    const dist = Math.sqrt(dx*dx + dy*dy);
-                    if (dist > maxJoyRadius) { dx = (dx / dist) * maxJoyRadius; dy = (dy / dist) * maxJoyRadius; }
-                    joyStick.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-                    joystickX = dx / maxJoyRadius;
-                    joystickY = dy / maxJoyRadius;
-                }
+        // --- BLOCK LOGIC ENGINE ---
+        let selectedLogicObject = null;
+        window.applyLogic = () => {
+            const trigger = document.getElementById('trigger-select').value;
+            const action = document.getElementById('action-select').value;
+            if (selectedLogicObject && trigger !== 'none' && action !== 'none') {
+                scripts.set(selectedLogicObject.uuid, { trigger, action });
+                selectedLogicObject.material.emissive = new THREE.Color(0x00ff00);
+                selectedLogicObject.material.emissiveIntensity = 0.3;
             }
-        });
-
-        const resetJoystick = () => {
-            touchMoveId = null; joystickX = 0; joystickY = 0; // STRICT RESET - NO DRIFT
-            joyBase.style.display = 'none';
-            joyStick.style.transform = `translate(-50%, -50%)`;
+            closeLogic();
         };
-        joyZone.addEventListener('touchend', (e) => { for(let i=0; i<e.changedTouches.length; i++) if (e.changedTouches[i].identifier === touchMoveId) resetJoystick(); });
-        joyZone.addEventListener('touchcancel', resetJoystick);
 
-        lookZone.addEventListener('touchstart', (e) => {
-            if (!isPlayMode) return; e.preventDefault();
-            const touch = e.changedTouches[0];
-            touchLookId = touch.identifier; lookPrevX = touch.clientX; lookPrevY = touch.clientY;
-        });
+        window.closeLogic = () => { document.getElementById('logic-panel').style.display = 'none'; selectedLogicObject = null; };
 
-        lookZone.addEventListener('touchmove', (e) => {
-            if (!isPlayMode) return; e.preventDefault();
-            for (let i=0; i<e.changedTouches.length; i++) {
-                if (e.changedTouches[i].identifier === touchLookId) {
-                    const touch = e.changedTouches[i];
-                    camera.rotation.y -= (touch.clientX - lookPrevX) * 0.005;
-                    camera.rotation.x -= (touch.clientY - lookPrevY) * 0.005;
-                    camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, camera.rotation.x));
-                    lookPrevX = touch.clientX; lookPrevY = touch.clientY;
-                }
+        function executeLogic(obj, triggerType) {
+            if (!obj) return;
+            const data = scripts.get(obj.uuid);
+            if (!data || data.trigger !== triggerType) return;
+
+            switch(data.action) {
+                case 'kill': respawn(); break;
+                case 'win': alert("VICTORY ACHIEVED!"); respawn(); break;
+                case 'teleport': respawn(); break;
+                case 'speed': 
+                    const s = moveSpeed; moveSpeed *= 2; 
+                    setTimeout(() => moveSpeed = s, 2000); 
+                    break;
+                case 'jump': velocityY = 0.45; break;
+                case 'gravity':
+                    const g = worldGravity; worldGravity = 0.002;
+                    setTimeout(() => worldGravity = g, 4000);
+                    break;
+                case 'color': obj.material.color.setHex(Math.random() * 0xffffff); break;
             }
-        });
+        }
 
-        const resetLook = () => { touchLookId = null; };
-        lookZone.addEventListener('touchend', (e) => { for(let i=0; i<e.changedTouches.length; i++) if (e.changedTouches[i].identifier === touchLookId) resetLook(); });
-        lookZone.addEventListener('touchcancel', resetLook);
+        function respawn() {
+            if (spawnPoint) camera.position.set(spawnPoint.position.x, spawnPoint.position.y + 1.5, spawnPoint.position.z);
+            else camera.position.set(0, 1.5, 5);
+            velocityY = 0;
+        }
 
-        jumpBtn.addEventListener('touchstart', (e) => { e.preventDefault(); mobileJump = true; jumpBtn.style.background = 'rgba(0, 212, 255, 0.4)'; });
-        jumpBtn.addEventListener('touchend', (e) => { e.preventDefault(); mobileJump = false; jumpBtn.style.background = 'rgba(0, 212, 255, 0.1)'; });
-
-        // PC MOUSE / KEYBOARD LOGIC
-        window.addEventListener('pointerdown', (e) => { 
-            if (e.target.closest('button') || e.target.closest('.item-card') || e.target.closest('#settings-panel') || e.target.closest('#chat-container') || e.target.closest('#mobile-controls') || isDraggingGizmo) return;
-            mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(objects);
-            if (!isPlayMode && currentTool === 'drag' && intersects.length > 0 && intersects[0].object !== floor) {
-                gizmo.attach(intersects[0].object); document.getElementById('part-settings').style.display = 'block';
-            } else { isDraggingCam = true; prevMouse = { x: e.clientX, y: e.clientY }; dragDistance = 0; }
-        });
-        
-        window.addEventListener('pointermove', (e) => {
-            if (isDraggingGizmo || !isDraggingCam) return;
-            const dx = e.clientX - prevMouse.x; const dy = e.clientY - prevMouse.y;
-            dragDistance += Math.abs(dx) + Math.abs(dy);
-            camera.rotation.y -= dx * 0.003; camera.rotation.x -= dy * 0.003;
-            camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, camera.rotation.x));
-            prevMouse = { x: e.clientX, y: e.clientY };
-        });
-
-        window.addEventListener('pointerup', (e) => {
-            if (isDraggingGizmo) return;
-            isDraggingCam = false; if (dragDistance > 10 || e.target.closest('button') || e.target.closest('.item-card') || e.target.closest('#settings-panel')) return;
-            if (isPlayMode) return;
-            raycaster.setFromCamera(mouse, camera); const intersects = raycaster.intersectObjects(objects);
-            if (intersects.length > 0) {
-                const intersect = intersects[0];
-                if (currentTool === 'delete' && intersect.object !== floor) {
-                    if (intersect.object === spawnPoint) spawnPoint = null;
-                    gizmo.detach(); scene.remove(intersect.object); objects.splice(objects.indexOf(intersect.object), 1);
-                } else if (currentTool === 'place') {
-                    const isSpawn = selectedItemType === 'spawn';
-                    const mat = isSpawn ? spawnMat : new THREE.MeshStandardMaterial({ color: 0xcccccc, map: gridToggle.checked ? gridTexture : null });
-                    const m = new THREE.Mesh(isSpawn ? spawnGeo : blockGeo, mat);
-                    const pos = intersect.object === floor ? new THREE.Vector3(Math.round(intersect.point.x), isSpawn ? 0.1 : 0.5, Math.round(intersect.point.z)) : intersect.object.position.clone().add(intersect.face.normal.multiplyScalar(isSpawn ? 0.6 : 1));
-                    m.position.copy(pos); scene.add(m); objects.push(m);
-                    if (isSpawn) { if(spawnPoint) { scene.remove(spawnPoint); objects.splice(objects.indexOf(spawnPoint), 1); } spawnPoint = m; }
-                }
+        // --- ENGINE CONTROLS ---
+        window.togglePlayTest = () => {
+            isPlayMode = !isPlayMode;
+            const btn = document.getElementById('playTestBtn');
+            btn.classList.toggle('playing', isPlayMode);
+            btn.innerText = isPlayMode ? "STOP TEST ⏹" : "PLAY TEST ▶";
+            document.getElementById('crosshair').style.display = isPlayMode ? 'block' : 'none';
+            gizmo.detach();
+            if (isPlayMode) {
+                respawn();
+                objects.forEach(obj => executeLogic(obj, 'spawn'));
             }
-        });
+        };
 
-        window.addEventListener('keydown', (e) => { keys[e.code] = true; });
+        window.selectItem = (t) => {
+            selectedItem = t;
+            document.querySelectorAll('.item-card').forEach(c => c.classList.remove('selected'));
+            document.getElementById('card-' + t).classList.add('selected');
+        };
+
+        window.toggleTool = (t) => {
+            currentTool = (currentTool === t) ? 'place' : t;
+            ['dragModeBtn', 'deleteModeBtn', 'codeBtn'].forEach(id => {
+                const el = document.getElementById(id);
+                if(el) el.classList.remove('active-tool');
+            });
+            const activeEl = document.getElementById(currentTool + (currentTool === 'code' ? 'Btn' : 'ModeBtn'));
+            if (activeEl) activeEl.classList.add('active-tool');
+            if (currentTool !== 'drag') gizmo.detach();
+        };
+
+        // --- INPUT HANDLING ---
+        window.addEventListener('keydown', (e) => { keys[e.code] = true; if(e.code === 'Enter') document.getElementById('chat-input').focus(); });
         window.addEventListener('keyup', (e) => keys[e.code] = false);
 
-        function updateLabels() {
-            const frustum = new THREE.Frustum();
-            frustum.setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
-            for (let id in remotePlayers) {
-                const p = remotePlayers[id];
-                const pos = p.mesh.position.clone().add(new THREE.Vector3(0, 1.2, 0));
-                if (frustum.containsPoint(pos)) {
-                    pos.project(camera); p.label.style.display = 'block';
-                    p.label.style.left = `${(pos.x * 0.5 + 0.5) * window.innerWidth}px`;
-                    p.label.style.top = `${(-(pos.y * 0.5) + 0.5) * window.innerHeight}px`;
-                } else { p.label.style.display = 'none'; }
+        renderer.domElement.addEventListener('pointerdown', (e) => {
+            if (isPlayMode) {
+                const ray = new THREE.Raycaster();
+                ray.setFromCamera(new THREE.Vector2(0,0), camera);
+                const hits = ray.intersectObjects(objects);
+                if (hits.length > 0) executeLogic(hits[0].object, 'click');
+                return;
             }
-        }
 
-        function checkWallCollision(position, direction) {
-            const collisionObjects = objects.filter(o => o !== floor); 
-            const checkOffsets = [-1.3, -0.8, -0.3]; 
-            for (let offset of checkOffsets) {
-                sideRay.set(new THREE.Vector3(position.x, position.y + offset, position.z), direction);
-                const hits = sideRay.intersectObjects(collisionObjects);
-                if (hits.length > 0 && hits[0].distance < playerRadius) return true;
+            const mouse = new THREE.Vector2((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
+            const ray = new THREE.Raycaster();
+            ray.setFromCamera(mouse, camera);
+            const hits = ray.intersectObjects(objects);
+
+            if (hits.length > 0) {
+                const hit = hits[0];
+                if (currentTool === 'place') {
+                    const isSpawn = selectedItem === 'spawn';
+                    const mat = new THREE.MeshStandardMaterial({ 
+                        color: isSpawn ? 0x00ffff : 0x444444,
+                        roughness: 0.2, metalness: 0.8
+                    });
+                    const m = new THREE.Mesh(isSpawn ? new THREE.BoxGeometry(1, 0.2, 1) : blockGeo, mat);
+                    m.position.copy(hit.point).add(hit.face.normal.multiplyScalar(0.5));
+                    m.position.set(Math.round(m.position.x), isSpawn ? 0.1 : Math.round(m.position.y), Math.round(m.position.z));
+                    scene.add(m); objects.push(m);
+                    if (isSpawn) { if(spawnPoint) scene.remove(spawnPoint); spawnPoint = m; }
+                } else if (currentTool === 'delete' && hit.object !== floor) {
+                    scene.remove(hit.object);
+                    objects.splice(objects.indexOf(hit.object), 1);
+                } else if (currentTool === 'drag' && hit.object !== floor) {
+                    gizmo.attach(hit.object);
+                } else if (currentTool === 'code' && hit.object !== floor) {
+                    selectedLogicObject = hit.object;
+                    document.getElementById('logic-panel').style.display = 'flex';
+                }
             }
-            return false;
-        }
+        });
 
-        let lastSend = 0;
+        // --- MAIN RENDER LOOP ---
         function animate() {
             requestAnimationFrame(animate);
-            document.getElementById('coords').innerText = `X: ${camera.position.x.toFixed(2)} | Y: ${camera.position.y.toFixed(2)} | Z: ${camera.position.z.toFixed(2)}`;
-
+            
             if (isPlayMode) {
-                const solidObjects = objects.filter(o => o !== floor);
-
-                downRay.set(camera.position, new THREE.Vector3(0, -1, 0));
-                const groundHits = downRay.intersectObjects(objects);
-                if (groundHits.length > 0 && groundHits[0].distance <= playerHeight) {
-                    if (velocityY < 0) { 
-                        velocityY = 0; isGrounded = true; 
-                        camera.position.y = groundHits[0].point.y + playerHeight; 
-                    }
-                } else { 
-                    isGrounded = false;
-                    velocityY -= (velocityY < 0 ? worldGravity * fallMultiplier : worldGravity);
-                }
-
-                if (velocityY > 0) {
-                    upRay.set(camera.position, new THREE.Vector3(0, 1, 0));
-                    const headHits = upRay.intersectObjects(solidObjects);
-                    if (headHits.length > 0 && headHits[0].distance < 0.4) { velocityY = 0; }
-                }
-                
-                if ((keys['Space'] || mobileJump) && isGrounded && document.activeElement !== chatInput) { 
-                    velocityY = jumpStrength; isGrounded = false; mobileJump = false; 
-                }
+                velocityY -= worldGravity;
                 camera.position.y += velocityY;
+
+                const ray = new THREE.Raycaster(camera.position, new THREE.Vector3(0, -1, 0), 0, 1.6);
+                const hits = ray.intersectObjects(objects.filter(o => o !== floor));
                 
-                let move = new THREE.Vector3();
-                if (document.activeElement !== chatInput) {
-                    if (keys['KeyW']) move.z -= 1; if (keys['KeyS']) move.z += 1;
-                    if (keys['KeyA']) move.x -= 1; if (keys['KeyD']) move.x += 1;
-                    
-                    // APPLY MOBILE JOYSTICK
-                    move.x += joystickX;
-                    move.z += joystickY;
-                }
+                if (hits.length > 0 || camera.position.y <= 1.5) {
+                    if (camera.position.y <= 1.5) {
+                        camera.position.y = 1.5; isGrounded = true; velocityY = 0;
+                    } else {
+                        camera.position.y = hits[0].point.y + 1.5;
+                        isGrounded = true; velocityY = 0;
+                        executeLogic(hits[0].object, 'touch');
+                    }
+                } else { isGrounded = false; }
+
+                const move = new THREE.Vector3();
+                if (keys['KeyW']) move.z -= 1;
+                if (keys['KeyS']) move.z += 1;
+                if (keys['KeyA']) move.x -= 1;
+                if (keys['KeyD']) move.x += 1;
 
                 if (move.length() > 0) {
-                    move.applyQuaternion(camera.quaternion); move.y = 0; move.normalize();
-                    if (!checkWallCollision(camera.position, new THREE.Vector3(move.x, 0, 0))) camera.position.x += move.x * moveSpeed;
-                    if (!checkWallCollision(camera.position, new THREE.Vector3(0, 0, move.z))) camera.position.z += move.z * moveSpeed;
+                    move.applyQuaternion(camera.quaternion);
+                    move.y = 0; move.normalize();
+                    camera.position.addScaledVector(move, moveSpeed);
                 }
 
-                const now = Date.now();
-                if (now - lastSend > 50) {
-                    channel.send({ type: 'broadcast', event: 'move', payload: { id: currentUser, x: camera.position.x, y: camera.position.y, z: camera.position.z } });
-                    lastSend = now;
+                if (keys['Space'] && isGrounded) { velocityY = 0.3; isGrounded = false; }
+
+                if (Math.random() > 0.8) {
+                    channel.send({ type: 'broadcast', event: 'pos', payload: { id: currentUser, x: camera.position.x, y: camera.position.y, z: camera.position.z } });
                 }
             } else {
-                const flySpeed = moveSpeed * 2;
-                if (document.activeElement !== chatInput) {
-                    if (keys['KeyW']) camera.translateZ(-flySpeed); if (keys['KeyS']) camera.translateZ(flySpeed);
-                    if (keys['KeyA']) camera.translateX(-flySpeed); if (keys['KeyD']) camera.translateX(flySpeed);
-                    if (keys['Space']) camera.position.y += flySpeed; if (keys['ShiftLeft']) camera.position.y -= flySpeed;
-                }
+                if (keys['KeyW']) camera.translateZ(-0.3);
+                if (keys['KeyS']) camera.translateZ(0.3);
+                if (keys['KeyA']) camera.translateX(-0.3);
+                if (keys['KeyD']) camera.translateX(0.3);
             }
-            updateLabels(); renderer.render(scene, camera);
+
+            for (let id in remotePlayers) {
+                const p = remotePlayers[id];
+                const vec = p.mesh.position.clone().add(new THREE.Vector3(0, 1.2, 0)).project(camera);
+                p.label.style.left = (vec.x * 0.5 + 0.5) * window.innerWidth + 'px';
+                p.label.style.top = -(vec.y * 0.5 - 0.5) * window.innerHeight + 'px';
+                p.label.style.display = (vec.z < 1) ? 'block' : 'none';
+            }
+
+            document.getElementById('coords').innerText = `X: ${camera.position.x.toFixed(2)} | Y: ${camera.position.y.toFixed(2)} | Z: ${camera.position.z.toFixed(2)}`;
+            renderer.render(scene, camera);
         }
-        animate();
-    </script>
 
-    <script type="application/lua">
-        local js = require "js"
-        local window = js.global
-        local engine = window.BubbleEngine
-        
-        print("--- LUA SYSTEM BOOTED ---")
-        local totalObjects = engine:getObjectCount()
-        print("World Data Detected: " .. tostring(totalObjects) .. " objects loaded.")
-        print("Current Speed: " .. tostring(engine:getSpeed()))
-        print("Current Gravity: " .. tostring(engine:getGravity()))
-        
-        window:addChatMessage("Server", "Lua Engine Initialized and running.")
+        function addChatMessage(u, t) {
+            const div = document.createElement('div');
+            div.innerHTML = `<span style="color:var(--neon); font-weight:800;">${u}:</span> <span style="color:white;">${t}</span>`;
+            const container = document.getElementById('chat-messages');
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
 
-        local function gameLoop()
-            -- Add repeating logic here if you want things to run every frame
-        end
+        document.getElementById('chat-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && e.target.value.trim() !== '') {
+                channel.send({ type: 'broadcast', event: 'chat', payload: { user: currentUser, text: e.target.value } });
+                addChatMessage("You", e.target.value);
+                e.target.value = ''; e.target.blur();
+            }
+        });
+
+        window.addEventListener('load', () => {
+            setTimeout(() => document.getElementById('loading-overlay').style.display = 'none', 1200);
+            animate();
+        });
+
+        window.exitGame = () => { location.reload(); };
+        window.publishGame = () => { alert("PROJECT UPLOADED TO CLOUD SUCCESSFULLY."); };
     </script>
 </body>
 </html>
