@@ -2,193 +2,162 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Bubble Games - Engine</title>
-    <script src="https://cdn.jsdelivr.net/npm/fengari-web@0.1.4/dist/fengari-web.js" type="text/javascript"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bubble Games - Engine Professional</title>
     
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/fengari-web@0.1.4/dist/fengari-web.js"></script>
+    <script src="https://unpkg.com/blockly/blockly.min.js"></script>
+    <script src="https://unpkg.com/blockly/lua_compressed.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <script type="importmap">
+    { 
+        "imports": { 
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        } 
+    }
+    </script>
+
     <style>
-        body { margin: 0; overflow: hidden; background: #050505; font-family: sans-serif; touch-action: none; color: white; user-select: none; -webkit-user-select: none; }
-        .controls { position: absolute; z-index: 10; display: flex; gap: 10px; }
+        :root { --neon: #00d4ff; --danger: #ff3232; --success: #2ecc71; --warn: #f39c12; --bg: #050505; }
+        body { margin: 0; overflow: hidden; background: var(--bg); font-family: 'Inter', sans-serif; touch-action: none; color: white; user-select: none; -webkit-user-select: none; }
+        
+        /* UI Panels */
+        .controls { position: absolute; z-index: 100; display: flex; gap: 10px; }
         #top-bar { top: 20px; right: 20px; flex-direction: column; align-items: flex-end; }
         
         #settings-panel { 
             position: absolute; top: 100px; left: 20px; 
             background: rgba(0,0,0,0.85); padding: 15px; border-radius: 12px; 
-            border: 1px solid #00d4ff; width: 200px; z-index: 50;
-            backdrop-filter: blur(10px);
+            border: 1px solid var(--neon); width: 210px; z-index: 50;
+            backdrop-filter: blur(12px); box-shadow: 0 0 20px rgba(0, 212, 255, 0.15);
         }
-        .setting-group { margin-bottom: 18px; }
-        .label-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .setting-group label { font-size: 11px; text-transform: uppercase; color: #00d4ff; font-weight: bold; }
+        .setting-group { margin-bottom: 15px; }
+        .label-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        .setting-group label { font-size: 10px; text-transform: uppercase; color: var(--neon); font-weight: 800; letter-spacing: 1px; }
         
         .num-input {
-            width: 50px; background: #111; border: 1px solid #444; color: #00d4ff;
-            font-size: 12px; border-radius: 4px; padding: 2px 4px; text-align: center;
+            width: 45px; background: #111; border: 1px solid #444; color: var(--neon);
+            font-size: 11px; border-radius: 4px; padding: 2px; text-align: center;
         }
-        .num-input:focus { border-color: #00d4ff; outline: none; }
-        input[type="range"] { width: 100%; cursor: pointer; accent-color: #00d4ff; }
+        input[type="range"] { width: 100%; cursor: pointer; accent-color: var(--neon); }
 
         button { 
-            width: 140px; height: 50px; font-size: 14px; font-weight: bold;
-            background: rgba(0, 212, 255, 0.1); color: white;
-            border: 2px solid #00d4ff; border-radius: 10px; cursor: pointer;
-            backdrop-filter: blur(5px); margin-bottom: 5px;
-            display: flex; align-items: center; justify-content: center; transition: 0.2s;
+            width: 140px; height: 45px; font-size: 12px; font-weight: 900;
+            background: rgba(0, 212, 255, 0.05); color: white;
+            border: 2px solid var(--neon); border-radius: 8px; cursor: pointer;
+            backdrop-filter: blur(5px); transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            text-transform: uppercase;
         }
-        button:hover { background: rgba(0, 212, 255, 0.3); }
+        button:hover { background: rgba(0, 212, 255, 0.2); box-shadow: 0 0 15px rgba(0, 212, 255, 0.3); transform: translateY(-2px); }
         
-        #publishBtn { background: #00d4ff; color: #000; }
-        #playTestBtn { background: #2ecc71; color: #000; border-color: #2ecc71; }
-        #playTestBtn.playing { background: #e74c3c; color: white; border-color: #e74c3c; }
+        #playTestBtn { background: var(--success); color: #000; border-color: var(--success); }
+        #playTestBtn.playing { background: var(--danger); color: white; border-color: var(--danger); }
+        #publishBtn { background: var(--neon); color: #000; }
 
-        .active-tool { background: #00d4ff !important; color: #000 !important; box-shadow: 0 0 15px #00d4ff; }
-        #deleteModeBtn.active-tool { background: #ff3232 !important; border-color: #ff3232 !important; color: white !important; box-shadow: 0 0 15px #ff3232; }
-        #scriptModeBtn.active-tool { background: #f39c12 !important; border-color: #f39c12 !important; color: white !important; box-shadow: 0 0 15px #f39c12; }
+        .active-tool { background: var(--neon) !important; color: #000 !important; box-shadow: 0 0 20px var(--neon); }
+        #deleteModeBtn.active-tool { background: var(--danger) !important; border-color: var(--danger) !important; color: white !important; }
+        #scriptModeBtn.active-tool { background: var(--warn) !important; border-color: var(--warn) !important; color: white !important; }
 
+        /* Item Bar */
         #item-selector { 
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 15px; background: rgba(0,0,0,0.8); padding: 10px;
-            border-radius: 15px; border: 2px solid #333; z-index: 20;
+            display: flex; gap: 12px; background: rgba(0,0,0,0.9); padding: 12px;
+            border-radius: 16px; border: 1px solid #333; z-index: 100;
         }
         .item-card {
-            width: 60px; height: 60px; border-radius: 10px; border: 2px solid #444;
+            width: 65px; height: 65px; border-radius: 10px; border: 2px solid #333;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             cursor: pointer; background: #111; transition: 0.2s;
         }
-        .item-card:hover { border-color: #00d4ff; }
-        .item-card.selected { border-color: #00d4ff; background: rgba(0, 212, 255, 0.2); }
-        .item-icon { width: 30px; height: 30px; margin-bottom: 2px; border-radius: 4px; }
-        .icon-block { background: #cccccc; border: 1px solid #999; }
+        .item-card:hover { border-color: var(--neon); background: #1a1a1a; }
+        .item-card.selected { border-color: var(--neon); background: rgba(0, 212, 255, 0.15); box-shadow: 0 0 10px rgba(0, 212, 255, 0.2); }
+        .item-icon { width: 28px; height: 28px; margin-bottom: 4px; border-radius: 4px; }
+        .icon-block { background: #eee; border: 1px solid #999; }
         .icon-spawn { background: #00ffff; box-shadow: 0 0 10px #00ffff; }
-        .item-label { font-size: 10px; color: white; text-transform: uppercase; }
+        .item-label { font-size: 9px; font-weight: 700; text-transform: uppercase; }
 
-        #info { position: absolute; top: 10px; left: 10px; color: white; pointer-events: none; z-index: 80; }
-        #coords { font-family: monospace; color: #00d4ff; margin-top: 5px; background: rgba(0,0,0,0.5); padding: 5px; border-radius: 5px; }
-        #crosshair { 
-            position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; 
-            border: 2px solid white; border-radius: 50%; transform: translate(-50%, -50%); 
-            display: none; pointer-events: none; z-index: 80;
-        }
-        #loading-overlay { position: fixed; inset: 0; background: #050505; z-index: 100; display: flex; align-items: center; justify-content: center; color: #00d4ff; font-weight: bold; }
+        /* Overlays */
+        #info { position: absolute; top: 20px; left: 20px; pointer-events: none; z-index: 80; }
+        #coords { font-family: 'JetBrains Mono', monospace; color: var(--neon); font-size: 12px; margin-top: 8px; background: rgba(0,0,0,0.6); padding: 6px 10px; border-radius: 6px; border-left: 3px solid var(--neon); }
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 14px; height: 14px; border: 2px solid white; border-radius: 50%; transform: translate(-50%, -50%); display: none; pointer-events: none; z-index: 80; }
+        #loading-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; color: var(--neon); font-weight: 900; letter-spacing: 4px; font-size: 1.5rem; }
 
-        .player-label {
-            position: absolute; background: rgba(0,0,0,0.8); color: #00d4ff;
-            padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;
-            border: 1px solid #00d4ff; pointer-events: none; white-space: nowrap;
-            transform: translate(-50%, -100%); z-index: 5;
+        /* Chat */
+        #chat-container { position: absolute; bottom: 120px; left: 20px; width: 280px; height: 200px; display: flex; flex-direction: column; z-index: 60; pointer-events: none; }
+        #chat-messages { flex-grow: 1; overflow-y: auto; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 10px; font-size: 13px; display: flex; flex-direction: column; gap: 5px; scrollbar-width: none; }
+        #chat-input { margin-top: 8px; background: rgba(0,0,0,0.8); border: 1px solid var(--neon); color: white; padding: 10px; border-radius: 6px; pointer-events: auto; outline: none; transition: 0.3s; }
+        #chat-input:focus { box-shadow: 0 0 10px rgba(0, 212, 255, 0.3); }
+
+        /* Mobile Controls */
+        #mobile-controls { position: fixed; inset: 0; pointer-events: none; z-index: 900; display: none; }
+        #joystick-zone { position: absolute; left: 0; bottom: 0; width: 50vw; height: 50vh; pointer-events: auto; }
+        #touch-look-zone { position: absolute; right: 0; top: 0; width: 100vw; height: 100vh; pointer-events: auto; }
+        #joystick-base { position: absolute; width: 130px; height: 130px; background: rgba(255,255,255,0.05); border-radius: 50%; border: 2px solid rgba(0, 212, 255, 0.2); display: none; }
+        #joystick-stick { position: absolute; left: 50%; top: 50%; width: 55px; height: 55px; background: var(--neon); border-radius: 50%; transform: translate(-50%, -50%); opacity: 0.5; }
+        #jump-btn { 
+            position: absolute; right: 40px; bottom: 40px; width: 85px; height: 85px; 
+            background: rgba(0, 212, 255, 0.1); border: 4px solid var(--neon); border-radius: 50%; 
+            color: var(--neon); display: flex; align-items: center; justify-content: center; 
+            font-weight: 900; pointer-events: auto; font-size: 14px;
         }
 
-        #chat-container {
-            position: absolute; bottom: 100px; left: 20px; width: 250px;
-            height: 200px; display: flex; flex-direction: column;
-            z-index: 60; pointer-events: none;
-        }
-        #chat-messages {
-            flex-grow: 1; overflow-y: auto; background: rgba(0,0,0,0.4);
-            border-radius: 8px; padding: 10px; font-size: 13px;
-            display: flex; flex-direction: column; gap: 4px;
-            scrollbar-width: thin; scrollbar-color: #00d4ff transparent;
-        }
-        #chat-input {
-            margin-top: 5px; background: rgba(0,0,0,0.8); border: 1px solid #00d4ff;
-            color: white; padding: 8px; border-radius: 4px; pointer-events: auto; outline: none;
-        }
-        .chat-msg { word-wrap: break-word; text-shadow: 1px 1px 2px black; }
-        .chat-user { color: #00d4ff; font-weight: bold; }
-
-        .toggle-container { display: flex; align-items: center; gap: 10px; margin-top: 10px; cursor: pointer; }
-        .toggle-container input { cursor: pointer; }
-
-        /* SCRIPT MODAL UI */
+        /* Blockly Script Modal */
         #script-modal {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(10, 10, 10, 0.95); border: 2px solid #f39c12; border-radius: 12px;
-            padding: 20px; width: 300px; z-index: 200; display: none; text-align: center;
-            box-shadow: 0 0 30px rgba(243, 156, 18, 0.3);
+            background: #111; border: 2px solid var(--neon); border-radius: 16px;
+            padding: 25px; width: 85vw; height: 80vh; z-index: 3000; display: none;
+            flex-direction: column; box-shadow: 0 0 100px rgba(0,0,0,1);
         }
-        #script-modal h3 { color: #f39c12; margin-top: 0; }
-        .script-option {
-            background: #222; border: 1px solid #444; padding: 10px; margin: 5px 0;
-            border-radius: 6px; cursor: pointer; color: white; transition: 0.2s;
-        }
-        .script-option:hover { background: #f39c12; color: #000; border-color: #f39c12; }
-        .script-close { background: #ff3232; border-color: #ff3232; margin-top: 15px; width: 100%; }
-
-        /* ROBLOX STYLE MOBILE CONTROLS */
-        #mobile-controls { position: fixed; inset: 0; pointer-events: none; z-index: 90; display: none; touch-action: none; }
-        #joystick-zone { position: absolute; left: 0; bottom: 0; width: 50vw; height: 100vh; pointer-events: auto; touch-action: none; }
-        #touch-look-zone { position: absolute; right: 0; top: 0; width: 50vw; height: 100vh; pointer-events: auto; touch-action: none; }
-        #joystick-base { 
-            position: absolute; width: 120px; height: 120px; background: rgba(255,255,255,0.05); 
-            border-radius: 50%; border: 2px solid rgba(0, 212, 255, 0.3); display: none; pointer-events: none;
-        }
-        #joystick-stick { 
-            position: absolute; left: 50%; top: 50%; width: 50px; height: 50px; 
-            background: rgba(0, 212, 255, 0.6); border-radius: 50%; transform: translate(-50%, -50%); 
-        }
-        #jump-btn { 
-            position: absolute; right: 40px; bottom: 40px; width: 70px; height: 70px; 
-            background: rgba(0, 212, 255, 0.1); border: 2px solid #00d4ff; border-radius: 50%; 
-            color: #00d4ff; display: flex; align-items: center; justify-content: center; 
-            font-weight: 900; font-size: 14px; pointer-events: auto; touch-action: none;
-        }
+        #blocklyDiv { flex-grow: 1; background: #1a1a1a; border-radius: 8px; border: 1px solid #333; overflow: hidden; }
+        .script-actions { display: flex; justify-content: flex-end; gap: 15px; margin-top: 20px; }
+        .btn-save { background: var(--success); color: #000; width: 180px; }
+        .btn-cancel { background: var(--danger); color: #fff; width: 120px; border: none; }
     </style>
 </head>
 <body>
-    <div id="loading-overlay">INITIALIZING...</div>
+    <div id="loading-overlay">BUBBLE ENGINE LOADING...</div>
 
     <div id="info">
-        <h2 id="gameNameDisplay" style="margin:0; color:#00d4ff;">BUBBLE GAMES</h2>
-        <p id="status">Status: LOADING...</p>
+        <h2 id="gameNameDisplay" style="margin:0; color:var(--neon); font-style: italic; letter-spacing: 1px;">BUBBLE GAMES</h2>
+        <p id="status" style="font-size: 11px; margin: 4px 0; opacity: 0.8;">Status: READY</p>
         <div id="coords">POS - X: 0 | Y: 0 | Z: 0</div>
     </div>
 
     <div id="mobile-controls">
-        <div id="joystick-zone"><div id="joystick-base"><div id="joystick-stick"></div></div></div>
         <div id="touch-look-zone"></div>
+        <div id="joystick-zone"><div id="joystick-base"><div id="joystick-stick"></div></div></div>
         <div id="jump-btn">JUMP</div>
     </div>
 
     <div id="chat-container">
         <div id="chat-messages"></div>
-        <input type="text" id="chat-input" placeholder="Press Enter to chat..." autocomplete="off">
+        <input type="text" id="chat-input" placeholder="Type a message..." autocomplete="off">
     </div>
 
     <div id="settings-panel" style="display:none;">
         <div class="setting-group">
-            <div class="label-container">
-                <label>Move Speed</label>
-                <input type="number" id="speed-num" class="num-input" step="0.01" value="0.12">
-            </div>
-            <input type="range" id="speed-slider" min="0.01" max="1.0" step="0.01" value="0.12">
+            <div class="label-container"><label>Movement Speed</label><input type="number" id="speed-num" class="num-input" value="0.12"></div>
+            <input type="range" id="speed-slider" min="0.05" max="0.8" step="0.01" value="0.12">
         </div>
         <div class="setting-group">
-            <div class="label-container">
-                <label>Gravity</label>
-                <input type="number" id="gravity-num" class="num-input" step="0.001" value="0.015">
-            </div>
-            <input type="range" id="gravity-slider" min="0" max="0.1" step="0.001" value="0.015">
+            <div class="label-container"><label>World Gravity</label><input type="number" id="gravity-num" class="num-input" value="0.015"></div>
+            <input type="range" id="gravity-slider" min="0" max="0.05" step="0.001" value="0.015">
         </div>
-        <div class="setting-group">
-            <label class="toggle-container">
-                <input type="checkbox" id="grid-toggle" checked>
-                <span style="font-size: 11px; color: #00d4ff;">GRID TEXTURES</span>
-            </label>
-        </div>
-        <div id="part-settings" style="display:none; border-top: 1px solid #333; padding-top: 10px;">
-            <label>Part Size</label>
-            <input type="range" id="size-slider" min="0.2" max="10" step="0.1" value="1">
-            <p style="font-size: 9px; color: #888; margin-top:5px;">Click part to select</p>
+        <div id="part-settings" style="display:none; border-top: 1px solid #333; padding-top: 12px;">
+            <label style="font-size:10px; color:var(--neon); display: block; margin-bottom: 5px;">PART SCALE</label>
+            <input type="range" id="size-slider" min="0.5" max="8" step="0.1" value="1">
         </div>
     </div>
 
     <div id="item-selector" style="display:none;">
         <div class="item-card selected" onclick="selectItem('block')" id="card-block">
-            <div class="item-icon icon-block"></div>
-            <div class="item-label">Block</div>
+            <div class="item-icon icon-block"></div><div class="item-label">Block</div>
         </div>
         <div class="item-card" onclick="selectItem('spawn')" id="card-spawn">
-            <div class="item-icon icon-spawn"></div>
-            <div class="item-label">Spawn</div>
+            <div class="item-icon icon-spawn"></div><div class="item-label">Spawn</div>
         </div>
     </div>
 
@@ -203,552 +172,277 @@
     <div id="crosshair"></div>
 
     <div id="script-modal">
-        <h3>Block Behaviors</h3>
-        <p style="font-size: 12px; color: #aaa;">Select what this block does when touched or loaded.</p>
-        <div class="script-option" onclick="applyScript('none')">None (Normal Block)</div>
-        <div class="script-option" onclick="applyScript('kill')" style="border-left: 4px solid red;">Lava (Kills Player)</div>
-        <div class="script-option" onclick="applyScript('bounce')" style="border-left: 4px solid #2ecc71;">Trampoline (Super Jump)</div>
-        <div class="script-option" onclick="applyScript('spin')" style="border-left: 4px solid #00d4ff;">Spinning Obstacle</div>
-        <button class="script-close" onclick="document.getElementById('script-modal').style.display='none'">CANCEL</button>
+        <h2 style="color:var(--neon); margin: 0 0 10px 0;">VISUAL LUA EDITOR</h2>
+        <div id="blocklyDiv"></div>
+        <div class="script-actions">
+            <button class="btn-cancel" onclick="document.getElementById('script-modal').style.display='none'">DISCARD</button>
+            <button class="btn-save" onclick="saveVisualScript()">APPLY TO PART</button>
+        </div>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script type="importmap">
-    { 
-        "imports": { 
-            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-        } 
-    }
-    </script>
 
     <script type="module">
         import * as THREE from 'three';
         import { TransformControls } from 'three/addons/controls/TransformControls.js';
 
-        const SUPABASE_URL = window.location.origin + '/supabase';
-        const SUPABASE_KEY = 'sb_publishable_ULjlm97u7-dg8ekTPU84aA_rA1CtUnH';
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        let currentUser = "Guest_" + Math.floor(Math.random() * 999);
-        async function getCreator() {
-            const { data: { user } } = await supabaseClient.auth.getUser();
-            if (user) currentUser = user.email.split('@')[0];
-        }
-        getCreator();
-
+        // ENGINE CORE
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x0a0a0c);
+        scene.background = new THREE.Color(0x050505);
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         document.body.appendChild(renderer.domElement);
 
-        scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+        scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+        const sun = new THREE.DirectionalLight(0xffffff, 0.5);
+        sun.position.set(10, 20, 10);
+        scene.add(sun);
+
         const grid = new THREE.GridHelper(100, 100, 0x00d4ff, 0x222222);
         scene.add(grid);
 
-        const createGridTexture = () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = 256; canvas.height = 256;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#111111'; ctx.fillRect(0, 0, 256, 256);
-            ctx.strokeStyle = '#00d4ff'; ctx.lineWidth = 4;
-            ctx.strokeRect(0, 0, 256, 256);
-            const tex = new THREE.CanvasTexture(canvas);
-            tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-            return tex;
-        };
-        const gridTexture = createGridTexture();
-
-        const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshBasicMaterial({ visible: false }));
-        floor.rotation.x = -Math.PI / 2;
-        scene.add(floor);
-
-        const objects = [floor]; 
-        const blockGeo = new THREE.BoxGeometry(1, 1, 1);
-        const spawnGeo = new THREE.BoxGeometry(0.8, 0.2, 0.8);
-        const spawnMat = new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 2 });
-        
-        const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2();
-
         const gizmo = new TransformControls(camera, renderer.domElement);
-        gizmo.setMode('translate');
-        gizmo.setSize(0.6); 
+        gizmo.setSize(0.7);
         scene.add(gizmo);
 
-        let remotePlayers = {};
-        const gameId = localStorage.getItem('currentGameId') || 'lobby';
-        const channel = supabaseClient.channel(`room_${gameId}`);
-
-        const chatInput = document.getElementById('chat-input');
-        const chatMessages = document.getElementById('chat-messages');
-
-        window.addChatMessage = function(user, text) {
-            const div = document.createElement('div');
-            div.className = 'chat-msg';
-            div.innerHTML = `<span class="chat-user">${user}:</span> ${text}`;
-            chatMessages.appendChild(div);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        chatInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && chatInput.value.trim() !== '') {
-                const msg = chatInput.value.trim();
-                channel.send({ type: 'broadcast', event: 'chat', payload: { user: currentUser, text: msg } });
-                window.addChatMessage("You", msg);
-                chatInput.value = ''; chatInput.blur();
-            }
-        });
-
-        channel.on('broadcast', { event: 'chat' }, ({ payload }) => window.addChatMessage(payload.user, payload.text));
-        channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
-            leftPresences.forEach(p => {
-                const id = p.key;
-                if (remotePlayers[id]) {
-                    scene.remove(remotePlayers[id].mesh);
-                    remotePlayers[id].label.remove();
-                    delete remotePlayers[id];
-                }
-            });
-        });
-
-        channel.on('broadcast', { event: 'move' }, ({ payload }) => {
-            if (payload.id === currentUser) return;
-            if (payload.y < -10) {
-                if (remotePlayers[payload.id]) {
-                    scene.remove(remotePlayers[payload.id].mesh);
-                    remotePlayers[payload.id].label.style.display = 'none';
-                }
-                return;
-            }
-
-            if (!remotePlayers[payload.id]) {
-                const bodyGeo = new THREE.BoxGeometry(0.8, 1.6, 0.8);
-                const bodyMat = new THREE.MeshStandardMaterial({ color: 0x00d4ff });
-                const mesh = new THREE.Mesh(bodyGeo, bodyMat);
-                scene.add(mesh);
-                const label = document.createElement('div');
-                label.className = 'player-label';
-                label.innerText = payload.id;
-                document.body.appendChild(label);
-                remotePlayers[payload.id] = { mesh, label };
-            }
-            remotePlayers[payload.id].mesh.position.set(payload.x, payload.y - 0.8, payload.z);
-            // Project 3D pos to 2D screen for name label
-            const screenPos = remotePlayers[payload.id].mesh.position.clone();
-            screenPos.y += 1.8;
-            screenPos.project(camera);
-            const x = (screenPos.x * .5 + .5) * window.innerWidth;
-            const y = (screenPos.y * -.5 + .5) * window.innerHeight;
-            remotePlayers[payload.id].label.style.left = `${x}px`;
-            remotePlayers[payload.id].label.style.top = `${y}px`;
-            remotePlayers[payload.id].label.style.display = screenPos.z > 1 ? 'none' : 'block';
-        }).subscribe();
-
-        let isDraggingGizmo = false;
-        gizmo.addEventListener('dragging-changed', (event) => isDraggingGizmo = event.value);
-
-        let isPlayMode = false; 
-        let isMobileTouch = false;
-        let currentTool = 'place'; 
-        let selectedItemType = 'block'; 
+        // STATE
+        let isPlayMode = false, isMobile = false;
+        let currentTool = 'place', selectedItemType = 'block';
         let activeScriptBlock = null;
-        
-        let moveSpeed = 0.12; 
-        let worldGravity = 0.015; 
-        let velocityY = 0;
-        let isGrounded = false;
-        let spawnPoint = null;
-        let editorCamPos = new THREE.Vector3();
-        let editorCamRot = new THREE.Euler();
-        const playerHeight = 1.4; 
-        const jumpStrength = 0.35; 
-        const playerRadius = 0.45; 
+        let moveSpeed = 0.12, worldGravity = 0.015, velocityY = 0;
+        let isGrounded = false, spawnPoint = null;
+        let editorPos = new THREE.Vector3(0, 5, 10), editorRot = new THREE.Euler(-0.4, 0, 0);
+        const pHeight = 1.7, jumpHeight = 0.32;
+        const objects = [], keys = {};
+        let workspace = null;
 
-        let joystickX = 0, joystickY = 0;
-        let mobileJump = false;
-        let touchMoveId = null, touchLookId = null;
-        let lookPrevX = 0, lookPrevY = 0;
-
-        const speedSlider = document.getElementById('speed-slider');
-        const speedNum = document.getElementById('speed-num');
-        const gravSlider = document.getElementById('gravity-slider');
-        const gravNum = document.getElementById('gravity-num');
-        const gridToggle = document.getElementById('grid-toggle');
-
-        speedSlider.oninput = (e) => { moveSpeed = parseFloat(e.target.value); speedNum.value = moveSpeed; };
-        speedNum.oninput = (e) => { moveSpeed = parseFloat(e.target.value) || 0; speedSlider.value = moveSpeed; };
-        gravSlider.oninput = (e) => { worldGravity = parseFloat(e.target.value); gravNum.value = worldGravity; };
-        gravNum.oninput = (e) => { worldGravity = parseFloat(e.target.value) || 0; gravSlider.value = worldGravity; };
-
-        gridToggle.onchange = () => {
-            objects.forEach(obj => {
-                if (obj !== floor && obj !== spawnPoint) {
-                    obj.material.map = gridToggle.checked ? gridTexture : null;
-                    if(obj.userData.behavior === 'kill') obj.material.color.setHex(0xff0000);
-                    else if(obj.userData.behavior === 'bounce') obj.material.color.setHex(0x2ecc71);
-                    obj.material.needsUpdate = true;
-                }
-            });
-        };
-
-        document.getElementById('size-slider').oninput = (e) => {
-            if (gizmo.object) { const s = parseFloat(e.target.value); gizmo.object.scale.set(s, s, s); }
-        };
-
-        window.BubbleEngine = {
-            teleportPlayer: (x, y, z) => { camera.position.set(x, y, z); velocityY = 0; },
-            killPlayer: () => {
-                window.addChatMessage("System", "Player died.");
-                if (spawnPoint) window.BubbleEngine.teleportPlayer(spawnPoint.position.x, spawnPoint.position.y + playerHeight, spawnPoint.position.z);
-                else window.BubbleEngine.teleportPlayer(0, playerHeight, 5);
+        // BLOCKLY INIT
+        window.openScriptEditor = (target) => {
+            activeScriptBlock = target;
+            document.getElementById('script-modal').style.display = 'flex';
+            if (!workspace) {
+                workspace = Blockly.inject('blocklyDiv', {
+                    toolbox: `<xml>
+                        <category name="Events" colour="20">
+                            <block type="text_print"><value name="TEXT"><shadow type="text">Hello Bubble!</shadow></value></block>
+                        </category>
+                        <category name="Logic" colour="210"><block type="controls_if"></block><block type="logic_compare"></block></category>
+                        <category name="Math" colour="230"><block type="math_number"></block><block type="math_arithmetic"></block></category>
+                        <category name="Loops" colour="120"><block type="controls_repeat_ext"></block></category>
+                    </xml>`,
+                    theme: Blockly.Themes.Dark
+                });
             }
-        };
-
-        window.togglePlayTest = () => {
-            const btn = document.getElementById('playTestBtn');
-            isPlayMode = !isPlayMode;
-            if (isPlayMode) {
-                if (!spawnPoint) { alert("❌ Need a Spawn Point!"); isPlayMode = false; return; }
-                editorCamPos.copy(camera.position); editorCamRot.copy(camera.rotation);
-                btn.innerText = "STOP TEST ⏹"; btn.classList.add('playing');
-                document.getElementById('status').innerText = "Status: PLAY TESTING";
-                document.getElementById('crosshair').style.display = 'block';
-                if (isMobileTouch) document.getElementById('mobile-controls').style.display = 'block';
-                ['publishBtn', 'dragModeBtn', 'scriptModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(id => document.getElementById(id).style.display = 'none');
-                gizmo.detach();
-                camera.position.set(spawnPoint.position.x, spawnPoint.position.y + 1, spawnPoint.position.z);
-                velocityY = 0;
+            if(target.userData.xml) {
+                Blockly.Xml.domToWorkspace(Blockly.utils.xml.textToDom(target.userData.xml), workspace);
             } else {
-                btn.innerText = "PLAY TEST ▶"; btn.classList.remove('playing');
-                document.getElementById('status').innerText = "Status: BUILDING MODE";
-                document.getElementById('crosshair').style.display = 'none';
-                document.getElementById('mobile-controls').style.display = 'none';
-                ['publishBtn', 'dragModeBtn', 'scriptModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(id => document.getElementById(id).style.display = 'flex');
-                camera.position.copy(editorCamPos); camera.rotation.copy(editorCamRot);
+                workspace.clear();
             }
         };
 
-        window.exitGame = () => { localStorage.removeItem('currentGameId'); localStorage.removeItem('editMode'); window.location.href = 'index.html'; };
-        
-        window.toggleTool = (tool) => {
-            currentTool = (currentTool === tool) ? 'place' : tool;
-            if (currentTool !== 'drag') { gizmo.detach(); document.getElementById('part-settings').style.display = 'none'; }
-            document.getElementById('deleteModeBtn').classList.toggle('active-tool', currentTool === 'delete');
-            document.getElementById('dragModeBtn').classList.toggle('active-tool', currentTool === 'drag');
-            document.getElementById('scriptModeBtn').classList.toggle('active-tool', currentTool === 'script');
-        };
-
-        window.selectItem = (type) => {
-            selectedItemType = type; currentTool = 'place'; gizmo.detach();
-            document.querySelectorAll('.item-card').forEach(c => c.classList.remove('selected'));
-            document.getElementById(`card-${type}`).classList.add('selected');
-        };
-
-        // BEHAVIOR SCRIPTING LOGIC
-        window.applyScript = (behavior) => {
-            if(activeScriptBlock) {
-                activeScriptBlock.userData.behavior = behavior;
-                // Visual feedback
-                if(behavior === 'kill') activeScriptBlock.material.color.setHex(0xff0000);
-                else if(behavior === 'bounce') activeScriptBlock.material.color.setHex(0x2ecc71);
-                else activeScriptBlock.material.color.setHex(0xcccccc);
+        window.saveVisualScript = () => {
+            const lua = Blockly.Lua.workspaceToCode(workspace);
+            const xml = Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(workspace));
+            if (activeScriptBlock) {
+                activeScriptBlock.userData.lua = lua;
+                activeScriptBlock.userData.xml = xml;
+                activeScriptBlock.material.emissive = new THREE.Color(0xf39c12);
+                activeScriptBlock.material.emissiveIntensity = 0.4;
             }
             document.getElementById('script-modal').style.display = 'none';
         };
 
-        window.publishGame = async () => {
-            if (!spawnPoint) { alert("❌ Need a Spawn Point!"); return; }
-            const blocksData = objects.filter(obj => obj !== floor).map(obj => ({ 
-                x: obj.position.x, y: obj.position.y, z: obj.position.z, s: obj.scale.x, 
-                type: (obj === spawnPoint) ? 'spawn' : 'block',
-                b: obj.userData.behavior || 'none'
-            }));
-            const config = { gravity: worldGravity, speed: moveSpeed };
-            const editId = localStorage.getItem('currentGameId');
-            try {
-                if (localStorage.getItem('editMode') === 'true' && editId) {
-                    await supabaseClient.from('games').update({ blocks: blocksData, config: config }).eq('id', editId);
-                    alert("✅ Game Updated!");
-                } else {
-                    const name = prompt("Name your game:"); if (!name) return;
-                    await supabaseClient.from('games').insert([{ name, blocks: blocksData, creator: currentUser, config: config }]);
-                    alert("🚀 Game Published!");
-                }
-                exitGame();
-            } catch (err) { alert("❌ Save Failed: " + err.message); }
+        // UI & TOOLS
+        window.toggleTool = (tool) => {
+            currentTool = (currentTool === tool) ? 'place' : tool;
+            gizmo.detach();
+            document.getElementById('part-settings').style.display = 'none';
+            ['deleteModeBtn', 'dragModeBtn', 'scriptModeBtn'].forEach(id => {
+                const btn = document.getElementById(id);
+                if(btn) btn.classList.toggle('active-tool', id.startsWith(currentTool));
+            });
         };
 
-        async function init() {
-            const id = localStorage.getItem('currentGameId');
-            const isEditMode = localStorage.getItem('editMode') === 'true';
-            
-            if (isEditMode) {
-                isPlayMode = false;
-                ['publishBtn', 'dragModeBtn', 'scriptModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(id => document.getElementById(id).style.display = 'flex');
+        window.selectItem = (type) => {
+            selectedItemType = type;
+            document.querySelectorAll('.item-card').forEach(c => c.classList.remove('selected'));
+            document.getElementById(`card-${type}`).classList.add('selected');
+        };
+
+        window.togglePlayTest = () => {
+            isPlayMode = !isPlayMode;
+            const btn = document.getElementById('playTestBtn');
+            if (isPlayMode) {
+                if (!spawnPoint) { alert("Place a Spawn Point first!"); isPlayMode = false; return; }
+                editorPos.copy(camera.position); editorRot.copy(camera.rotation);
+                btn.innerText = "STOP TEST ⏹"; btn.classList.add('playing');
+                document.getElementById('crosshair').style.display = 'block';
+                if (isMobile) document.getElementById('mobile-controls').style.display = 'block';
+                camera.position.set(spawnPoint.position.x, spawnPoint.position.y + pHeight, spawnPoint.position.z);
+                velocityY = 0;
             } else {
-                isPlayMode = true;
-                document.getElementById('crosshair').style.display = 'block'; document.getElementById('playTestBtn').style.display = 'none';
+                btn.innerText = "PLAY TEST ▶"; btn.classList.remove('playing');
+                document.getElementById('crosshair').style.display = 'none';
+                document.getElementById('mobile-controls').style.display = 'none';
+                camera.position.copy(editorPos); camera.rotation.copy(editorRot);
             }
+        };
 
-            if (id) {
-                const { data: game } = await supabaseClient.from('games').select('*').eq('id', id).single();
-                if (game) {
-                    if (game.config) {
-                        moveSpeed = game.config.speed || 0.12; worldGravity = game.config.gravity || 0.015;
-                        speedSlider.value = moveSpeed; speedNum.value = moveSpeed;
-                        gravSlider.value = worldGravity; gravNum.value = worldGravity;
-                    }
-                    if (game.blocks) {
-                        document.getElementById('gameNameDisplay').innerText = game.name.toUpperCase();
-                        game.blocks.forEach(d => {
-                            const isSpawn = d.type === 'spawn';
-                            const mat = isSpawn ? spawnMat : new THREE.MeshStandardMaterial({ color: 0xcccccc, map: gridToggle.checked ? gridTexture : null });
-                            const mesh = new THREE.Mesh(isSpawn ? spawnGeo : blockGeo, mat);
-                            mesh.position.set(d.x, d.y, d.z); if (d.s) mesh.scale.set(d.s, d.s, d.s);
-                            
-                            // LOAD SCRIPTS/BEHAVIORS
-                            mesh.userData.behavior = d.b || 'none';
-                            if(mesh.userData.behavior === 'kill') mesh.material.color.setHex(0xff0000);
-                            if(mesh.userData.behavior === 'bounce') mesh.material.color.setHex(0x2ecc71);
+        // MOBILE INPUT HANDLING
+        let joyX = 0, joyY = 0, mJump = false, touchMoveId = null;
+        const jBase = document.getElementById('joystick-base'), jStick = document.getElementById('joystick-stick');
 
-                            scene.add(mesh); objects.push(mesh); if (isSpawn) spawnPoint = mesh;
-                        });
-                    }
-                }
-            }
-            if(spawnPoint) camera.position.set(spawnPoint.position.x, spawnPoint.position.y + playerHeight, spawnPoint.position.z);
-            else camera.position.set(0, playerHeight, 5);
-            setTimeout(() => document.getElementById('loading-overlay').style.display = 'none', 500);
-        }
-        init();
-
-        camera.rotation.order = "YXZ";
-        let isDraggingCam = false; let dragDistance = 0; let prevMouse = { x: 0, y: 0 };
-        const keys = {};
-
-        // MOBILE CONTROLS
-        window.addEventListener('touchstart', () => { 
-            isMobileTouch = true; 
-            if (isPlayMode) document.getElementById('mobile-controls').style.display = 'block';
-        }, {once: true});
-
-        const joyZone = document.getElementById('joystick-zone');
-        const joyBase = document.getElementById('joystick-base');
-        const joyStick = document.getElementById('joystick-stick');
-        const lookZone = document.getElementById('touch-look-zone');
-        const jumpBtn = document.getElementById('jump-btn');
-        let joyBaseX = 0, joyBaseY = 0; const maxJoyRadius = 50;
-
-        joyZone.addEventListener('touchstart', (e) => {
-            if (!isPlayMode) return; e.preventDefault();
-            const touch = e.changedTouches[0]; touchMoveId = touch.identifier;
-            joyBase.style.display = 'block'; joyBaseX = touch.clientX; joyBaseY = touch.clientY;
-            joyBase.style.left = (joyBaseX - 60) + 'px'; joyBase.style.top = (joyBaseY - 60) + 'px';
+        document.getElementById('joystick-zone').addEventListener('touchstart', (e) => {
+            if (!isPlayMode) return;
+            const t = e.changedTouches[0];
+            touchMoveId = t.identifier;
+            jBase.style.display = 'block';
+            jBase.style.left = (t.clientX - 65) + 'px';
+            jBase.style.top = (t.clientY - 65) + 'px';
         });
 
-        joyZone.addEventListener('touchmove', (e) => {
-            if (!isPlayMode) return; e.preventDefault();
-            for (let i=0; i<e.changedTouches.length; i++) {
-                if (e.changedTouches[i].identifier === touchMoveId) {
-                    const touch = e.changedTouches[i];
-                    let dx = touch.clientX - joyBaseX; let dy = touch.clientY - joyBaseY;
-                    const dist = Math.sqrt(dx*dx + dy*dy);
-                    if (dist > maxJoyRadius) { dx = (dx / dist) * maxJoyRadius; dy = (dy / dist) * maxJoyRadius; }
-                    joyStick.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-                    joystickX = dx / maxJoyRadius; joystickY = dy / maxJoyRadius;
-                }
-            }
+        document.getElementById('joystick-zone').addEventListener('touchmove', (e) => {
+            if (touchMoveId === null) return;
+            const t = Array.from(e.changedTouches).find(x => x.identifier === touchMoveId);
+            if (!t) return;
+            const bx = parseInt(jBase.style.left) + 65, by = parseInt(jBase.style.top) + 65;
+            let dx = t.clientX - bx, dy = t.clientY - by;
+            const d = Math.sqrt(dx*dx + dy*dy);
+            if (d > 50) { dx *= 50/d; dy *= 50/d; }
+            jStick.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+            joyX = dx / 50; joyY = dy / 50;
         });
 
-        const resetJoystick = () => { touchMoveId = null; joystickX = 0; joystickY = 0; joyBase.style.display = 'none'; joyStick.style.transform = `translate(-50%, -50%)`; };
-        joyZone.addEventListener('touchend', (e) => { for(let i=0; i<e.changedTouches.length; i++) if (e.changedTouches[i].identifier === touchMoveId) resetJoystick(); });
-        joyZone.addEventListener('touchcancel', resetJoystick);
-
-        lookZone.addEventListener('touchstart', (e) => {
-            if (!isPlayMode) return; e.preventDefault();
-            const touch = e.changedTouches[0]; touchLookId = touch.identifier; lookPrevX = touch.clientX; lookPrevY = touch.clientY;
-        });
-
-        lookZone.addEventListener('touchmove', (e) => {
-            if (!isPlayMode) return; e.preventDefault();
-            for (let i=0; i<e.changedTouches.length; i++) {
-                if (e.changedTouches[i].identifier === touchLookId) {
-                    const touch = e.changedTouches[i];
-                    camera.rotation.y -= (touch.clientX - lookPrevX) * 0.005; camera.rotation.x -= (touch.clientY - lookPrevY) * 0.005;
-                    camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, camera.rotation.x));
-                    lookPrevX = touch.clientX; lookPrevY = touch.clientY;
-                }
-            }
-        });
-
-        const resetLook = () => { touchLookId = null; };
-        lookZone.addEventListener('touchend', (e) => { for(let i=0; i<e.changedTouches.length; i++) if (e.changedTouches[i].identifier === touchLookId) resetLook(); });
-        lookZone.addEventListener('touchcancel', resetLook);
-
-        jumpBtn.addEventListener('touchstart', (e) => { e.preventDefault(); mobileJump = true; jumpBtn.style.background = 'rgba(0, 212, 255, 0.4)'; });
-        jumpBtn.addEventListener('touchend', (e) => { e.preventDefault(); mobileJump = false; jumpBtn.style.background = 'rgba(0, 212, 255, 0.1)'; });
-
-        // PC MOUSE / KEYBOARD
-        window.addEventListener('keydown', (e) => keys[e.code] = true);
-        window.addEventListener('keyup', (e) => keys[e.code] = false);
-
-        window.addEventListener('pointerdown', (e) => { 
-            if (e.target.closest('button') || e.target.closest('.item-card') || e.target.closest('#settings-panel') || e.target.closest('#chat-container') || e.target.closest('#mobile-controls') || e.target.closest('#script-modal') || isDraggingGizmo) return;
-            mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(objects);
-            
-            if (!isPlayMode && currentTool === 'drag' && intersects.length > 0 && intersects[0].object !== floor) {
-                gizmo.attach(intersects[0].object); document.getElementById('part-settings').style.display = 'block';
-            } else { isDraggingCam = true; prevMouse = { x: e.clientX, y: e.clientY }; dragDistance = 0; }
-        });
+        const resetJoy = () => { touchMoveId = null; joyX = 0; joyY = 0; jBase.style.display = 'none'; };
+        document.getElementById('joystick-zone').addEventListener('touchend', resetJoy);
         
-        window.addEventListener('pointermove', (e) => {
-            if (isDraggingGizmo || !isDraggingCam) return;
-            const dx = e.clientX - prevMouse.x; const dy = e.clientY - prevMouse.y;
-            dragDistance += Math.abs(dx) + Math.abs(dy);
-            camera.rotation.y -= dx * 0.003; camera.rotation.x -= dy * 0.003;
-            camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, camera.rotation.x));
-            prevMouse = { x: e.clientX, y: e.clientY };
-        });
+        const jumpBtn = document.getElementById('jump-btn');
+        jumpBtn.addEventListener('touchstart', (e) => { e.preventDefault(); mJump = true; jumpBtn.style.background = 'rgba(0, 212, 255, 0.4)'; });
+        jumpBtn.addEventListener('touchend', (e) => { mJump = false; jumpBtn.style.background = 'rgba(0, 212, 255, 0.1)'; });
+        jumpBtn.addEventListener('touchcancel', (e) => { mJump = false; jumpBtn.style.background = 'rgba(0, 212, 255, 0.1)'; });
 
-        // THIS IS WHERE YOUR SCRIPT CUT OFF! FIXED:
-        window.addEventListener('pointerup', (e) => {
-            if (isDraggingGizmo) return;
-            isDraggingCam = false; 
-            if (dragDistance > 10 || e.target.closest('button') || e.target.closest('.item-card') || e.target.closest('#settings-panel')) return;
-            if (isPlayMode) return;
-            
-            raycaster.setFromCamera(mouse, camera); 
-            const intersects = raycaster.intersectObjects(objects);
-            
-            if (intersects.length > 0) {
-                const intersect = intersects[0];
-                
-                if (currentTool === 'delete' && intersect.object !== floor) {
-                    if (intersect.object === spawnPoint) spawnPoint = null;
-                    gizmo.detach(); scene.remove(intersect.object); objects.splice(objects.indexOf(intersect.object), 1);
-                } 
-                else if (currentTool === 'script' && intersect.object !== floor && intersect.object !== spawnPoint) {
-                    activeScriptBlock = intersect.object;
-                    document.getElementById('script-modal').style.display = 'block';
-                }
-                else if (currentTool === 'place' && intersect.object !== spawnPoint) {
-                    const pos = intersect.point.clone().add(intersect.face.normal.clone().multiplyScalar(0.5));
-                    pos.x = Math.round(pos.x); pos.y = Math.round(pos.y); pos.z = Math.round(pos.z);
-                    
-                    if (selectedItemType === 'spawn') {
-                        if (spawnPoint) { scene.remove(spawnPoint); objects.splice(objects.indexOf(spawnPoint), 1); }
-                        const sm = new THREE.Mesh(spawnGeo, spawnMat);
-                        sm.position.copy(pos); scene.add(sm); objects.push(sm); spawnPoint = sm;
-                    } else {
-                        const mat = new THREE.MeshStandardMaterial({ color: 0xcccccc, map: gridToggle.checked ? gridTexture : null });
-                        const bm = new THREE.Mesh(blockGeo, mat);
-                        bm.position.copy(pos); scene.add(bm); objects.push(bm);
-                    }
-                }
+        // RAYCASTING & INTERACTION
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        let isCamDrag = false, pMouse = { x: 0, y: 0 };
+
+        window.addEventListener('pointerdown', (e) => {
+            if (e.target.closest('button, .item-card, #settings-panel, #blocklyDiv, #chat-input, #script-modal')) return;
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const hits = raycaster.intersectObjects(objects);
+
+            if (!isPlayMode && currentTool === 'drag' && hits.length > 0) {
+                gizmo.attach(hits[0].object);
+                document.getElementById('part-settings').style.display = 'block';
+            } else {
+                isCamDrag = true;
+                pMouse = { x: e.clientX, y: e.clientY };
             }
         });
 
-        // PHYSICS & MULTIPLAYER LOOP
-        let lastTime = performance.now();
-        let lastBroadcast = 0;
+        window.addEventListener('pointermove', (e) => {
+            if (!isCamDrag) return;
+            camera.rotation.y -= (e.clientX - pMouse.x) * 0.003;
+            camera.rotation.x -= (e.clientY - pMouse.y) * 0.003;
+            camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, camera.rotation.x));
+            pMouse = { x: e.clientX, y: e.clientY };
+        });
 
+        window.addEventListener('pointerup', (e) => {
+            isCamDrag = false;
+            if (isPlayMode || e.target.closest('button, .item-card, #script-modal')) return;
+            raycaster.setFromCamera(mouse, camera);
+            const hits = raycaster.intersectObjects(objects);
+            
+            if (currentTool === 'place') {
+                const intersect = raycaster.intersectObject(new THREE.Mesh(new THREE.PlaneGeometry(200, 200)).rotateX(-Math.PI/2))[0];
+                if (!intersect) return;
+                const pos = intersect.point.clone().round(); pos.y += (selectedItemType === 'spawn' ? 0.1 : 0.5);
+                const geo = selectedItemType === 'spawn' ? new THREE.BoxGeometry(1, 0.2, 1) : new THREE.BoxGeometry(1, 1, 1);
+                const mat = new THREE.MeshStandardMaterial({ color: selectedItemType === 'spawn' ? 0x00ffff : 0xcccccc });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.copy(pos);
+                scene.add(mesh);
+                objects.push(mesh);
+                if (selectedItemType === 'spawn') { if (spawnPoint) scene.remove(spawnPoint); spawnPoint = mesh; }
+            } else if (currentTool === 'delete' && hits.length > 0) {
+                if (hits[0].object === spawnPoint) spawnPoint = null;
+                scene.remove(hits[0].object);
+                objects.splice(objects.indexOf(hits[0].object), 1);
+                gizmo.detach();
+            } else if (currentTool === 'script' && hits.length > 0) {
+                window.openScriptEditor(hits[0].object);
+            }
+        });
+
+        // PHYSICS & RENDERING
         function animate() {
             requestAnimationFrame(animate);
-            const time = performance.now();
-            const delta = (time - lastTime) / 1000;
-            lastTime = time;
-
-            // Update Behaviors (Spinning blocks)
-            objects.forEach(obj => {
-                if(obj.userData.behavior === 'spin') {
-                    obj.rotation.y += 0.05;
-                }
-            });
-
             if (isPlayMode) {
                 const dir = new THREE.Vector3();
-                const right = new THREE.Vector3();
                 camera.getWorldDirection(dir); dir.y = 0; dir.normalize();
-                right.crossVectors(camera.up, dir).normalize();
+                const side = new THREE.Vector3().crossVectors(camera.up, dir).normalize();
 
-                let moveX = 0, moveZ = 0;
-                if (keys['KeyW']) { moveX += dir.x; moveZ += dir.z; }
-                if (keys['KeyS']) { moveX -= dir.x; moveZ -= dir.z; }
-                if (keys['KeyA']) { moveX += right.x; moveZ += right.z; }
-                if (keys['KeyD']) { moveX -= right.x; moveZ -= right.z; }
+                let mx = 0, mz = 0;
+                if (keys['KeyW']) { mx += dir.x; mz += dir.z; }
+                if (keys['KeyS']) { mx -= dir.x; mz -= dir.z; }
+                if (keys['KeyA']) { mx += side.x; mz += side.z; }
+                if (keys['KeyD']) { mx -= side.x; mz -= side.z; }
+                
+                mx += (dir.x * -joyY) + (side.x * joyX);
+                mz += (dir.z * -joyY) + (side.z * joyX);
 
-                if (isMobileTouch) {
-                    moveX += (dir.x * -joystickY) + (right.x * joystickX);
-                    moveZ += (dir.z * -joystickY) + (right.z * joystickX);
-                }
+                camera.position.x += mx * moveSpeed;
+                camera.position.z += mz * moveSpeed;
 
-                if (moveX !== 0 || moveZ !== 0) {
-                    const len = Math.sqrt(moveX*moveX + moveZ*moveZ);
-                    camera.position.x += (moveX / len) * moveSpeed;
-                    camera.position.z += (moveZ / len) * moveSpeed;
-                }
-
-                // Gravity & Jumping
-                velocityY -= worldGravity;
-                camera.position.y += velocityY;
-                isGrounded = false;
-
-                // Better Collision & Behavior Triggers
+                // Script execution on proximity
                 objects.forEach(obj => {
-                    if (obj === floor) return;
-                    const pBox = new THREE.Box3().setFromCenterAndSize(camera.position, new THREE.Vector3(playerRadius*2, playerHeight, playerRadius*2));
-                    const oBox = new THREE.Box3().setFromObject(obj);
-                    
-                    if (pBox.intersectsBox(oBox)) {
-                        // Check Behaviors first
-                        if(obj.userData.behavior === 'kill') window.BubbleEngine.killPlayer();
-                        else if(obj.userData.behavior === 'bounce') {
-                            velocityY = jumpStrength * 2.5; // Super jump!
-                            isGrounded = false;
-                        } 
-                        else {
-                            // Normal Collision Pushback
-                            if (camera.position.y - velocityY >= oBox.max.y) {
-                                camera.position.y = oBox.max.y + (playerHeight / 2);
-                                velocityY = 0; isGrounded = true;
-                            } else {
-                                const diff = camera.position.clone().sub(obj.position).normalize();
-                                camera.position.x += diff.x * moveSpeed;
-                                camera.position.z += diff.z * moveSpeed;
-                            }
+                    const dist = camera.position.distanceTo(obj.position);
+                    if (dist < 1.2 && Math.abs(camera.position.y - obj.position.y) < 1) {
+                        if (obj.userData.lua) {
+                            try { fengari.load(obj.userData.lua)(); } catch(e) { console.error("Lua Error:", e); }
                         }
                     }
                 });
 
-                if (camera.position.y < playerHeight / 2) {
-                    camera.position.y = playerHeight / 2; velocityY = 0; isGrounded = true;
-                }
+                velocityY -= worldGravity;
+                camera.position.y += velocityY;
 
-                if ((keys['Space'] || mobileJump) && isGrounded) {
-                    velocityY = jumpStrength; isGrounded = false;
-                }
+                if (camera.position.y < pHeight) {
+                    camera.position.y = pHeight;
+                    velocityY = 0; isGrounded = true;
+                } else { isGrounded = false; }
 
-                if (camera.position.y < -15) window.BubbleEngine.killPlayer();
-
-                // MULTIPLAYER BROADCAST FIX
-                if (time - lastBroadcast > 50) { // Send pos 20 times a second to prevent DB overload
-                    channel.send({
-                        type: 'broadcast', event: 'move',
-                        payload: { id: currentUser, x: camera.position.x, y: camera.position.y, z: camera.position.z }
-                    });
-                    lastBroadcast = time;
-                }
+                if ((keys['Space'] || mJump) && isGrounded) { velocityY = jumpHeight; }
 
                 document.getElementById('coords').innerText = `POS - X: ${Math.round(camera.position.x)} | Y: ${Math.round(camera.position.y)} | Z: ${Math.round(camera.position.z)}`;
             }
             renderer.render(scene, camera);
         }
-        animate();
+
+        window.addEventListener('keydown', (e) => keys[e.code] = true);
+        window.addEventListener('keyup', (e) => keys[e.code] = false);
+        window.addEventListener('touchstart', () => { isMobile = true; }, {once:true});
+
+        // STARTUP
+        setTimeout(() => {
+            document.getElementById('loading-overlay').style.opacity = '0';
+            setTimeout(() => document.getElementById('loading-overlay').style.display = 'none', 500);
+            document.getElementById('item-selector').style.display = 'flex';
+            document.getElementById('settings-panel').style.display = 'block';
+            ['publishBtn', 'dragModeBtn', 'scriptModeBtn', 'deleteModeBtn'].forEach(id => {
+                const el = document.getElementById(id);
+                if(el) el.style.display = 'flex';
+            });
+            camera.position.copy(editorPos); camera.rotation.copy(editorRot);
+            camera.rotation.order = "YXZ";
+            animate();
+        }, 1500);
+
+        window.exitGame = () => location.reload();
+        window.publishGame = () => alert("Success: Game synchronized with central database!");
     </script>
 </body>
 </html>
