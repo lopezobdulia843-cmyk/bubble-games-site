@@ -355,7 +355,11 @@
         let touchMoveId = null, touchLookId = null;
         let lookPrevX = 0, lookPrevY = 0;
 
-        window.addEventListener('touchstart', () => { isMobileTouch = true; }, { once: true });
+        // Detect Mobile
+        window.addEventListener('touchstart', () => { 
+            isMobileTouch = true; 
+            document.getElementById('mobile-controls').style.display = 'block'; 
+        }, { once: true });
 
         const speedSlider = document.getElementById('speed-slider');
         const speedNum = document.getElementById('speed-num');
@@ -397,7 +401,6 @@
                 btn.innerText = "STOP TEST ⏹"; btn.classList.add('playing');
                 document.getElementById('status').innerText = "Status: PLAY TESTING";
                 document.getElementById('crosshair').style.display = 'block';
-                if (isMobileTouch) document.getElementById('mobile-controls').style.display = 'block';
                 ['publishBtn', 'dragModeBtn', 'scaleModeBtn', 'scriptModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(id => document.getElementById(id).style.display = 'none');
                 gizmo.detach();
                 camera.position.set(spawnPoint.position.x, spawnPoint.position.y + playerHeight, spawnPoint.position.z);
@@ -407,10 +410,11 @@
                 btn.innerText = "PLAY TEST ▶"; btn.classList.remove('playing');
                 document.getElementById('status').innerText = "Status: BUILDING MODE";
                 document.getElementById('crosshair').style.display = 'none';
-                document.getElementById('mobile-controls').style.display = 'none';
                 ['publishBtn', 'dragModeBtn', 'scaleModeBtn', 'scriptModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(id => document.getElementById(id).style.display = 'flex');
                 camera.position.copy(editorCamPos); camera.rotation.copy(editorCamRot);
             }
+            // Ensure mobile controls stay on if device is mobile
+            if (isMobileTouch) document.getElementById('mobile-controls').style.display = 'block';
         };
 
         window.exitGame = () => { localStorage.removeItem('currentGameId'); localStorage.removeItem('editMode'); window.location.href = 'index.html'; };
@@ -532,7 +536,6 @@
         let stickOrigin = {x:0, y:0};
 
         joystickZone.addEventListener('touchstart', (e) => {
-            if(!isPlayMode) return;
             e.preventDefault();
             const touch = e.changedTouches[0];
             touchMoveId = touch.identifier;
@@ -544,7 +547,6 @@
         }, {passive: false});
 
         joystickZone.addEventListener('touchmove', (e) => {
-            if(!isPlayMode) return;
             e.preventDefault();
             for(let touch of e.changedTouches) {
                 if(touch.identifier === touchMoveId) {
@@ -560,7 +562,6 @@
         }, {passive: false});
 
         joystickZone.addEventListener('touchend', (e) => {
-            if(!isPlayMode) return;
             e.preventDefault();
             for(let touch of e.changedTouches) {
                 if(touch.identifier === touchMoveId) {
@@ -571,10 +572,9 @@
             }
         }, {passive: false});
 
-        // --- MOBILE LOOK LOGIC ---
+        // --- MOBILE LOOK LOGIC (WORKS IN BOTH MODES NOW) ---
         const lookZone = document.getElementById('touch-look-zone');
         lookZone.addEventListener('touchstart', (e) => {
-            if(!isPlayMode) return;
             e.preventDefault();
             const touch = e.changedTouches[0];
             touchLookId = touch.identifier;
@@ -583,7 +583,6 @@
         }, {passive: false});
         
         lookZone.addEventListener('touchmove', (e) => {
-            if(!isPlayMode) return;
             e.preventDefault();
             for(let touch of e.changedTouches) {
                 if(touch.identifier === touchLookId) {
@@ -599,194 +598,149 @@
         }, {passive: false});
         
         lookZone.addEventListener('touchend', (e) => {
-            if(!isPlayMode) return;
             for(let touch of e.changedTouches) {
                 if(touch.identifier === touchLookId) touchLookId = null;
             }
         });
 
-        // Mobile Jump
+        // --- JUMP BUTTON ---
         const jumpBtn = document.getElementById('jump-btn');
-        jumpBtn.addEventListener('touchstart', (e) => { e.preventDefault(); mobileJump = true; });
-        jumpBtn.addEventListener('touchend', (e) => { e.preventDefault(); mobileJump = false; });
+        jumpBtn.addEventListener('touchstart', (e) => { 
+            e.preventDefault();
+            mobileJump = true;
+        }, {passive: false});
+        jumpBtn.addEventListener('touchend', (e) => { 
+            e.preventDefault();
+            mobileJump = false;
+        }, {passive: false});
 
-        // --- MOUSE & TOUCH EDITOR CONTROLS ---
-        window.addEventListener('pointerdown', (e) => {
-            if (isPlayMode || isDraggingGizmo || e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.closest('#settings-panel') || e.target.closest('#item-selector')) return;
-            
-            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-            raycaster.setFromCamera(mouse, camera);
-
-            if (currentTool === 'place') {
-                const intersects = raycaster.intersectObjects(objects);
-                if (intersects.length > 0) {
-                    const hit = intersects[0];
-                    const pos = hit.point.clone().add(hit.face.normal.clone().multiplyScalar(0.5));
-                    pos.round(); 
-
-                    const isSpawn = selectedItemType === 'spawn';
-                    const mat = isSpawn ? spawnMat : new THREE.MeshStandardMaterial({ color: 0xcccccc, map: gridToggle.checked ? gridTexture : null });
-                    const mesh = new THREE.Mesh(isSpawn ? spawnGeo : blockGeo, mat);
-                    mesh.position.copy(pos);
-                    mesh.userData.behavior = 'none';
-                    scene.add(mesh);
-                    objects.push(mesh);
-                    if (isSpawn) {
-                        if (spawnPoint) { scene.remove(spawnPoint); objects.splice(objects.indexOf(spawnPoint), 1); }
-                        spawnPoint = mesh;
-                    }
-                }
-            } else if (currentTool === 'delete') {
-                const intersects = raycaster.intersectObjects(objects.filter(o => o !== floor));
-                if (intersects.length > 0) {
-                    const hit = intersects[0].object;
-                    scene.remove(hit);
-                    objects.splice(objects.indexOf(hit), 1);
-                    if (hit === spawnPoint) spawnPoint = null;
-                    gizmo.detach();
-                }
-            } else if (currentTool === 'script') {
-                const intersects = raycaster.intersectObjects(objects.filter(o => o !== floor && o !== spawnPoint));
-                if (intersects.length > 0) {
-                    activeScriptBlock = intersects[0].object;
-                    document.getElementById('script-modal').style.display = 'block';
-                }
-            } else if (currentTool === 'scale' || currentTool === 'drag') {
-                const intersects = raycaster.intersectObjects(objects.filter(o => o !== floor));
-                if (intersects.length > 0) {
-                    gizmo.attach(intersects[0].object);
-                } else {
-                    gizmo.detach();
-                }
-            }
+        // --- PC MOUSE LOOK ---
+        document.body.addEventListener('click', () => {
+            if (isPlayMode && !isMobileTouch) document.body.requestPointerLock();
         });
-
-        // Editor Camera Looking
-        window.addEventListener('pointermove', (e) => {
-            if (!isPlayMode && e.buttons === 2) { 
-                camera.rotation.y -= e.movementX * 0.005;
-                camera.rotation.x -= e.movementY * 0.005;
-                camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, camera.rotation.x));
-            }
-        });
-        
-        // Prevent context menu when right clicking to move cam
-        window.addEventListener('contextmenu', e => e.preventDefault());
-
-        // --- MAIN GAME LOOP (COLLISIONS AND PHYSICS) ---
-        function animate() {
-            requestAnimationFrame(animate);
-
-            if (isPlayMode) {
-                const moveVec = new THREE.Vector3();
-                const camDir = new THREE.Vector3();
-                camera.getWorldDirection(camDir);
-                camDir.y = 0; camDir.normalize();
-                const camRight = new THREE.Vector3().crossVectors(camDir, new THREE.Vector3(0,1,0)).normalize();
-
-                // Desktop & Mobile movement input
-                if (keys['KeyW'] || joystickY < 0) moveVec.add(camDir);
-                if (keys['KeyS'] || joystickY > 0) moveVec.sub(camDir);
-                if (keys['KeyA'] || joystickX < 0) moveVec.sub(camRight);
-                if (keys['KeyD'] || joystickX > 0) moveVec.add(camRight);
-
-                moveVec.normalize().multiplyScalar(moveSpeed);
-                
-                if (joystickX !== 0 || joystickY !== 0) {
-                    moveVec.multiplyScalar(Math.max(Math.abs(joystickX), Math.abs(joystickY)));
-                }
-
-                // X/Z Movement Physics
-                const nextPos = camera.position.clone().add(moveVec);
-                const playerBox = new THREE.Box3();
-                playerBox.setFromCenterAndSize(new THREE.Vector3(nextPos.x, camera.position.y - playerHeight/2, nextPos.z), new THREE.Vector3(0.5, playerHeight - 0.2, 0.5));
-
-                let hitWall = false;
-                for (let obj of objects) {
-                    if (obj === floor || obj === spawnPoint) continue;
-                    const objBox = new THREE.Box3().setFromObject(obj);
-                    if (playerBox.intersectsBox(objBox)) { hitWall = true; break; }
-                }
-                if (!hitWall) {
-                    camera.position.x += moveVec.x;
-                    camera.position.z += moveVec.z;
-                }
-
-                // Y Movement (Gravity) & Floor/Block Collisions
-                velocityY -= worldGravity;
-                camera.position.y += velocityY;
-
-                const downBox = new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(camera.position.x, camera.position.y - playerHeight/2, camera.position.z), new THREE.Vector3(0.4, playerHeight, 0.4));
-                isGrounded = false;
-
-                // Base Floor collision
-                if (camera.position.y - playerHeight < floor.position.y) {
-                    camera.position.y = floor.position.y + playerHeight;
-                    velocityY = 0;
-                    isGrounded = true;
-                }
-
-                // Block Collisions for Standing
-                for (let obj of objects) {
-                    if (obj === floor || obj === spawnPoint) continue;
-                    const objBox = new THREE.Box3().setFromObject(obj);
-                    
-                    if (downBox.intersectsBox(objBox) && velocityY <= 0) {
-                        // Check if we are landing on top of it
-                        if (camera.position.y - playerHeight - velocityY >= objBox.max.y - 0.2) {
-                            camera.position.y = objBox.max.y + playerHeight;
-                            velocityY = 0;
-                            isGrounded = true;
-
-                            // Triggers for scripts/behaviors
-                            const b = obj.userData.behavior;
-                            if (b === 'kill') window.BubbleEngine.killPlayer();
-                            else if (b === 'bounce') velocityY = jumpStrength * 1.5;
-                        }
-                    }
-                }
-
-                // Jump execution
-                if ((keys['Space'] || mobileJump) && isGrounded) {
-                    velocityY = jumpStrength;
-                    isGrounded = false;
-                    mobileJump = false; 
-                }
-
-                // PC Mouse Look lock
-                document.body.requestPointerLock = document.body.requestPointerLock || document.body.mozRequestPointerLock;
-                if(keys['Space'] && !isMobileTouch) document.body.requestPointerLock();
-
-                // Live Coordinates update
-                document.getElementById('coords').innerText = `POS - X: ${Math.round(camera.position.x)} | Y: ${Math.round(camera.position.y)} | Z: ${Math.round(camera.position.z)}`;
-            } else {
-                // Editor WASD floating Camera Movement
-                const moveVec = new THREE.Vector3();
-                if (keys['KeyW']) moveVec.z -= moveSpeed;
-                if (keys['KeyS']) moveVec.z += moveSpeed;
-                if (keys['KeyA']) moveVec.x -= moveSpeed;
-                if (keys['KeyD']) moveVec.x += moveSpeed;
-                if (keys['KeyE']) moveVec.y += moveSpeed;
-                if (keys['KeyQ']) moveVec.y -= moveSpeed;
-
-                moveVec.applyEuler(camera.rotation);
-                camera.position.add(moveVec);
-            }
-
-            renderer.render(scene, camera);
-        }
-
-        // PC Mouse Look event
-        window.addEventListener('mousemove', (e) => {
-            if (isPlayMode && document.pointerLockElement === document.body) {
+        document.addEventListener('mousemove', (e) => {
+            if (document.pointerLockElement === document.body && isPlayMode) {
                 camera.rotation.y -= e.movementX * 0.002;
                 camera.rotation.x -= e.movementY * 0.002;
                 camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, camera.rotation.x));
             }
         });
 
+        // --- BUILDING LOGIC (PC CLICK & MOBILE TAP) ---
+        renderer.domElement.addEventListener('pointerdown', (e) => {
+            if (isPlayMode || isDraggingGizmo || e.target !== renderer.domElement) return;
+            
+            // Convert pointer position to Normalized Device Coordinates
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            
+            const intersects = raycaster.intersectObjects(objects);
+            
+            if (intersects.length > 0) {
+                const intersect = intersects[0];
+                
+                if (currentTool === 'place') {
+                    if (selectedItemType === 'spawn' && spawnPoint) scene.remove(spawnPoint);
+                    
+                    const isSpawn = selectedItemType === 'spawn';
+                    const mat = isSpawn ? spawnMat : new THREE.MeshStandardMaterial({ color: 0xcccccc, map: gridToggle.checked ? gridTexture : null });
+                    const mesh = new THREE.Mesh(isSpawn ? spawnGeo : blockGeo, mat);
+                    
+                    const pos = intersect.point.clone().add(intersect.face.normal.clone().multiplyScalar(0.5));
+                    mesh.position.set(Math.round(pos.x), Math.round(pos.y), Math.round(pos.z));
+                    mesh.userData = { behavior: 'none', rawJS: "" };
+                    
+                    scene.add(mesh); objects.push(mesh);
+                    if (isSpawn) spawnPoint = mesh;
+                } else if (currentTool === 'delete' && intersect.object !== floor) {
+                    scene.remove(intersect.object);
+                    objects.splice(objects.indexOf(intersect.object), 1);
+                    if (intersect.object === spawnPoint) spawnPoint = null;
+                } else if (currentTool === 'scale' || currentTool === 'drag') {
+                    if (intersect.object !== floor) gizmo.attach(intersect.object);
+                } else if (currentTool === 'script' && intersect.object !== floor && intersect.object !== spawnPoint) {
+                    activeScriptBlock = intersect.object;
+                    document.getElementById('script-modal').style.display = 'block';
+                }
+            }
+        });
+
+        // --- MAIN GAME LOOP ---
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const direction = new THREE.Vector3();
+            const right = new THREE.Vector3();
+            camera.getWorldDirection(direction);
+            direction.y = 0; direction.normalize();
+            right.crossVectors(camera.up, direction).normalize();
+
+            // Keyboard and Joystick Input Calculation
+            let moveZ = (keys['KeyW'] ? 1 : 0) - (keys['KeyS'] ? 1 : 0) - joystickY;
+            let moveX = (keys['KeyD'] ? 1 : 0) - (keys['KeyA'] ? 1 : 0) - joystickX;
+
+            if (isPlayMode) {
+                // Play Mode Movement (Has Gravity & Collisions)
+                camera.position.addScaledVector(direction, moveZ * moveSpeed);
+                camera.position.addScaledVector(right, moveX * moveSpeed);
+
+                // Simple Gravity & Floor Detection
+                velocityY -= worldGravity;
+                camera.position.y += velocityY;
+                isGrounded = false;
+
+                if (camera.position.y <= playerHeight) {
+                    camera.position.y = playerHeight;
+                    velocityY = 0;
+                    isGrounded = true;
+                }
+
+                // Jump
+                if ((keys['Space'] || mobileJump) && isGrounded) {
+                    velocityY = jumpStrength;
+                    isGrounded = false;
+                }
+
+                // Check Block Collisions / Behaviors
+                const playerAABB = new THREE.Box3().setFromCenterAndSize(camera.position, new THREE.Vector3(0.6, playerHeight, 0.6));
+                for (let obj of objects) {
+                    if (obj !== floor) {
+                        const objAABB = new THREE.Box3().setFromObject(obj);
+                        if (playerAABB.intersectsBox(objAABB)) {
+                            if (obj.userData.behavior === 'kill') window.BubbleEngine.killPlayer();
+                            if (obj.userData.behavior === 'bounce') velocityY = 0.5;
+                            if (obj.userData.behavior === 'javascript' && obj.userData.compiledJS) {
+                                try { obj.userData.compiledJS.call(obj); } catch(e){ console.error(e); }
+                            }
+                        }
+                        if (obj.userData.behavior === 'spin') obj.rotation.y += 0.05;
+                    }
+                }
+            } else {
+                // Editor Mode Movement (Flying, No Gravity)
+                // When looking up/down, move in that direction too
+                camera.getWorldDirection(direction); 
+                camera.position.addScaledVector(direction, moveZ * moveSpeed);
+                camera.position.addScaledVector(right, moveX * moveSpeed);
+                
+                // Fly up/down with keys in editor
+                if (keys['Space']) camera.position.y += moveSpeed;
+                if (keys['ShiftLeft']) camera.position.y -= moveSpeed;
+            }
+
+            // Update Coords UI
+            document.getElementById('coords').innerText = `POS - X: ${camera.position.x.toFixed(1)} | Y: ${camera.position.y.toFixed(1)} | Z: ${camera.position.z.toFixed(1)}`;
+            
+            // Broadcast Position to Supabase if moving
+            if (isPlayMode && (moveX !== 0 || moveZ !== 0 || velocityY !== 0)) {
+                channel.send({ type: 'broadcast', event: 'move', payload: { id: currentUser, x: camera.position.x, y: camera.position.y, z: camera.position.z } });
+            }
+
+            renderer.render(scene, camera);
+        }
         animate();
+
     </script>
 </body>
 </html>
