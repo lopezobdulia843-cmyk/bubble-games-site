@@ -96,9 +96,10 @@
         .game-card { 
             background: var(--card); border-radius: 28px; text-align: left; 
             transition: 0.4s; overflow: hidden; border: 1px solid rgba(255,255,255,0.03);
+            display: flex; flex-direction: column;
         }
         .game-card:hover { transform: translateY(-8px); border-color: var(--primary); }
-        .card-inner { padding: 25px; }
+        .card-inner { padding: 25px; flex-grow: 1; }
         
         .status-tag { float: right; font-size: 11px; padding: 5px 12px; border-radius: 50px; font-weight: 900; text-transform: uppercase; }
         .status-private { background: #333; color: #aaa; }
@@ -118,7 +119,13 @@
         .btn-logout { background: var(--glass); color: #fff; padding: 10px 20px; border-radius: 12px; border: none; font-weight: 700; cursor: pointer; }
         .owner-tag { background: var(--owner); color: #000; padding: 2px 8px; border-radius: 6px; font-size: 12px; }
 
-        /* Hidden Sections */
+        #videoModal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95);
+            display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 2000;
+        }
+        #videoModal video { max-width: 90%; max-height: 80%; border-radius: 20px; box-shadow: 0 0 50px var(--primary); }
+        .modal-close { position: absolute; top: 30px; right: 30px; font-size: 40px; cursor: pointer; color: white; font-weight: 900; }
+
         .content-section { display: none; margin-bottom: 100px; }
         .content-section.active { display: block; animation: fadeIn 0.5s ease forwards; }
 
@@ -128,6 +135,12 @@
 
 <body>
     <div id="loadingState">SYNCHRONIZING...</div>
+
+    <div id="videoModal">
+        <span class="modal-close" onclick="closeVideo()">× EXIT</span>
+        <h2 id="modalVideoTitle" style="margin-bottom: 20px;"></h2>
+        <video id="activeVideo" controls autoplay></video>
+    </div>
 
     <div id="authContainer" style="display:none;">
         <h1 class="logo" style="font-size: 40px;" onclick="location.reload()">Bubble Games</h1>
@@ -157,7 +170,7 @@
                 <h1 id="mainHeading" style="font-size: 3.5rem; font-weight: 900; margin-bottom: 20px;">What would you like to play?</h1>
                 
                 <div class="search-container">
-                    <input type="text" id="gameSearch" class="main-search" placeholder="Search and press Enter...">
+                    <input type="text" id="gameSearch" class="main-search" placeholder="Search Games and press Enter...">
                 </div>
 
                 <div class="nav-options">
@@ -186,9 +199,13 @@
 
             <div id="bubbletube-section" class="content-section">
                 <h2 class="section-title"><span>📺</span> BUBBLETUBE</h2>
+
+                <div class="search-container">
+                    <input type="text" id="tubeSearch" class="main-search" placeholder="Search Videos and press Enter...">
+                </div>
                 
                 <div style="background: var(--card); padding: 30px; border-radius: 28px; border: 1px solid var(--glass); margin-bottom: 40px;">
-                    <h3>Create BubbleVid</h3>
+                    <h3>Upload to BubbleTube</h3>
                     <input type="file" id="videoFile" accept="video/*" style="border: 2px dashed #444; width: 80%; margin: 10px auto;">
                     <p style="font-size: 12px; color: #666;">Limit: 50MB</p>
                     <input type="text" id="videoTitle" placeholder="Video Title">
@@ -247,6 +264,7 @@
             allVideos = vids || [];
 
             renderGrids(isOwner);
+            renderTube(""); // Initial Tube Load
         }
 
         function renderGrids(isOwner) {
@@ -255,16 +273,25 @@
             myGrid.innerHTML = ''; globalGrid.innerHTML = '';
 
             allGames.forEach(game => {
-                if (game.creator === currentUser) myGrid.appendChild(createCard(game, true, isOwner));
-                else if (game.is_public) globalGrid.appendChild(createCard(game, false, isOwner));
+                const isCreator = (game.creator === currentUser);
+                if (isCreator) myGrid.appendChild(createGameCard(game, true, isOwner));
+                
+                if (game.is_public && !isCreator) {
+                   globalGrid.appendChild(createGameCard(game, false, isOwner));
+                }
             });
         }
 
-        function renderTube() {
+        function renderTube(filter = "") {
             const tubeGrid = document.getElementById('tubeGrid');
+            const isOwner = (userRole === "Owner");
             tubeGrid.innerHTML = '';
+            
             allVideos.forEach(vid => {
-                if (vid.is_public || vid.creator === currentUser) {
+                const isCreator = (vid.creator === currentUser);
+                const hasPower = isCreator || isOwner;
+
+                if ((vid.is_public || isCreator || isOwner) && vid.title.toLowerCase().includes(filter.toLowerCase())) {
                     const card = document.createElement('div');
                     card.className = 'game-card';
                     card.innerHTML = `
@@ -272,13 +299,75 @@
                             <span class="status-tag ${vid.is_public ? 'status-public' : 'status-private'}">${vid.is_public ? '🌐 Public' : '🔒 Private'}</span>
                             <span class="creator-label">@${vid.creator}</span>
                             <h3 class="game-name">${vid.title}</h3>
-                            <video width="100%" controls style="border-radius:15px; margin-top:10px;"><source src="${vid.video_url}"></video>
+                            <div class="action-row">
+                                <button class="btn-base btn-play" onclick="openVideo('${vid.video_url}', '${vid.title}')">▶ WATCH VIDEO</button>
+                                ${hasPower ? `
+                                    <button class="btn-base btn-edit" onclick="editVideo('${vid.id}', '${vid.title}')">✎ Edit</button>
+                                    <button class="btn-base btn-delete" onclick="deleteVideo('${vid.id}')">✖</button>
+                                ` : ''}
+                            </div>
                         </div>
                     `;
                     tubeGrid.appendChild(card);
                 }
             });
         }
+
+        // --- GAME CARD GENERATOR ---
+        function createGameCard(game, isCreator, isOwner) {
+            const card = document.createElement('div');
+            card.className = 'game-card';
+            const hasPower = isCreator || isOwner;
+            card.innerHTML = `
+                <div class="card-inner">
+                    <span class="status-tag ${game.is_public ? 'status-public' : 'status-private'}">${game.is_public ? '🌐 Public' : '🔒 Private'}</span>
+                    <span class="creator-label">@${game.creator}</span>
+                    <h3 class="game-name">${game.name || 'Untitled'}</h3>
+                    <div class="action-row">
+                        <button class="btn-base btn-play" onclick="playGame('${game.id}')">▶ PLAY</button>
+                        ${hasPower ? `
+                            <button class="btn-base btn-edit" onclick="editGame('${game.id}')">✎ Edit</button>
+                            <button class="btn-base btn-delete" onclick="deleteGame('${game.id}')">✖</button>
+                        ` : ''}
+                    </div>
+                </div>`;
+            return card;
+        }
+
+        // --- VIDEO PLAYER LOGIC ---
+        window.openVideo = (url, title) => {
+            const modal = document.getElementById('videoModal');
+            const video = document.getElementById('activeVideo');
+            document.getElementById('modalVideoTitle').innerText = title;
+            video.src = url;
+            modal.style.display = 'flex';
+        };
+
+        window.closeVideo = () => {
+            const modal = document.getElementById('videoModal');
+            const video = document.getElementById('activeVideo');
+            video.pause();
+            video.src = "";
+            modal.style.display = 'none';
+        };
+
+        // --- VIDEO MANAGEMENT ---
+        window.deleteVideo = async (id) => {
+            if(confirm("Permanently delete this BubbleVid?")) {
+                const { error } = await supabaseClient.from('videos').delete().eq('id', id);
+                if (error) alert(error.message);
+                else location.reload();
+            }
+        };
+
+        window.editVideo = async (id, oldTitle) => {
+            const newTitle = prompt("Update video title:", oldTitle);
+            if (newTitle && newTitle !== oldTitle) {
+                const { error } = await supabaseClient.from('videos').update({ title: newTitle }).eq('id', id);
+                if (error) alert(error.message);
+                else location.reload();
+            }
+        };
 
         // --- NAVIGATION ---
         window.showSection = (section) => {
@@ -300,16 +389,22 @@
             }
         };
 
-        // --- SEARCH LOGIC (GAMES ONLY) ---
+        // --- SEARCH LOGIC ---
         document.getElementById('gameSearch').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 const query = e.target.value.toLowerCase().trim();
                 if (!query) return;
                 const searchGrid = document.getElementById('searchGrid');
                 searchGrid.innerHTML = '';
-                const filtered = allGames.filter(g => g.name.toLowerCase().includes(query) && (g.is_public || g.creator === currentUser));
-                filtered.forEach(game => searchGrid.appendChild(createCard(game, game.creator === currentUser, userRole === "Owner")));
+                const filtered = allGames.filter(g => g.name.toLowerCase().includes(query) && (g.is_public || g.creator === currentUser || userRole === "Owner"));
+                filtered.forEach(game => searchGrid.appendChild(createGameCard(game, game.creator === currentUser, userRole === "Owner")));
                 showSection('results');
+            }
+        });
+
+        document.getElementById('tubeSearch').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                renderTube(e.target.value);
             }
         });
 
@@ -339,29 +434,12 @@
             location.reload();
         };
 
-        function createCard(game, isCreator, isOwner) {
-            const card = document.createElement('div');
-            card.className = 'game-card';
-            const hasPower = isCreator || isOwner;
-            card.innerHTML = `
-                <div class="card-inner">
-                    <span class="status-tag ${game.is_public ? 'status-public' : 'status-private'}">${game.is_public ? '🌐 Public' : '🔒 Private'}</span>
-                    <span class="creator-label">@${game.creator}</span>
-                    <h3 class="game-name">${game.name || 'Untitled'}</h3>
-                    <div class="action-row">
-                        <button class="btn-base btn-play" onclick="playGame('${game.id}')">▶ PLAY</button>
-                        ${hasPower ? `<button class="btn-base btn-edit" onclick="editGame('${game.id}')">✎ Edit</button>
-                        <button class="btn-base btn-delete" onclick="deleteGame('${game.id}')">✖</button>` : ''}
-                    </div>
-                </div>`;
-            return card;
-        }
-
+        // --- GAME ACTIONS ---
         window.playGame = (id) => { localStorage.setItem('currentGameId', id); localStorage.setItem('editMode', 'false'); window.location.href = 'engine.html'; };
         window.editGame = (id) => { localStorage.setItem('currentGameId', id); localStorage.setItem('editMode', 'true'); window.location.href = 'engine.html'; };
-        window.deleteGame = async (id) => { if(confirm("Delete?")) { await supabaseClient.from('games').delete().eq('id', id); location.reload(); }};
+        window.deleteGame = async (id) => { if(confirm("Delete this game?")) { await supabaseClient.from('games').delete().eq('id', id); location.reload(); }};
 
-        // Auth Logic
+        // --- AUTH LOGIC ---
         async function handleAuth(mode) {
             const user = document.getElementById('username').value.trim();
             const pass = document.getElementById('password').value;
