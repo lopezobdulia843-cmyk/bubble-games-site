@@ -101,7 +101,7 @@
         .game-card:hover { transform: translateY(-8px); border-color: var(--primary); }
         .card-inner { padding: 25px; flex-grow: 1; }
         
-        .status-tag { float: right; font-size: 11px; padding: 5px 12px; border-radius: 50px; font-weight: 900; text-transform: uppercase; }
+        .status-tag { float: right; font-size: 11px; padding: 5px 12px; border-radius: 50px; font-weight: 900; text-transform: uppercase; cursor: help; }
         .status-private { background: #333; color: #aaa; }
         .status-public { background: rgba(0, 255, 136, 0.15); color: var(--success); border: 1px solid var(--success); }
 
@@ -160,7 +160,7 @@
         <nav>
             <div class="logo" onclick="location.reload()">Bubble Games</div>
             <div style="display: flex; align-items: center; gap: 15px;">
-                <span id="userDisplay"></span>
+                <div id="userDisplay"></div>
                 <button id="logoutBtn" class="btn-logout">LOGOUT</button>
             </div>
         </nav>
@@ -230,6 +230,7 @@
         const OWNER_EMAIL = "goomba@bubble.com"; 
         let currentUser = "";
         let userRole = "Player";
+        let isOwner = false;
         let allGames = [];
         let allVideos = [];
 
@@ -239,7 +240,9 @@
                 if (user) {
                     const { data: profile } = await supabaseClient.from('profiles').select('username, role').eq('id', user.id).single();
                     currentUser = profile ? profile.username : user.email.split('@')[0];
-                    userRole = (user.email.toLowerCase() === OWNER_EMAIL.toLowerCase()) ? "Owner" : (profile ? profile.role : "Player");
+                    isOwner = (user.email.toLowerCase() === OWNER_EMAIL.toLowerCase());
+                    userRole = isOwner ? "Owner" : (profile ? profile.role : "Player");
+                    
                     document.getElementById('loadingState').style.display = 'none';
                     showApp();
                 } else {
@@ -252,7 +255,7 @@
         async function showApp() {
             document.getElementById('authContainer').style.display = 'none';
             document.getElementById('mainApp').style.display = 'block';
-            const isOwner = (userRole === "Owner");
+            
             document.getElementById('userDisplay').innerHTML = isOwner 
                 ? `<span class="owner-tag">OWNER</span> ${currentUser.toUpperCase()}` 
                 : `<span style="color:var(--primary); font-weight:900;">${currentUser.toUpperCase()}</span>`;
@@ -263,47 +266,50 @@
             const { data: vids } = await supabaseClient.from('videos').select('*').order('created_at', { ascending: false });
             allVideos = vids || [];
 
-            renderGrids(isOwner);
-            renderTube(""); // Initial Tube Load
+            renderGrids();
+            renderTube(""); 
         }
 
-        function renderGrids(isOwner) {
+        function renderGrids() {
             const myGrid = document.getElementById('myGamesGrid');
             const globalGrid = document.getElementById('globalGamesGrid');
             myGrid.innerHTML = ''; globalGrid.innerHTML = '';
 
             allGames.forEach(game => {
                 const isCreator = (game.creator === currentUser);
-                if (isCreator) myGrid.appendChild(createGameCard(game, true, isOwner));
+                // Owners see everything in Studio, Players see only their own
+                if (isCreator || isOwner) myGrid.appendChild(createGameCard(game, isCreator));
                 
                 if (game.is_public && !isCreator) {
-                   globalGrid.appendChild(createGameCard(game, false, isOwner));
+                   globalGrid.appendChild(createGameCard(game, false));
                 }
             });
         }
 
         function renderTube(filter = "") {
             const tubeGrid = document.getElementById('tubeGrid');
-            const isOwner = (userRole === "Owner");
             tubeGrid.innerHTML = '';
             
             allVideos.forEach(vid => {
                 const isCreator = (vid.creator === currentUser);
                 const hasPower = isCreator || isOwner;
 
-                if ((vid.is_public || isCreator || isOwner) && vid.title.toLowerCase().includes(filter.toLowerCase())) {
+                // Show if: It's public OR User is creator OR User is owner
+                if ((vid.is_public || hasPower) && vid.title.toLowerCase().includes(filter.toLowerCase())) {
                     const card = document.createElement('div');
                     card.className = 'game-card';
                     card.innerHTML = `
                         <div class="card-inner">
-                            <span class="status-tag ${vid.is_public ? 'status-public' : 'status-private'}">${vid.is_public ? '🌐 Public' : '🔒 Private'}</span>
+                            <span class="status-tag ${vid.is_public ? 'status-public' : 'status-private'}">
+                                ${vid.is_public ? '🌐 Public' : '🔒 Private'}
+                            </span>
                             <span class="creator-label">@${vid.creator}</span>
                             <h3 class="game-name">${vid.title}</h3>
                             <div class="action-row">
                                 <button class="btn-base btn-play" onclick="openVideo('${vid.video_url}', '${vid.title}')">▶ WATCH VIDEO</button>
                                 ${hasPower ? `
-                                    <button class="btn-base btn-edit" onclick="editVideo('${vid.id}', '${vid.title}')">✎ Edit</button>
-                                    <button class="btn-base btn-delete" onclick="deleteVideo('${vid.id}')">✖</button>
+                                    <button class="btn-base btn-edit" onclick="editVideo('${vid.id}', '${vid.title.replace(/'/g, "\\'")}', ${vid.is_public})">✎ Rename / Privacy</button>
+                                    <button class="btn-base btn-delete" onclick="deleteVideo('${vid.id}')">✖ Delete</button>
                                 ` : ''}
                             </div>
                         </div>
@@ -313,8 +319,7 @@
             });
         }
 
-        // --- GAME CARD GENERATOR ---
-        function createGameCard(game, isCreator, isOwner) {
+        function createGameCard(game, isCreator) {
             const card = document.createElement('div');
             card.className = 'game-card';
             const hasPower = isCreator || isOwner;
@@ -334,7 +339,7 @@
             return card;
         }
 
-        // --- VIDEO PLAYER LOGIC ---
+        // --- BUBBLETUBE MANAGEMENT ---
         window.openVideo = (url, title) => {
             const modal = document.getElementById('videoModal');
             const video = document.getElementById('activeVideo');
@@ -351,25 +356,33 @@
             modal.style.display = 'none';
         };
 
-        // --- VIDEO MANAGEMENT ---
         window.deleteVideo = async (id) => {
             if(confirm("Permanently delete this BubbleVid?")) {
                 const { error } = await supabaseClient.from('videos').delete().eq('id', id);
                 if (error) alert(error.message);
-                else location.reload();
+                else {
+                    alert("Deleted!");
+                    location.reload();
+                }
             }
         };
 
-        window.editVideo = async (id, oldTitle) => {
-            const newTitle = prompt("Update video title:", oldTitle);
-            if (newTitle && newTitle !== oldTitle) {
-                const { error } = await supabaseClient.from('videos').update({ title: newTitle }).eq('id', id);
-                if (error) alert(error.message);
-                else location.reload();
+        window.editVideo = async (id, oldTitle, currentPrivacy) => {
+            const action = prompt("Type 'rename' to change name, or 'privacy' to toggle visibility:", "rename");
+            
+            if (action === 'rename') {
+                const newTitle = prompt("Enter new title:", oldTitle);
+                if (newTitle && newTitle !== oldTitle) {
+                    const { error } = await supabaseClient.from('videos').update({ title: newTitle }).eq('id', id);
+                    if (error) alert(error.message); else location.reload();
+                }
+            } else if (action === 'privacy') {
+                const { error } = await supabaseClient.from('videos').update({ is_public: !currentPrivacy }).eq('id', id);
+                if (error) alert(error.message); else location.reload();
             }
         };
 
-        // --- NAVIGATION ---
+        // --- NAVIGATION & SEARCH ---
         window.showSection = (section) => {
             document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
             const heading = document.getElementById('mainHeading');
@@ -389,15 +402,14 @@
             }
         };
 
-        // --- SEARCH LOGIC ---
         document.getElementById('gameSearch').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 const query = e.target.value.toLowerCase().trim();
                 if (!query) return;
                 const searchGrid = document.getElementById('searchGrid');
                 searchGrid.innerHTML = '';
-                const filtered = allGames.filter(g => g.name.toLowerCase().includes(query) && (g.is_public || g.creator === currentUser || userRole === "Owner"));
-                filtered.forEach(game => searchGrid.appendChild(createGameCard(game, game.creator === currentUser, userRole === "Owner")));
+                const filtered = allGames.filter(g => g.name.toLowerCase().includes(query) && (g.is_public || g.creator === currentUser || isOwner));
+                filtered.forEach(game => searchGrid.appendChild(createGameCard(game, game.creator === currentUser)));
                 showSection('results');
             }
         });
@@ -408,8 +420,9 @@
             }
         });
 
-        // --- VIDEO PUBLISH ---
+        // --- UPLOAD LOGIC ---
         document.getElementById('publishVidBtn').onclick = async () => {
+            const btn = document.getElementById('publishVidBtn');
             const fileInput = document.getElementById('videoFile');
             const title = document.getElementById('videoTitle').value.trim();
             const isPublic = document.getElementById('videoVisibility').value === 'true';
@@ -418,28 +431,39 @@
             if (!file || !title) return alert("Fill out all fields!");
             if (file.size > 50 * 1024 * 1024) return alert("Too large! (50MB Max)");
 
-            document.getElementById('publishVidBtn').innerText = "UPLOADING...";
+            btn.innerText = "UPLOADING...";
+            btn.disabled = true;
+
             const fileName = `${Date.now()}_${file.name}`;
-            
             const { error: uploadErr } = await supabaseClient.storage.from('bubbletube-videos').upload(fileName, file);
-            if (uploadErr) return alert(uploadErr.message);
+            
+            if (uploadErr) {
+                alert(uploadErr.message);
+                btn.innerText = "PUBLISH VID";
+                btn.disabled = false;
+                return;
+            }
 
             const { data: urlData } = supabaseClient.storage.from('bubbletube-videos').getPublicUrl(fileName);
-            
+            const { data: userData } = await supabaseClient.auth.getUser();
+
             await supabaseClient.from('videos').insert([{
-                title, video_url: urlData.publicUrl, creator: currentUser, is_public: isPublic, user_id: (await supabaseClient.auth.getUser()).data.user.id
+                title, 
+                video_url: urlData.publicUrl, 
+                creator: currentUser, 
+                is_public: isPublic, 
+                user_id: userData.user.id
             }]);
 
             alert("BubbleVid Live! 🚀");
             location.reload();
         };
 
-        // --- GAME ACTIONS ---
+        // --- CORE ACTIONS ---
         window.playGame = (id) => { localStorage.setItem('currentGameId', id); localStorage.setItem('editMode', 'false'); window.location.href = 'engine.html'; };
         window.editGame = (id) => { localStorage.setItem('currentGameId', id); localStorage.setItem('editMode', 'true'); window.location.href = 'engine.html'; };
         window.deleteGame = async (id) => { if(confirm("Delete this game?")) { await supabaseClient.from('games').delete().eq('id', id); location.reload(); }};
 
-        // --- AUTH LOGIC ---
         async function handleAuth(mode) {
             const user = document.getElementById('username').value.trim();
             const pass = document.getElementById('password').value;
