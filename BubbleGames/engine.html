@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Bubble Games</title>
+    <title>Bubble Games - Engine</title>
     <script src="https://cdn.jsdelivr.net/npm/fengari-web@0.1.4/dist/fengari-web.js" type="text/javascript"></script>
     
     <style>
-        body { margin: 0; overflow: hidden; background: #050505; font-family: sans-serif; touch-action: none; color: white; }
+        body { margin: 0; overflow: hidden; background: #050505; font-family: sans-serif; touch-action: none; color: white; user-select: none; -webkit-user-select: none; }
         .controls { position: absolute; z-index: 10; display: flex; gap: 10px; }
         #top-bar { top: 20px; right: 20px; flex-direction: column; align-items: flex-end; }
         
@@ -25,7 +25,6 @@
             font-size: 12px; border-radius: 4px; padding: 2px 4px; text-align: center;
         }
         .num-input:focus { border-color: #00d4ff; outline: none; }
-
         input[type="range"] { width: 100%; cursor: pointer; accent-color: #00d4ff; }
 
         button { 
@@ -35,6 +34,7 @@
             backdrop-filter: blur(5px); margin-bottom: 5px;
             display: flex; align-items: center; justify-content: center; transition: 0.2s;
         }
+        button:hover { background: rgba(0, 212, 255, 0.3); }
         
         #publishBtn { background: #00d4ff; color: #000; }
         #playTestBtn { background: #2ecc71; color: #000; border-color: #2ecc71; }
@@ -42,6 +42,7 @@
 
         .active-tool { background: #00d4ff !important; color: #000 !important; box-shadow: 0 0 15px #00d4ff; }
         #deleteModeBtn.active-tool { background: #ff3232 !important; border-color: #ff3232 !important; color: white !important; box-shadow: 0 0 15px #ff3232; }
+        #scriptModeBtn.active-tool { background: #f39c12 !important; border-color: #f39c12 !important; color: white !important; box-shadow: 0 0 15px #f39c12; }
 
         #item-selector { 
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
@@ -60,12 +61,12 @@
         .icon-spawn { background: #00ffff; box-shadow: 0 0 10px #00ffff; }
         .item-label { font-size: 10px; color: white; text-transform: uppercase; }
 
-        #info { position: absolute; top: 10px; left: 10px; color: white; pointer-events: none; }
+        #info { position: absolute; top: 10px; left: 10px; color: white; pointer-events: none; z-index: 80; }
         #coords { font-family: monospace; color: #00d4ff; margin-top: 5px; background: rgba(0,0,0,0.5); padding: 5px; border-radius: 5px; }
         #crosshair { 
             position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; 
             border: 2px solid white; border-radius: 50%; transform: translate(-50%, -50%); 
-            display: none; pointer-events: none; 
+            display: none; pointer-events: none; z-index: 80;
         }
         #loading-overlay { position: fixed; inset: 0; background: #050505; z-index: 100; display: flex; align-items: center; justify-content: center; color: #00d4ff; font-weight: bold; }
 
@@ -89,14 +90,47 @@
         }
         #chat-input {
             margin-top: 5px; background: rgba(0,0,0,0.8); border: 1px solid #00d4ff;
-            color: white; padding: 8px; border-radius: 4px; pointer-events: auto;
-            outline: none;
+            color: white; padding: 8px; border-radius: 4px; pointer-events: auto; outline: none;
         }
         .chat-msg { word-wrap: break-word; text-shadow: 1px 1px 2px black; }
         .chat-user { color: #00d4ff; font-weight: bold; }
 
         .toggle-container { display: flex; align-items: center; gap: 10px; margin-top: 10px; cursor: pointer; }
         .toggle-container input { cursor: pointer; }
+
+        /* SCRIPT MODAL UI */
+        #script-modal {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(10, 10, 10, 0.95); border: 2px solid #f39c12; border-radius: 12px;
+            padding: 20px; width: 300px; z-index: 200; display: none; text-align: center;
+            box-shadow: 0 0 30px rgba(243, 156, 18, 0.3);
+        }
+        #script-modal h3 { color: #f39c12; margin-top: 0; }
+        .script-option {
+            background: #222; border: 1px solid #444; padding: 10px; margin: 5px 0;
+            border-radius: 6px; cursor: pointer; color: white; transition: 0.2s;
+        }
+        .script-option:hover { background: #f39c12; color: #000; border-color: #f39c12; }
+        .script-close { background: #ff3232; border-color: #ff3232; margin-top: 15px; width: 100%; }
+
+        /* ROBLOX STYLE MOBILE CONTROLS */
+        #mobile-controls { position: fixed; inset: 0; pointer-events: none; z-index: 90; display: none; touch-action: none; }
+        #joystick-zone { position: absolute; left: 0; bottom: 0; width: 50vw; height: 100vh; pointer-events: auto; touch-action: none; }
+        #touch-look-zone { position: absolute; right: 0; top: 0; width: 50vw; height: 100vh; pointer-events: auto; touch-action: none; }
+        #joystick-base { 
+            position: absolute; width: 120px; height: 120px; background: rgba(255,255,255,0.05); 
+            border-radius: 50%; border: 2px solid rgba(0, 212, 255, 0.3); display: none; pointer-events: none;
+        }
+        #joystick-stick { 
+            position: absolute; left: 50%; top: 50%; width: 50px; height: 50px; 
+            background: rgba(0, 212, 255, 0.6); border-radius: 50%; transform: translate(-50%, -50%); 
+        }
+        #jump-btn { 
+            position: absolute; right: 40px; bottom: 40px; width: 70px; height: 70px; 
+            background: rgba(0, 212, 255, 0.1); border: 2px solid #00d4ff; border-radius: 50%; 
+            color: #00d4ff; display: flex; align-items: center; justify-content: center; 
+            font-weight: 900; font-size: 14px; pointer-events: auto; touch-action: none;
+        }
     </style>
 </head>
 <body>
@@ -106,6 +140,12 @@
         <h2 id="gameNameDisplay" style="margin:0; color:#00d4ff;">BUBBLE GAMES</h2>
         <p id="status">Status: LOADING...</p>
         <div id="coords">POS - X: 0 | Y: 0 | Z: 0</div>
+    </div>
+
+    <div id="mobile-controls">
+        <div id="joystick-zone"><div id="joystick-base"><div id="joystick-stick"></div></div></div>
+        <div id="touch-look-zone"></div>
+        <div id="jump-btn">JUMP</div>
     </div>
 
     <div id="chat-container">
@@ -121,7 +161,6 @@
             </div>
             <input type="range" id="speed-slider" min="0.01" max="1.0" step="0.01" value="0.12">
         </div>
-
         <div class="setting-group">
             <div class="label-container">
                 <label>Gravity</label>
@@ -129,18 +168,11 @@
             </div>
             <input type="range" id="gravity-slider" min="0" max="0.1" step="0.001" value="0.015">
         </div>
-
         <div class="setting-group">
             <label class="toggle-container">
                 <input type="checkbox" id="grid-toggle" checked>
                 <span style="font-size: 11px; color: #00d4ff;">GRID TEXTURES</span>
             </label>
-        </div>
-
-        <div id="part-settings" style="display:none; border-top: 1px solid #333; padding-top: 10px;">
-            <label>Part Size</label>
-            <input type="range" id="size-slider" min="0.2" max="10" step="0.1" value="1">
-            <p style="font-size: 9px; color: #888; margin-top:5px;">Click part to select</p>
         </div>
     </div>
 
@@ -159,10 +191,23 @@
         <button id="playTestBtn" onclick="togglePlayTest()">PLAY TEST ▶</button>
         <button id="publishBtn" onclick="publishGame()" style="display:none;">PUBLISH 🚀</button>
         <button id="dragModeBtn" onclick="toggleTool('drag')" style="display:none;">DRAG PART</button>
+        <button id="scaleModeBtn" onclick="toggleTool('scale')" style="display:none;">SCALE PART</button>
+        <button id="scriptModeBtn" onclick="toggleTool('script')" style="display:none;">ADD SCRIPT</button>
         <button id="deleteModeBtn" onclick="toggleTool('delete')" style="display:none;">DELETE</button>
         <button onclick="exitGame()">EXIT</button>
     </div>
     <div id="crosshair"></div>
+
+    <div id="script-modal">
+        <h3>Block Behaviors</h3>
+        <p style="font-size: 12px; color: #aaa;">Select what this block does when touched or loaded.</p>
+        <div class="script-option" onclick="applyScript('none')">None (Normal Block)</div>
+        <div class="script-option" onclick="applyScript('kill')" style="border-left: 4px solid red;">Lava (Kills Player)</div>
+        <div class="script-option" onclick="applyScript('bounce')" style="border-left: 4px solid #2ecc71;">Trampoline (Super Jump)</div>
+        <div class="script-option" onclick="applyScript('spin')" style="border-left: 4px solid #00d4ff;">Spinning Obstacle</div>
+        <div class="script-option" onclick="applyScript('javascript')" style="border-left: 4px solid #f1c40f;">Custom JavaScript</div>
+        <button class="script-close" onclick="document.getElementById('script-modal').style.display='none'">CANCEL</button>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script type="importmap">
@@ -178,7 +223,7 @@
         import * as THREE from 'three';
         import { TransformControls } from 'three/addons/controls/TransformControls.js';
 
-        const SUPABASE_URL = 'https://sideqpofgknyfagrjnke.supabase.co';
+        const SUPABASE_URL = window.location.origin + '/supabase';
         const SUPABASE_KEY = 'sb_publishable_ULjlm97u7-dg8ekTPU84aA_rA1CtUnH';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -223,19 +268,16 @@
         const spawnMat = new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 2 });
         
         const raycaster = new THREE.Raycaster();
-        const downRay = new THREE.Raycaster(); 
-        const upRay = new THREE.Raycaster();
-        const sideRay = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
         const gizmo = new TransformControls(camera, renderer.domElement);
-        gizmo.setMode('translate');
+        gizmo.setMode('scale'); 
         gizmo.setSize(0.6); 
         scene.add(gizmo);
 
         let remotePlayers = {};
         const gameId = localStorage.getItem('currentGameId') || 'lobby';
-        const channel = supabaseClient.channel(`room_${gameId}`);
+        const channel = supabaseClient.channel(`room_${gameId}`, { config: { presence: { key: currentUser } } });
 
         const chatInput = document.getElementById('chat-input');
         const chatMessages = document.getElementById('chat-messages');
@@ -251,27 +293,20 @@
         chatInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && chatInput.value.trim() !== '') {
                 const msg = chatInput.value.trim();
-                channel.send({
-                    type: 'broadcast',
-                    event: 'chat',
-                    payload: { user: currentUser, text: msg }
-                });
+                channel.send({ type: 'broadcast', event: 'chat', payload: { user: currentUser, text: msg } });
                 window.addChatMessage("You", msg);
-                chatInput.value = '';
-                chatInput.blur();
+                chatInput.value = ''; chatInput.blur();
             }
         });
 
-        channel.on('broadcast', { event: 'chat' }, ({ payload }) => {
-            window.addChatMessage(payload.user, payload.text);
-        });
-
+        channel.on('broadcast', { event: 'chat' }, ({ payload }) => window.addChatMessage(payload.user, payload.text));
+        
         channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
             leftPresences.forEach(p => {
                 const id = p.key;
                 if (remotePlayers[id]) {
                     scene.remove(remotePlayers[id].mesh);
-                    remotePlayers[id].label.remove();
+                    if(remotePlayers[id].label.parentNode) remotePlayers[id].label.remove();
                     delete remotePlayers[id];
                 }
             });
@@ -279,14 +314,6 @@
 
         channel.on('broadcast', { event: 'move' }, ({ payload }) => {
             if (payload.id === currentUser) return;
-            if (payload.y < -10) {
-                if (remotePlayers[payload.id]) {
-                    scene.remove(remotePlayers[payload.id].mesh);
-                    remotePlayers[payload.id].label.style.display = 'none';
-                }
-                return;
-            }
-
             if (!remotePlayers[payload.id]) {
                 const bodyGeo = new THREE.BoxGeometry(0.8, 1.6, 0.8);
                 const bodyMat = new THREE.MeshStandardMaterial({ color: 0x00d4ff });
@@ -299,7 +326,9 @@
                 remotePlayers[payload.id] = { mesh, label };
             }
             remotePlayers[payload.id].mesh.position.set(payload.x, payload.y - 0.8, payload.z);
-        }).subscribe();
+        }).subscribe(async (status) => {
+            if (status === 'SUBSCRIBED') await channel.track({ online_at: new Date().toISOString() });
+        });
 
         let isDraggingGizmo = false;
         gizmo.addEventListener('dragging-changed', (event) => {
@@ -307,8 +336,11 @@
         });
 
         let isPlayMode = false; 
+        let isMobileTouch = false;
         let currentTool = 'place'; 
         let selectedItemType = 'block'; 
+        let activeScriptBlock = null;
+        
         let moveSpeed = 0.12; 
         let worldGravity = 0.015; 
         let velocityY = 0;
@@ -318,8 +350,18 @@
         let editorCamRot = new THREE.Euler();
         const playerHeight = 1.4; 
         const jumpStrength = 0.35; 
-        const fallMultiplier = 1.5; 
-        const playerRadius = 0.45; 
+
+        // Mobile Controls Variables
+        let joystickX = 0, joystickY = 0;
+        let mobileJump = false;
+        let touchMoveId = null, touchLookId = null;
+        let lookPrevX = 0, lookPrevY = 0;
+
+        // Detect Mobile
+        window.addEventListener('touchstart', () => { 
+            isMobileTouch = true; 
+            document.getElementById('mobile-controls').style.display = 'block'; 
+        }, { once: true });
 
         const speedSlider = document.getElementById('speed-slider');
         const speedNum = document.getElementById('speed-num');
@@ -336,45 +378,19 @@
             objects.forEach(obj => {
                 if (obj !== floor && obj !== spawnPoint) {
                     obj.material.map = gridToggle.checked ? gridTexture : null;
+                    if(obj.userData.behavior === 'kill') obj.material.color.setHex(0xff0000);
+                    else if(obj.userData.behavior === 'bounce') obj.material.color.setHex(0x2ecc71);
+                    else if(obj.userData.behavior === 'javascript') obj.material.color.setHex(0xf1c40f);
                     obj.material.needsUpdate = true;
                 }
             });
         };
 
-        document.getElementById('size-slider').oninput = (e) => {
-            if (gizmo.object) {
-                const s = parseFloat(e.target.value);
-                gizmo.object.scale.set(s, s, s);
-            }
-        };
-
-        // 2. THE LUA BRIDGE (BUBBLE ENGINE API)
-        // This is where we expose the game's internal data directly to the global window so Lua can read/write to it.
         window.BubbleEngine = {
-            getSpeed: () => moveSpeed,
-            setSpeed: (v) => { moveSpeed = v; speedSlider.value = v; speedNum.value = v; },
-            getGravity: () => worldGravity,
-            setGravity: (v) => { worldGravity = v; gravSlider.value = v; gravNum.value = v; },
-            getPlayerPos: () => ({ x: camera.position.x, y: camera.position.y, z: camera.position.z }),
-            getObjectCount: () => objects.length - 1, // Exclude floor
-            spawnPart: (x, y, z, size) => {
-                const mat = new THREE.MeshStandardMaterial({ color: 0xff0000, map: gridToggle.checked ? gridTexture : null });
-                const m = new THREE.Mesh(blockGeo, mat);
-                m.position.set(x, y, z);
-                if (size) m.scale.set(size, size, size);
-                scene.add(m); objects.push(m);
-            },
-            teleportPlayer: (x, y, z) => {
-                camera.position.set(x, y, z);
-                velocityY = 0;
-            },
+            teleportPlayer: (x, y, z) => { camera.position.set(x, y, z); velocityY = 0; },
             killPlayer: () => {
-                window.addChatMessage("System", "Player died.");
-                if (spawnPoint) {
-                    window.BubbleEngine.teleportPlayer(spawnPoint.position.x, spawnPoint.position.y + playerHeight, spawnPoint.position.z);
-                } else {
-                    window.BubbleEngine.teleportPlayer(0, playerHeight, 5);
-                }
+                if (spawnPoint) window.BubbleEngine.teleportPlayer(spawnPoint.position.x, spawnPoint.position.y + playerHeight, spawnPoint.position.z);
+                else window.BubbleEngine.teleportPlayer(0, playerHeight, 5);
             }
         };
 
@@ -383,31 +399,37 @@
             isPlayMode = !isPlayMode;
             if (isPlayMode) {
                 if (!spawnPoint) { alert("❌ Need a Spawn Point!"); isPlayMode = false; return; }
-                editorCamPos.copy(camera.position);
-                editorCamRot.copy(camera.rotation);
+                editorCamPos.copy(camera.position); editorCamRot.copy(camera.rotation);
                 btn.innerText = "STOP TEST ⏹"; btn.classList.add('playing');
                 document.getElementById('status').innerText = "Status: PLAY TESTING";
                 document.getElementById('crosshair').style.display = 'block';
-                ['publishBtn', 'dragModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(id => document.getElementById(id).style.display = 'none');
+                ['publishBtn', 'dragModeBtn', 'scaleModeBtn', 'scriptModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(id => document.getElementById(id).style.display = 'none');
                 gizmo.detach();
-                camera.position.set(spawnPoint.position.x, spawnPoint.position.y + 1, spawnPoint.position.z);
+                camera.position.set(spawnPoint.position.x, spawnPoint.position.y + playerHeight, spawnPoint.position.z);
+                camera.rotation.set(0, 0, 0);
                 velocityY = 0;
             } else {
                 btn.innerText = "PLAY TEST ▶"; btn.classList.remove('playing');
                 document.getElementById('status').innerText = "Status: BUILDING MODE";
                 document.getElementById('crosshair').style.display = 'none';
-                ['publishBtn', 'dragModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(id => document.getElementById(id).style.display = 'flex');
+                ['publishBtn', 'dragModeBtn', 'scaleModeBtn', 'scriptModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(id => document.getElementById(id).style.display = 'flex');
                 camera.position.copy(editorCamPos); camera.rotation.copy(editorCamRot);
             }
+            if (isMobileTouch) document.getElementById('mobile-controls').style.display = 'block';
         };
 
         window.exitGame = () => { localStorage.removeItem('currentGameId'); localStorage.removeItem('editMode'); window.location.href = 'index.html'; };
         
         window.toggleTool = (tool) => {
             currentTool = (currentTool === tool) ? 'place' : tool;
-            if (currentTool !== 'drag') { gizmo.detach(); document.getElementById('part-settings').style.display = 'none'; }
+            gizmo.detach();
+            if (currentTool === 'scale') { gizmo.setMode('scale'); }
+            if (currentTool === 'drag') { gizmo.setMode('translate'); }
+            
             document.getElementById('deleteModeBtn').classList.toggle('active-tool', currentTool === 'delete');
+            document.getElementById('scaleModeBtn').classList.toggle('active-tool', currentTool === 'scale');
             document.getElementById('dragModeBtn').classList.toggle('active-tool', currentTool === 'drag');
+            document.getElementById('scriptModeBtn').classList.toggle('active-tool', currentTool === 'script');
         };
 
         window.selectItem = (type) => {
@@ -416,10 +438,31 @@
             document.getElementById(`card-${type}`).classList.add('selected');
         };
 
+        window.applyScript = (behavior) => {
+            if(activeScriptBlock) {
+                activeScriptBlock.userData.behavior = behavior;
+                if(behavior === 'javascript') {
+                    const code = prompt("Enter Block JavaScript (context: 'this' is the block mesh):", activeScriptBlock.userData.rawJS || "");
+                    if(code !== null) {
+                        activeScriptBlock.userData.rawJS = code;
+                        activeScriptBlock.userData.compiledJS = new Function(code);
+                    }
+                    activeScriptBlock.material.color.setHex(0xf1c40f);
+                } else if(behavior === 'kill') activeScriptBlock.material.color.setHex(0xff0000);
+                else if(behavior === 'bounce') activeScriptBlock.material.color.setHex(0x2ecc71);
+                else activeScriptBlock.material.color.setHex(0xcccccc);
+            }
+            document.getElementById('script-modal').style.display = 'none';
+        };
+
         window.publishGame = async () => {
             if (!spawnPoint) { alert("❌ Need a Spawn Point!"); return; }
             const blocksData = objects.filter(obj => obj !== floor).map(obj => ({ 
-                x: obj.position.x, y: obj.position.y, z: obj.position.z, s: obj.scale.x, type: (obj === spawnPoint) ? 'spawn' : 'block' 
+                x: obj.position.x, y: obj.position.y, z: obj.position.z, 
+                sx: obj.scale.x, sy: obj.scale.y, sz: obj.scale.z, 
+                type: (obj === spawnPoint) ? 'spawn' : 'block',
+                b: obj.userData.behavior || 'none',
+                j: obj.userData.rawJS || ""
             }));
             const config = { gravity: worldGravity, speed: moveSpeed };
             const editId = localStorage.getItem('currentGameId');
@@ -439,13 +482,15 @@
         async function init() {
             const id = localStorage.getItem('currentGameId');
             const isEditMode = localStorage.getItem('editMode') === 'true';
+            
             if (isEditMode) {
                 isPlayMode = false;
-                ['publishBtn', 'dragModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(id => document.getElementById(id).style.display = 'flex');
+                ['publishBtn', 'dragModeBtn', 'scaleModeBtn', 'scriptModeBtn', 'deleteModeBtn', 'item-selector', 'settings-panel'].forEach(id => document.getElementById(id).style.display = 'flex');
             } else {
                 isPlayMode = true;
                 document.getElementById('crosshair').style.display = 'block'; document.getElementById('playTestBtn').style.display = 'none';
             }
+
             if (id) {
                 const { data: game } = await supabaseClient.from('games').select('*').eq('id', id).single();
                 if (game && game.blocks) {
@@ -454,7 +499,15 @@
                         const isSpawn = d.type === 'spawn';
                         const mat = isSpawn ? spawnMat : new THREE.MeshStandardMaterial({ color: 0xcccccc, map: gridToggle.checked ? gridTexture : null });
                         const mesh = new THREE.Mesh(isSpawn ? spawnGeo : blockGeo, mat);
-                        mesh.position.set(d.x, d.y, d.z); if (d.s) mesh.scale.set(d.s, d.s, d.s);
+                        mesh.position.set(d.x, d.y, d.z); 
+                        if (d.s) mesh.scale.set(d.s, d.s, d.s); // Legacy support
+                        if (d.sx) mesh.scale.set(d.sx, d.sy, d.sz); // New scale support
+                        mesh.userData.behavior = d.b || 'none';
+                        mesh.userData.rawJS = d.j || "";
+                        if(mesh.userData.rawJS) mesh.userData.compiledJS = new Function(mesh.userData.rawJS);
+                        if(mesh.userData.behavior === 'kill') mesh.material.color.setHex(0xff0000);
+                        if(mesh.userData.behavior === 'bounce') mesh.material.color.setHex(0x2ecc71);
+                        if(mesh.userData.behavior === 'javascript') mesh.material.color.setHex(0xf1c40f);
                         scene.add(mesh); objects.push(mesh); if (isSpawn) spawnPoint = mesh;
                     });
                 }
@@ -466,174 +519,275 @@
         init();
 
         camera.rotation.order = "YXZ";
-        let isDraggingCam = false; let dragDistance = 0; let prevMouse = { x: 0, y: 0 };
         const keys = {};
 
-        window.addEventListener('pointerdown', (e) => { 
-            if (e.target.closest('button') || e.target.closest('.item-card') || e.target.closest('#settings-panel') || e.target.closest('#chat-container') || isDraggingGizmo) return;
-            mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(objects);
-            if (!isPlayMode && currentTool === 'drag' && intersects.length > 0 && intersects[0].object !== floor) {
-                gizmo.attach(intersects[0].object); document.getElementById('part-settings').style.display = 'block';
-            } else { isDraggingCam = true; prevMouse = { x: e.clientX, y: e.clientY }; dragDistance = 0; }
-        });
-        
-        window.addEventListener('pointermove', (e) => {
-            if (isDraggingGizmo || !isDraggingCam) return;
-            const dx = e.clientX - prevMouse.x; const dy = e.clientY - prevMouse.y;
-            dragDistance += Math.abs(dx) + Math.abs(dy);
-            camera.rotation.y -= dx * 0.003; camera.rotation.x -= dy * 0.003;
-            camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, camera.rotation.x));
-            prevMouse = { x: e.clientX, y: e.clientY };
-        });
-
-        window.addEventListener('pointerup', (e) => {
-            if (isDraggingGizmo) return;
-            isDraggingCam = false; if (dragDistance > 10 || e.target.closest('button') || e.target.closest('.item-card') || e.target.closest('#settings-panel')) return;
-            if (isPlayMode) return;
-            raycaster.setFromCamera(mouse, camera); const intersects = raycaster.intersectObjects(objects);
-            if (intersects.length > 0) {
-                const intersect = intersects[0];
-                if (currentTool === 'delete' && intersect.object !== floor) {
-                    if (intersect.object === spawnPoint) spawnPoint = null;
-                    gizmo.detach(); scene.remove(intersect.object); objects.splice(objects.indexOf(intersect.object), 1);
-                } else if (currentTool === 'place') {
-                    const isSpawn = selectedItemType === 'spawn';
-                    const mat = isSpawn ? spawnMat : new THREE.MeshStandardMaterial({ color: 0xcccccc, map: gridToggle.checked ? gridTexture : null });
-                    const m = new THREE.Mesh(isSpawn ? spawnGeo : blockGeo, mat);
-                    const pos = intersect.object === floor ? new THREE.Vector3(Math.round(intersect.point.x), isSpawn ? 0.1 : 0.5, Math.round(intersect.point.z)) : intersect.object.position.clone().add(intersect.face.normal.multiplyScalar(isSpawn ? 0.6 : 1));
-                    m.position.copy(pos); scene.add(m); objects.push(m);
-                    if (isSpawn) { if(spawnPoint) { scene.remove(spawnPoint); objects.splice(objects.indexOf(spawnPoint), 1); } spawnPoint = m; }
-                }
-            }
-        });
-
-        window.addEventListener('keydown', (e) => { keys[e.code] = true; });
+        window.addEventListener('keydown', (e) => keys[e.code] = true);
         window.addEventListener('keyup', (e) => keys[e.code] = false);
 
-        function updateLabels() {
-            const frustum = new THREE.Frustum();
-            frustum.setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
-            for (let id in remotePlayers) {
-                const p = remotePlayers[id];
-                const pos = p.mesh.position.clone().add(new THREE.Vector3(0, 1.2, 0));
-                if (frustum.containsPoint(pos)) {
-                    pos.project(camera); p.label.style.display = 'block';
-                    p.label.style.left = `${(pos.x * 0.5 + 0.5) * window.innerWidth}px`;
-                    p.label.style.top = `${(-(pos.y * 0.5) + 0.5) * window.innerHeight}px`;
-                } else { p.label.style.display = 'none'; }
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // --- MOBILE JOYSTICK LOGIC ---
+        const joystickZone = document.getElementById('joystick-zone');
+        const stick = document.getElementById('joystick-stick');
+        const base = document.getElementById('joystick-base');
+        let stickOrigin = {x:0, y:0};
+
+        joystickZone.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.changedTouches[0];
+            touchMoveId = touch.identifier;
+            stickOrigin = {x: touch.clientX, y: touch.clientY};
+            base.style.display = 'block';
+            base.style.left = (touch.clientX - 60) + 'px';
+            base.style.top = (touch.clientY - 60) + 'px';
+            stick.style.transform = 'translate(-50%, -50%)';
+        }, {passive: false});
+
+        joystickZone.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            for(let touch of e.changedTouches) {
+                if(touch.identifier === touchMoveId) {
+                    let dx = touch.clientX - stickOrigin.x;
+                    let dy = touch.clientY - stickOrigin.y;
+                    let dist = Math.sqrt(dx*dx + dy*dy);
+                    if(dist > 60) { dx = (dx/dist) * 60; dy = (dy/dist) * 60; }
+                    stick.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+                    joystickX = dx / 60; 
+                    joystickY = dy / 60; 
+                }
             }
-        }
+        }, {passive: false});
 
-        function checkWallCollision(position, direction) {
-            const collisionObjects = objects.filter(o => o !== floor); 
-            const checkOffsets = [-1.3, -0.8, -0.3]; 
-            for (let offset of checkOffsets) {
-                sideRay.set(new THREE.Vector3(position.x, position.y + offset, position.z), direction);
-                const hits = sideRay.intersectObjects(collisionObjects);
-                if (hits.length > 0 && hits[0].distance < playerRadius) return true;
+        joystickZone.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            for(let touch of e.changedTouches) {
+                if(touch.identifier === touchMoveId) {
+                    touchMoveId = null;
+                    base.style.display = 'none';
+                    joystickX = 0; joystickY = 0;
+                }
             }
-            return false;
-        }
+        }, {passive: false});
 
-        let lastSend = 0;
-        function animate() {
-            requestAnimationFrame(animate);
-            document.getElementById('coords').innerText = `X: ${camera.position.x.toFixed(2)} | Y: ${camera.position.y.toFixed(2)} | Z: ${camera.position.z.toFixed(2)}`;
+        // --- MOBILE LOOK LOGIC ---
+        const lookZone = document.getElementById('touch-look-zone');
+        lookZone.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.changedTouches[0];
+            touchLookId = touch.identifier;
+            lookPrevX = touch.clientX;
+            lookPrevY = touch.clientY;
+        }, {passive: false});
+        
+        lookZone.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            for(let touch of e.changedTouches) {
+                if(touch.identifier === touchLookId) {
+                    const dx = touch.clientX - lookPrevX;
+                    const dy = touch.clientY - lookPrevY;
+                    camera.rotation.y -= dx * 0.005;
+                    camera.rotation.x -= dy * 0.005;
+                    camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, camera.rotation.x));
+                    lookPrevX = touch.clientX;
+                    lookPrevY = touch.clientY;
+                }
+            }
+        }, {passive: false});
+        
+        lookZone.addEventListener('touchend', (e) => {
+            for(let touch of e.changedTouches) {
+                if(touch.identifier === touchLookId) touchLookId = null;
+            }
+        });
 
-            if (isPlayMode) {
-                const solidObjects = objects.filter(o => o !== floor);
+        // --- JUMP BUTTON ---
+        const jumpBtn = document.getElementById('jump-btn');
+        jumpBtn.addEventListener('touchstart', (e) => { 
+            e.preventDefault();
+            mobileJump = true;
+        }, {passive: false});
+        jumpBtn.addEventListener('touchend', (e) => { 
+            e.preventDefault();
+            mobileJump = false;
+        });
 
-                downRay.set(camera.position, new THREE.Vector3(0, -1, 0));
-                const groundHits = downRay.intersectObjects(objects);
-                if (groundHits.length > 0 && groundHits[0].distance <= playerHeight) {
-                    if (velocityY < 0) { 
-                        velocityY = 0; isGrounded = true; 
-                        camera.position.y = groundHits[0].point.y + playerHeight; 
+        // ==========================================
+        // MISSING CLICK AND DRAG LOGIC BELOW
+        // ==========================================
+
+        // --- MOUSE RAYCASTING & CLICK INTERACTIONS ---
+        window.addEventListener('pointerdown', (e) => {
+            // Don't raycast if clicking UI buttons, playing the game, or already dragging
+            if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || isPlayMode || isDraggingGizmo || isMobileTouch) return;
+
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(objects, false);
+
+            if (intersects.length > 0) {
+                const hit = intersects[0];
+                const obj = hit.object;
+
+                if (currentTool === 'place') {
+                    const pos = hit.point.clone().add(hit.face.normal.clone().multiplyScalar(0.5));
+                    pos.x = Math.round(pos.x);
+                    pos.y = Math.max(0.5, Math.round(pos.y * 2) / 2); // Keep it above the floor
+                    pos.z = Math.round(pos.z);
+
+                    const isSpawn = selectedItemType === 'spawn';
+                    if (isSpawn && spawnPoint) {
+                        alert("Only one spawn point allowed! Delete the old one first.");
+                        return;
                     }
-                } else { 
-                    isGrounded = false;
-                    velocityY -= (velocityY < 0 ? worldGravity * fallMultiplier : worldGravity);
-                }
 
-                if (velocityY > 0) {
-                    upRay.set(camera.position, new THREE.Vector3(0, 1, 0));
-                    const headHits = upRay.intersectObjects(solidObjects);
-                    if (headHits.length > 0 && headHits[0].distance < 0.4) {
-                        velocityY = 0; 
-                    }
-                }
-                
-                if (keys['Space'] && isGrounded && document.activeElement !== chatInput) { velocityY = jumpStrength; isGrounded = false; }
-                camera.position.y += velocityY;
-                
-                let move = new THREE.Vector3();
-                if (document.activeElement !== chatInput) {
-                    if (keys['KeyW']) move.z -= 1; if (keys['KeyS']) move.z += 1;
-                    if (keys['KeyA']) move.x -= 1; if (keys['KeyD']) move.x += 1;
-                }
-                if (move.length() > 0) {
-                    move.applyQuaternion(camera.quaternion); move.y = 0; move.normalize();
-                    if (!checkWallCollision(camera.position, new THREE.Vector3(move.x, 0, 0))) camera.position.x += move.x * moveSpeed;
-                    if (!checkWallCollision(camera.position, new THREE.Vector3(0, 0, move.z))) camera.position.z += move.z * moveSpeed;
-                }
+                    const mat = isSpawn ? spawnMat : new THREE.MeshStandardMaterial({ color: 0xcccccc, map: gridToggle.checked ? gridTexture : null });
+                    const mesh = new THREE.Mesh(isSpawn ? spawnGeo : blockGeo, mat);
+                    mesh.position.copy(pos);
+                    mesh.userData.behavior = 'none';
+                    mesh.userData.rawJS = '';
 
-                const now = Date.now();
-                if (now - lastSend > 50) {
-                    channel.send({ type: 'broadcast', event: 'move', payload: { id: currentUser, x: camera.position.x, y: camera.position.y, z: camera.position.z } });
-                    lastSend = now;
+                    scene.add(mesh);
+                    objects.push(mesh);
+                    if (isSpawn) spawnPoint = mesh;
+                } 
+                else if ((currentTool === 'drag' || currentTool === 'scale') && obj !== floor) {
+                    // This attaches the gizmo so you can drag it!
+                    gizmo.attach(obj);
+                } 
+                else if (currentTool === 'delete' && obj !== floor) {
+                    if (gizmo.object === obj) gizmo.detach();
+                    scene.remove(obj);
+                    objects.splice(objects.indexOf(obj), 1);
+                    if (obj === spawnPoint) spawnPoint = null;
+                }
+                else if (currentTool === 'script' && obj !== floor && obj !== spawnPoint) {
+                    activeScriptBlock = obj;
+                    document.getElementById('script-modal').style.display = 'block';
                 }
             } else {
-                const flySpeed = moveSpeed * 2;
-                if (document.activeElement !== chatInput) {
-                    if (keys['KeyW']) camera.translateZ(-flySpeed); if (keys['KeyS']) camera.translateZ(flySpeed);
-                    if (keys['KeyA']) camera.translateX(-flySpeed); if (keys['KeyD']) camera.translateX(flySpeed);
-                    if (keys['Space']) camera.position.y += flySpeed; if (keys['ShiftLeft']) camera.position.y -= flySpeed;
+                // Clicked empty space: detach gizmo
+                if (currentTool === 'drag' || currentTool === 'scale') {
+                    gizmo.detach();
                 }
             }
-            updateLabels(); renderer.render(scene, camera);
+        });
+
+        // --- PC LOOK LOGIC (Pointer Lock for Playtesting) ---
+        document.body.addEventListener('click', () => {
+            if (isPlayMode && !isMobileTouch) {
+                document.body.requestPointerLock();
+            }
+        });
+
+        document.body.addEventListener('mousemove', (e) => {
+            if (isPlayMode && document.pointerLockElement === document.body) {
+                camera.rotation.y -= e.movementX * 0.002;
+                camera.rotation.x -= e.movementY * 0.002;
+                camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, camera.rotation.x));
+            }
+        });
+
+
+        // --- THE MAIN GAME LOOP ---
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (isPlayMode) {
+                // Gravity
+                velocityY -= worldGravity;
+                camera.position.y += velocityY;
+
+                // Floor Collision
+                if (camera.position.y <= playerHeight) {
+                    camera.position.y = playerHeight;
+                    velocityY = 0;
+                    isGrounded = true;
+                } else {
+                    isGrounded = false;
+                }
+
+                // Block Collisions (Simple downward raycast for standing on blocks)
+                const downRay = new THREE.Raycaster(camera.position, new THREE.Vector3(0, -1, 0), 0, playerHeight + 0.1);
+                const blockIntersects = downRay.intersectObjects(objects.filter(o => o !== floor));
+                
+                if (blockIntersects.length > 0 && velocityY <= 0) {
+                    const hitY = blockIntersects[0].point.y;
+                    if (camera.position.y - playerHeight <= hitY + 0.1) {
+                        camera.position.y = hitY + playerHeight;
+                        velocityY = 0;
+                        isGrounded = true;
+
+                        // Trigger Block Scripts when stepped on
+                        const hitObj = blockIntersects[0].object;
+                        if (hitObj.userData.behavior === 'kill') {
+                            window.BubbleEngine.killPlayer();
+                        } else if (hitObj.userData.behavior === 'bounce') {
+                            velocityY = jumpStrength * 1.5;
+                        } else if (hitObj.userData.behavior === 'javascript' && hitObj.userData.compiledJS) {
+                            try { hitObj.userData.compiledJS.call(hitObj); } catch(e) { console.error(e); }
+                        }
+                    }
+                }
+
+                // PC & Mobile Movement integration
+                const moveVector = new THREE.Vector3(0, 0, 0);
+                if (keys['KeyW']) moveVector.z -= moveSpeed;
+                if (keys['KeyS']) moveVector.z += moveSpeed;
+                if (keys['KeyA']) moveVector.x -= moveSpeed;
+                if (keys['KeyD']) moveVector.x += moveSpeed;
+                
+                if (joystickY !== 0) moveVector.z += joystickY * moveSpeed;
+                if (joystickX !== 0) moveVector.x += joystickX * moveSpeed;
+
+                moveVector.applyEuler(new THREE.Euler(0, camera.rotation.y, 0));
+                
+                // Super simple forward collision check
+                const forwardRay = new THREE.Raycaster(camera.position, moveVector.clone().normalize(), 0, 0.8);
+                if (moveVector.lengthSq() > 0 && forwardRay.intersectObjects(objects.filter(o => o !== floor)).length === 0) {
+                    camera.position.add(moveVector);
+                }
+
+                // Jumping
+                if ((keys['Space'] || mobileJump) && isGrounded) {
+                    velocityY = jumpStrength;
+                    isGrounded = false;
+                }
+
+                // Fall off the map death
+                if (camera.position.y < -10) window.BubbleEngine.killPlayer();
+
+            } else if (!isMobileTouch) {
+                // Editor Fly Camera (Only moves if you aren't dragging a block)
+                if (!isDraggingGizmo) {
+                    if (keys['KeyW']) camera.translateZ(-moveSpeed);
+                    if (keys['KeyS']) camera.translateZ(moveSpeed);
+                    if (keys['KeyA']) camera.translateX(-moveSpeed);
+                    if (keys['KeyD']) camera.translateX(moveSpeed);
+                    if (keys['KeyQ']) camera.position.y -= moveSpeed;
+                    if (keys['KeyE']) camera.position.y += moveSpeed;
+
+                    if (keys['ArrowUp']) camera.rotation.x += 0.02;
+                    if (keys['ArrowDown']) camera.rotation.x -= 0.02;
+                    if (keys['ArrowLeft']) camera.rotation.y += 0.02;
+                    if (keys['ArrowRight']) camera.rotation.y -= 0.02;
+                }
+            }
+
+            // UI Update & Render
+            document.getElementById('coords').innerText = `POS - X: ${camera.position.x.toFixed(1)} | Y: ${camera.position.y.toFixed(1)} | Z: ${camera.position.z.toFixed(1)}`;
+            renderer.render(scene, camera);
         }
+
+        // Start the engine!
         animate();
-    </script>
-
-    <script type="application/lua">
-        local js = require "js"
-        local window = js.global
-        local engine = window.BubbleEngine
-        
-        -- Run an initial check of what the world knows
-        print("--- LUA SYSTEM BOOTED ---")
-        local totalObjects = engine:getObjectCount()
-        print("World Data Detected: " .. tostring(totalObjects) .. " objects loaded.")
-        print("Current Speed: " .. tostring(engine:getSpeed()))
-        print("Current Gravity: " .. tostring(engine:getGravity()))
-        
-        -- Send a global chat message confirming Lua is live
-        window:addChatMessage("Server", "Lua Engine Initialized and running.")
-
-        -- Create a game loop using JavaScript's setInterval so it constantly checks things
-        local function gameLoop()
-            -- Grab live player coordinates
-            local pos = engine:getPlayerPos()
-            
-            -- CHECK: Did the player fall into the void?
-            if pos.y < -5 then
-                print("LUA ALERT: Player fell out of bounds! Executing kill script.")
-                engine:killPlayer()
-            end
-            
-            -- CHECK: Is the player exploring the dark unknown? (e.g., wandering too far)
-            if pos.x > 50 or pos.x < -50 or pos.z > 50 or pos.z < -50 then
-                -- Spawn a red warning block behind them
-                engine:spawnPart(pos.x, pos.y + 5, pos.z - 2, 2)
-                window:addChatMessage("System", "You have wandered too far...")
-                engine:teleportPlayer(0, 2, 0)
-            end
-        end
-
-        -- Run the gameLoop function every 100 milliseconds (like a task.wait(0.1))
-        window:setInterval(gameLoop, 100)
     </script>
 </body>
 </html>
