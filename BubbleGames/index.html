@@ -53,7 +53,7 @@
             margin-top: 80px; box-shadow: 0 30px 60px rgba(0,0,0,0.8);
         }
 
-        input { 
+        input, select { 
             display: block; margin: 15px auto; padding: 16px; width: 300px; 
             border-radius: 15px; border: 2px solid #222; background: #000; 
             color: white; outline: none; transition: 0.3s; font-size: 1rem;
@@ -145,7 +145,7 @@
 
     <div id="mainApp" style="display:none;">
         <nav>
-            <div class="logo" onclick="showSection('none')">Bubble Games</div>
+            <div class="logo" onclick="location.reload()">Bubble Games</div>
             <div style="display: flex; align-items: center; gap: 15px;">
                 <span id="userDisplay"></span>
                 <button id="logoutBtn" class="btn-logout">LOGOUT</button>
@@ -154,16 +154,16 @@
 
         <div class="container">
             <header style="margin: 60px 0 40px;">
-                <h1 style="font-size: 3.5rem; font-weight: 900; margin-bottom: 20px;">What would you like to play?</h1>
+                <h1 id="mainHeading" style="font-size: 3.5rem; font-weight: 900; margin-bottom: 20px;">What would you like to play?</h1>
                 
                 <div class="search-container">
-                    <input type="text" id="gameSearch" class="main-search" placeholder="Search for games and press Enter...">
+                    <input type="text" id="gameSearch" class="main-search" placeholder="Search and press Enter...">
                 </div>
 
                 <div class="nav-options">
                     <button class="opt-btn" onclick="showSection('studio')"><i>📂</i> YOUR STUDIO</button>
                     <button class="opt-btn" onclick="showSection('global')"><i>🌎</i> GLOBAL LIBRARY</button>
-                    <button class="opt-btn"><i>📺</i> BubbleTube</button>
+                    <button class="opt-btn" onclick="showSection('bubbletube')"><i>📺</i> BubbleTube</button>
                 </div>
 
                 <button id="newGameBtn" class="btn-launch">Create New World 🛠️</button>
@@ -183,6 +183,24 @@
                 <h2 class="section-title"><span>🔍</span> SEARCH RESULTS</h2>
                 <div class="grid" id="searchGrid"></div>
             </div>
+
+            <div id="bubbletube-section" class="content-section">
+                <h2 class="section-title"><span>📺</span> BUBBLETUBE</h2>
+                
+                <div style="background: var(--card); padding: 30px; border-radius: 28px; border: 1px solid var(--glass); margin-bottom: 40px;">
+                    <h3>Create BubbleVid</h3>
+                    <input type="file" id="videoFile" accept="video/*" style="border: 2px dashed #444; width: 80%; margin: 10px auto;">
+                    <p style="font-size: 12px; color: #666;">Limit: 50MB</p>
+                    <input type="text" id="videoTitle" placeholder="Video Title">
+                    <select id="videoVisibility">
+                        <option value="true">Public</option>
+                        <option value="false">Private</option>
+                    </select>
+                    <button id="publishVidBtn" class="btn-base btn-play" style="width: 200px;">PUBLISH VID</button>
+                </div>
+
+                <div class="grid" id="tubeGrid"></div>
+            </div>
         </div>
     </div>
 
@@ -196,6 +214,7 @@
         let currentUser = "";
         let userRole = "Player";
         let allGames = [];
+        let allVideos = [];
 
         async function init() {
             try {
@@ -221,8 +240,12 @@
                 ? `<span class="owner-tag">OWNER</span> ${currentUser.toUpperCase()}` 
                 : `<span style="color:var(--primary); font-weight:900;">${currentUser.toUpperCase()}</span>`;
             
-            const { data } = await supabaseClient.from('games').select('*');
-            allGames = data || [];
+            const { data: games } = await supabaseClient.from('games').select('*');
+            allGames = games || [];
+            
+            const { data: vids } = await supabaseClient.from('videos').select('*').order('created_at', { ascending: false });
+            allVideos = vids || [];
+
             renderGrids(isOwner);
         }
 
@@ -232,48 +255,97 @@
             myGrid.innerHTML = ''; globalGrid.innerHTML = '';
 
             allGames.forEach(game => {
-                const isCreator = (game.creator === currentUser);
-                if (isCreator) myGrid.appendChild(createCard(game, true, isOwner));
+                if (game.creator === currentUser) myGrid.appendChild(createCard(game, true, isOwner));
                 else if (game.is_public) globalGrid.appendChild(createCard(game, false, isOwner));
             });
         }
 
-        // --- NEW SEARCH LOGIC ---
+        function renderTube() {
+            const tubeGrid = document.getElementById('tubeGrid');
+            tubeGrid.innerHTML = '';
+            allVideos.forEach(vid => {
+                if (vid.is_public || vid.creator === currentUser) {
+                    const card = document.createElement('div');
+                    card.className = 'game-card';
+                    card.innerHTML = `
+                        <div class="card-inner">
+                            <span class="status-tag ${vid.is_public ? 'status-public' : 'status-private'}">${vid.is_public ? '🌐 Public' : '🔒 Private'}</span>
+                            <span class="creator-label">@${vid.creator}</span>
+                            <h3 class="game-name">${vid.title}</h3>
+                            <video width="100%" controls style="border-radius:15px; margin-top:10px;"><source src="${vid.video_url}"></video>
+                        </div>
+                    `;
+                    tubeGrid.appendChild(card);
+                }
+            });
+        }
+
+        // --- NAVIGATION ---
+        window.showSection = (section) => {
+            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+            const heading = document.getElementById('mainHeading');
+            
+            if (section === 'studio') {
+                document.getElementById('studio-section').classList.add('active');
+                heading.innerText = "Welcome to your Workshop!";
+            } else if (section === 'global') {
+                document.getElementById('global-section').classList.add('active');
+                heading.innerText = "Explore the Bubbleverse!";
+            } else if (section === 'bubbletube') {
+                document.getElementById('bubbletube-section').classList.add('active');
+                heading.innerText = "What would you like to watch?";
+                renderTube();
+            } else if (section === 'results') {
+                document.getElementById('search-results-section').classList.add('active');
+            }
+        };
+
+        // --- SEARCH LOGIC (GAMES ONLY) ---
         document.getElementById('gameSearch').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 const query = e.target.value.toLowerCase().trim();
                 if (!query) return;
-
                 const searchGrid = document.getElementById('searchGrid');
                 searchGrid.innerHTML = '';
-                
                 const filtered = allGames.filter(g => g.name.toLowerCase().includes(query) && (g.is_public || g.creator === currentUser));
-                
-                filtered.forEach(game => {
-                    searchGrid.appendChild(createCard(game, game.creator === currentUser, userRole === "Owner"));
-                });
-
+                filtered.forEach(game => searchGrid.appendChild(createCard(game, game.creator === currentUser, userRole === "Owner")));
                 showSection('results');
             }
         });
 
-        // --- SECTION TOGGLING ---
-        window.showSection = (section) => {
-            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-            if (section === 'studio') document.getElementById('studio-section').classList.add('active');
-            if (section === 'global') document.getElementById('global-section').classList.add('active');
-            if (section === 'results') document.getElementById('search-results-section').classList.add('active');
+        // --- VIDEO PUBLISH ---
+        document.getElementById('publishVidBtn').onclick = async () => {
+            const fileInput = document.getElementById('videoFile');
+            const title = document.getElementById('videoTitle').value.trim();
+            const isPublic = document.getElementById('videoVisibility').value === 'true';
+            const file = fileInput.files[0];
+
+            if (!file || !title) return alert("Fill out all fields!");
+            if (file.size > 50 * 1024 * 1024) return alert("Too large! (50MB Max)");
+
+            document.getElementById('publishVidBtn').innerText = "UPLOADING...";
+            const fileName = `${Date.now()}_${file.name}`;
+            
+            const { error: uploadErr } = await supabaseClient.storage.from('bubbletube-videos').upload(fileName, file);
+            if (uploadErr) return alert(uploadErr.message);
+
+            const { data: urlData } = supabaseClient.storage.from('bubbletube-videos').getPublicUrl(fileName);
+            
+            await supabaseClient.from('videos').insert([{
+                title, video_url: urlData.publicUrl, creator: currentUser, is_public: isPublic, user_id: (await supabaseClient.auth.getUser()).data.user.id
+            }]);
+
+            alert("BubbleVid Live! 🚀");
+            location.reload();
         };
 
         function createCard(game, isCreator, isOwner) {
             const card = document.createElement('div');
             card.className = 'game-card';
-            const statusClass = game.is_public ? 'status-public' : 'status-private';
             const hasPower = isCreator || isOwner;
-
             card.innerHTML = `
                 <div class="card-inner">
-                    <span class="status-tag ${statusClass}">${game.is_public ? '🌐 Public' : '🔒 Private'}</span>
+                    <span class="status-tag ${game.is_public ? 'status-public' : 'status-private'}">${game.is_public ? '🌐 Public' : '🔒 Private'}</span>
                     <span class="creator-label">@${game.creator}</span>
                     <h3 class="game-name">${game.name || 'Untitled'}</h3>
                     <div class="action-row">
@@ -281,8 +353,7 @@
                         ${hasPower ? `<button class="btn-base btn-edit" onclick="editGame('${game.id}')">✎ Edit</button>
                         <button class="btn-base btn-delete" onclick="deleteGame('${game.id}')">✖</button>` : ''}
                     </div>
-                </div>
-            `;
+                </div>`;
             return card;
         }
 
