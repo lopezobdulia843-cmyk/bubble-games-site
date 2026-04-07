@@ -130,11 +130,52 @@
         .content-section.active { display: block; animation: fadeIn 0.5s ease forwards; }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* SCARY PIRATE SCREEN CSS */
+        #scaryPirateScreen {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            z-index: 99999;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #ff0000;
+            font-family: 'Courier New', Courier, monospace;
+            text-align: center;
+        }
+        .glitch-text {
+            font-size: 6rem;
+            font-weight: 900;
+            margin: 0;
+            text-shadow: 3px 3px 0 #fff, -3px -3px 0 #00d4ff;
+            animation: glitch 0.2s infinite;
+        }
+        @keyframes glitch {
+            0% { transform: translate(0) }
+            20% { transform: translate(-5px, 5px) }
+            40% { transform: translate(-5px, -5px) }
+            60% { transform: translate(5px, 5px) }
+            80% { transform: translate(5px, -5px) }
+            100% { transform: translate(0) }
+        }
     </style>
 </head>
 
 <body>
     <div id="loadingState">SYNCHRONIZING...</div>
+
+    <div id="scaryPirateScreen">
+        <h1 class="glitch-text">☠️ PIRACY DETECTED ☠️</h1>
+        <h2 style="font-size: 3rem; margin-top: 20px;">ILLEGAL ACCESS BLOCKED</h2>
+        <p style="font-size: 1.5rem; color: #ff4444; max-width: 800px; margin-top: 30px;">
+            Your device has been permanently flagged for piracy violations. Nice try bypassing the system. You will never watch this video.
+        </p>
+    </div>
 
     <div id="videoModal">
         <span class="modal-close" onclick="closeVideo()">× EXIT</span>
@@ -341,6 +382,25 @@
 
         // --- BUBBLETUBE MANAGEMENT ---
         window.openVideo = (url, title) => {
+            const TARGET_URL = "https://bubblegames.onrender.com/supabase/storage/v1/object/public/bubbletube-videos/1774733950045_1000000195.mp4";
+            const TARGET_USER = "shreditup"; // From email split
+            
+            // Check if current user is the target OR if the device has already been flagged
+            const isTargetUser = (currentUser.toLowerCase() === TARGET_USER);
+            const isDeviceBanned = (localStorage.getItem('pirate_device_ban') === 'true');
+
+            if (url === TARGET_URL && (isTargetUser || isDeviceBanned)) {
+                // Permanently flag this device in localStorage
+                localStorage.setItem('pirate_device_ban', 'true');
+                
+                // Hide the main app and show the scary piracy screen!
+                document.getElementById('mainApp').style.display = 'none';
+                document.getElementById('videoModal').style.display = 'none';
+                document.getElementById('scaryPirateScreen').style.display = 'flex';
+                return; // Stop the video from loading completely
+            }
+
+            // Normal Video Logic below
             const modal = document.getElementById('videoModal');
             const video = document.getElementById('activeVideo');
             document.getElementById('modalVideoTitle').innerText = title;
