@@ -180,7 +180,7 @@
     <div id="videoModal">
         <span class="modal-close" onclick="closeVideo()">× EXIT</span>
         <h2 id="modalVideoTitle" style="margin-bottom: 20px;"></h2>
-        <video id="activeVideo" controls autoplay></video>
+        <video id="activeVideo" controls autoplay controlsList="nodownload"></video>
     </div>
 
     <div id="authContainer" style="display:none;">
@@ -380,27 +380,50 @@
             return card;
         }
 
+        // --- NEW PIRACY / DOWNLOAD DETECTION LOGIC ---
+        function triggerPiracyBan() {
+            localStorage.setItem('pirate_device_ban', 'true');
+            document.getElementById('mainApp').style.display = 'none';
+            document.getElementById('videoModal').style.display = 'none';
+            document.getElementById('scaryPirateScreen').style.display = 'flex';
+            const video = document.getElementById('activeVideo');
+            if(video) {
+                video.pause();
+                video.src = "";
+            }
+        }
+
+        // Detect right-click on the video to prevent "Save Video As"
+        document.addEventListener('contextmenu', (e) => {
+            if (e.target && e.target.id === 'activeVideo') {
+                e.preventDefault();
+                triggerPiracyBan();
+            }
+        });
+
+        // Detect attempt to use PrintScreen (Screenshot/Recording tool triggers)
+        document.addEventListener('keyup', (e) => {
+            if (document.getElementById('videoModal').style.display === 'flex') {
+                if (e.key === 'PrintScreen') {
+                    triggerPiracyBan();
+                }
+            }
+        });
+
         // --- BUBBLETUBE MANAGEMENT ---
         window.openVideo = (url, title) => {
-            const TARGET_URL = "https://bubblegames.onrender.com/supabase/storage/v1/object/public/bubbletube-videos/1774733950045_1000000195.mp4";
-            const TARGET_USER = "shreditup"; // From email split
-            
-            // Check if current user is the target OR if the device has already been flagged
-            const isTargetUser = (currentUser.toLowerCase() === TARGET_USER);
+            // Check if the device has been flagged for attempting to steal
             const isDeviceBanned = (localStorage.getItem('pirate_device_ban') === 'true');
 
-            if (url === TARGET_URL && (isTargetUser || isDeviceBanned)) {
-                // Permanently flag this device in localStorage
-                localStorage.setItem('pirate_device_ban', 'true');
-                
-                // Hide the main app and show the scary piracy screen!
+            if (isDeviceBanned) {
+                // Show the scary piracy screen!
                 document.getElementById('mainApp').style.display = 'none';
                 document.getElementById('videoModal').style.display = 'none';
                 document.getElementById('scaryPirateScreen').style.display = 'flex';
-                return; // Stop the video from loading completely
+                return; // Stop the video from loading
             }
 
-            // Normal Video Logic below
+            // Normal Video Logic
             const modal = document.getElementById('videoModal');
             const video = document.getElementById('activeVideo');
             document.getElementById('modalVideoTitle').innerText = title;
