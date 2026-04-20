@@ -30,13 +30,13 @@
         #loadingState { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: var(--bg); display: flex; flex-direction: column; align-items: center; 
-            justify-content: center; z-index: 1000; font-weight: 900; color: var(--primary);
+            justify-content: center; z-index: 10000; font-weight: 900; color: var(--primary);
         }
 
         nav { 
             padding: 15px 40px; display: flex; justify-content: space-between; align-items: center; 
             background: rgba(10, 10, 12, 0.8); backdrop-filter: blur(15px); 
-            position: sticky; top: 0; z-index: 100; border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: sticky; top: 0; z-index: 1000; border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .logo { 
@@ -83,13 +83,6 @@
             border-radius: 50px; font-weight: 900; font-size: 1.5rem; cursor: pointer; 
             border: none; transition: 0.4s; box-shadow: 0 15px 30px rgba(255, 0, 200, 0.3); margin-bottom: 40px;
         }
-        .btn-launch:hover { transform: scale(1.05); }
-
-        .section-title { 
-            text-align: left; margin: 40px 0 30px; font-size: 1.8rem; font-weight: 900;
-            display: flex; align-items: center; gap: 15px; 
-        }
-        .section-title span { background: var(--glass); padding: 10px; border-radius: 12px; }
 
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 30px; }
 
@@ -101,7 +94,7 @@
         .game-card:hover { transform: translateY(-8px); border-color: var(--primary); }
         .card-inner { padding: 25px; flex-grow: 1; }
         
-        .status-tag { float: right; font-size: 11px; padding: 5px 12px; border-radius: 50px; font-weight: 900; text-transform: uppercase; cursor: help; }
+        .status-tag { float: right; font-size: 11px; padding: 5px 12px; border-radius: 50px; font-weight: 900; text-transform: uppercase; }
         .status-private { background: #333; color: #aaa; }
         .status-public { background: rgba(0, 255, 136, 0.15); color: var(--success); border: 1px solid var(--success); }
 
@@ -111,80 +104,31 @@
         .action-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 20px; }
         .btn-base { border: none; padding: 14px; border-radius: 16px; cursor: pointer; font-weight: 900; transition: 0.2s; font-size: 12px; }
         .btn-play { background: #fff; color: #000; grid-column: span 2; font-size: 18px; }
-        .btn-play:hover { background: var(--primary); }
         
-        .btn-edit { background: var(--glass); color: var(--edit); border: 1px solid rgba(255,204,0,0.3); }
-        .btn-delete { background: rgba(255,68,68,0.1); color: var(--danger); border: 1px solid rgba(255,68,68,0.3); }
-        
-        .btn-logout { background: var(--glass); color: #fff; padding: 10px 20px; border-radius: 12px; border: none; font-weight: 700; cursor: pointer; }
-        .owner-tag { background: var(--owner); color: #000; padding: 2px 8px; border-radius: 6px; font-size: 12px; }
-
         #videoModal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95);
-            display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 2000;
+            display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 5000;
         }
         #videoModal video { max-width: 90%; max-height: 80%; border-radius: 20px; box-shadow: 0 0 50px var(--primary); }
-        .modal-close { position: absolute; top: 30px; right: 30px; font-size: 40px; cursor: pointer; color: white; font-weight: 900; }
 
         .content-section { display: none; margin-bottom: 100px; }
         .content-section.active { display: block; animation: fadeIn 0.5s ease forwards; }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* SCARY PIRATE SCREEN CSS */
-        #scaryPirateScreen {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #000;
-            z-index: 99999;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: #ff0000;
-            font-family: 'Courier New', Courier, monospace;
-            text-align: center;
-        }
-        .glitch-text {
-            font-size: 6rem;
-            font-weight: 900;
-            margin: 0;
-            text-shadow: 3px 3px 0 #fff, -3px -3px 0 #00d4ff;
-            animation: glitch 0.2s infinite;
-        }
-        @keyframes glitch {
-            0% { transform: translate(0) }
-            20% { transform: translate(-5px, 5px) }
-            40% { transform: translate(-5px, -5px) }
-            60% { transform: translate(5px, 5px) }
-            80% { transform: translate(5px, -5px) }
-            100% { transform: translate(0) }
-        }
     </style>
 </head>
 
 <body>
     <div id="loadingState">SYNCHRONIZING...</div>
 
-    <div id="scaryPirateScreen">
-        <h1 class="glitch-text">☠️ PIRACY DETECTED ☠️</h1>
-        <h2 style="font-size: 3rem; margin-top: 20px;">ILLEGAL ACCESS BLOCKED</h2>
-        <p style="font-size: 1.5rem; color: #ff4444; max-width: 800px; margin-top: 30px;">
-            Your device has been permanently flagged for piracy violations. Nice try bypassing the system. You will never watch this video.
-        </p>
-    </div>
-
     <div id="videoModal">
-        <span class="modal-close" onclick="closeVideo()">× EXIT</span>
-        <h2 id="modalVideoTitle" style="margin-bottom: 20px;"></h2>
-        <video id="activeVideo" controls autoplay controlsList="nodownload"></video>
+        <span style="position:absolute; top:30px; right:30px; cursor:pointer; font-size:2rem;" onclick="closeVideo()">× EXIT</span>
+        <h2 id="modalVideoTitle"></h2>
+        <video id="activeVideo" controls autoplay></video>
     </div>
 
     <div id="authContainer" style="display:none;">
-        <h1 class="logo" style="font-size: 40px;" onclick="location.reload()">Bubble Games</h1>
+        <h1 class="logo" style="font-size: 40px;">Bubble Games</h1>
         <input type="text" id="username" placeholder="Username">
         <input type="password" id="password" placeholder="Password">
         <div id="loginSection">
@@ -199,64 +143,42 @@
 
     <div id="mainApp" style="display:none;">
         <nav>
-            <div class="logo" onclick="location.reload()">Bubble Games</div>
+            <div class="logo" onclick="showSection('global')">Bubble Games</div>
             <div style="display: flex; align-items: center; gap: 15px;">
                 <div id="userDisplay"></div>
-                <button id="logoutBtn" class="btn-logout">LOGOUT</button>
+                <button id="logoutBtn" style="background:none; border:1px solid #444; color:white; padding:5px 10px; cursor:pointer; border-radius:5px;">LOGOUT</button>
             </div>
         </nav>
 
         <div class="container">
-            <header style="margin: 60px 0 40px;">
-                <h1 id="mainHeading" style="font-size: 3.5rem; font-weight: 900; margin-bottom: 20px;">What would you like to play?</h1>
-                
-                <div class="search-container">
-                    <input type="text" id="gameSearch" class="main-search" placeholder="Search Games and press Enter...">
-                </div>
-
+            <header style="margin: 40px 0;">
+                <h1 id="mainHeading" style="font-size: 3rem;">What's the plan today?</h1>
                 <div class="nav-options">
-                    <button class="opt-btn" onclick="showSection('studio')"><i>📂</i> YOUR STUDIO</button>
-                    <button class="opt-btn" onclick="showSection('global')"><i>🌎</i> GLOBAL LIBRARY</button>
-                    <button class="opt-btn" onclick="showSection('bubbletube')"><i>📺</i> BubbleTube</button>
+                    <button class="opt-btn" onclick="showSection('studio')">📂 STUDIO</button>
+                    <button class="opt-btn" onclick="showSection('global')">🌎 GLOBAL</button>
+                    <button class="opt-btn" onclick="showSection('bubbletube')">📺 BUBBLETUBE</button>
                 </div>
-
-                <button id="newGameBtn" class="btn-launch">Create New World 🛠️</button>
             </header>
-            
+
             <div id="studio-section" class="content-section">
-                <h2 class="section-title"><span>📂</span> YOUR STUDIO</h2>
+                <button id="newGameBtn" class="btn-launch">Create New World 🛠️</button>
                 <div class="grid" id="myGamesGrid"></div>
             </div>
 
             <div id="global-section" class="content-section">
-                <h2 class="section-title"><span>🌎</span> GLOBAL LIBRARY</h2>
+                <div class="search-container">
+                    <input type="text" id="gameSearch" class="main-search" placeholder="Search Games...">
+                </div>
                 <div class="grid" id="globalGamesGrid"></div>
             </div>
 
-            <div id="search-results-section" class="content-section">
-                <h2 class="section-title"><span>🔍</span> SEARCH RESULTS</h2>
-                <div class="grid" id="searchGrid"></div>
-            </div>
-
             <div id="bubbletube-section" class="content-section">
-                <h2 class="section-title"><span>📺</span> BUBBLETUBE</h2>
-
-                <div class="search-container">
-                    <input type="text" id="tubeSearch" class="main-search" placeholder="Search Videos and press Enter...">
+                <div style="background: var(--card); padding: 20px; border-radius: 20px; margin-bottom: 30px;">
+                    <h3>Upload Video</h3>
+                    <input type="file" id="videoFile" accept="video/*">
+                    <input type="text" id="videoTitle" placeholder="Title">
+                    <button id="publishVidBtn" class="btn-base btn-play" style="width:200px; margin:auto;">UPLOAD</button>
                 </div>
-                
-                <div style="background: var(--card); padding: 30px; border-radius: 28px; border: 1px solid var(--glass); margin-bottom: 40px;">
-                    <h3>Upload to BubbleTube</h3>
-                    <input type="file" id="videoFile" accept="video/*" style="border: 2px dashed #444; width: 80%; margin: 10px auto;">
-                    <p style="font-size: 12px; color: #666;">Limit: 50MB</p>
-                    <input type="text" id="videoTitle" placeholder="Video Title">
-                    <select id="videoVisibility">
-                        <option value="true">Public</option>
-                        <option value="false">Private</option>
-                    </select>
-                    <button id="publishVidBtn" class="btn-base btn-play" style="width: 200px;">PUBLISH VID</button>
-                </div>
-
                 <div class="grid" id="tubeGrid"></div>
             </div>
         </div>
@@ -268,21 +190,21 @@
         const SUPABASE_KEY = 'sb_publishable_ULjlm97u7-dg8ekTPU84aA_rA1CtUnH';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        const OWNER_EMAIL = "goomba@bubble.com"; 
         let currentUser = "";
-        let userRole = "Player";
         let isOwner = false;
         let allGames = [];
         let allVideos = [];
 
         async function init() {
+            // Unban any devices that were previously locked out
+            localStorage.removeItem('pirate_device_ban');
+
             try {
                 const { data: { user } } = await supabaseClient.auth.getUser();
                 if (user) {
-                    const { data: profile } = await supabaseClient.from('profiles').select('username, role').eq('id', user.id).single();
-                    currentUser = profile ? profile.username : user.email.split('@')[0];
-                    isOwner = (user.email.toLowerCase() === OWNER_EMAIL.toLowerCase());
-                    userRole = isOwner ? "Owner" : (profile ? profile.role : "Player");
+                    const { data: profile } = await supabaseClient.from('profiles').select('*').eq('id', user.id).single();
+                    currentUser = profile?.username || user.email.split('@')[0];
+                    isOwner = (user.email === "goomba@bubble.com");
                     
                     document.getElementById('loadingState').style.display = 'none';
                     showApp();
@@ -290,140 +212,76 @@
                     document.getElementById('loadingState').style.display = 'none';
                     document.getElementById('authContainer').style.display = 'inline-block';
                 }
-            } catch (e) { document.getElementById('loadingState').innerText = "Sync Error."; }
+            } catch (e) { console.error(e); }
         }
 
-        async function showApp() {
+        function showApp() {
             document.getElementById('authContainer').style.display = 'none';
             document.getElementById('mainApp').style.display = 'block';
-            
-            document.getElementById('userDisplay').innerHTML = isOwner 
-                ? `<span class="owner-tag">OWNER</span> ${currentUser.toUpperCase()}` 
-                : `<span style="color:var(--primary); font-weight:900;">${currentUser.toUpperCase()}</span>`;
-            
-            const { data: games } = await supabaseClient.from('games').select('*');
-            allGames = games || [];
-            
-            const { data: vids } = await supabaseClient.from('videos').select('*').order('created_at', { ascending: false });
-            allVideos = vids || [];
-
-            renderGrids();
-            renderTube(""); 
+            document.getElementById('userDisplay').innerHTML = `Hi, <b>${currentUser}</b>`;
+            showSection('global');
+            fetchData();
         }
 
-        function renderGrids() {
+        async function fetchData() {
+            const { data: games } = await supabaseClient.from('games').select('*');
+            const { data: vids } = await supabaseClient.from('videos').select('*').order('created_at', {ascending: false});
+            allGames = games || [];
+            allVideos = vids || [];
+            renderAll();
+        }
+
+        function renderAll() {
             const myGrid = document.getElementById('myGamesGrid');
             const globalGrid = document.getElementById('globalGamesGrid');
-            myGrid.innerHTML = ''; globalGrid.innerHTML = '';
-
-            allGames.forEach(game => {
-                const isCreator = (game.creator === currentUser);
-                // Owners see everything in Studio, Players see only their own
-                if (isCreator || isOwner) myGrid.appendChild(createGameCard(game, isCreator));
-                
-                if (game.is_public && !isCreator) {
-                   globalGrid.appendChild(createGameCard(game, false));
-                }
-            });
-        }
-
-        function renderTube(filter = "") {
             const tubeGrid = document.getElementById('tubeGrid');
-            tubeGrid.innerHTML = '';
             
-            allVideos.forEach(vid => {
-                const isCreator = (vid.creator === currentUser);
-                const hasPower = isCreator || isOwner;
+            myGrid.innerHTML = ''; globalGrid.innerHTML = ''; tubeGrid.innerHTML = '';
 
-                // Show if: It's public OR User is creator OR User is owner
-                if ((vid.is_public || hasPower) && vid.title.toLowerCase().includes(filter.toLowerCase())) {
-                    const card = document.createElement('div');
-                    card.className = 'game-card';
-                    card.innerHTML = `
-                        <div class="card-inner">
-                            <span class="status-tag ${vid.is_public ? 'status-public' : 'status-private'}">
-                                ${vid.is_public ? '🌐 Public' : '🔒 Private'}
-                            </span>
-                            <span class="creator-label">@${vid.creator}</span>
-                            <h3 class="game-name">${vid.title}</h3>
-                            <div class="action-row">
-                                <button class="btn-base btn-play" onclick="openVideo('${vid.video_url}', '${vid.title}')">▶ WATCH VIDEO</button>
-                                ${hasPower ? `
-                                    <button class="btn-base btn-edit" onclick="editVideo('${vid.id}', '${vid.title.replace(/'/g, "\\'")}', ${vid.is_public})">✎ Rename / Privacy</button>
-                                    <button class="btn-base btn-delete" onclick="deleteVideo('${vid.id}')">✖ Delete</button>
-                                ` : ''}
-                            </div>
-                        </div>
-                    `;
-                    tubeGrid.appendChild(card);
+            allGames.forEach(g => {
+                const card = createCard(g, 'game');
+                if (g.creator === currentUser || isOwner) myGrid.appendChild(card.cloneNode(true));
+                if (g.is_public) globalGrid.appendChild(card);
+            });
+
+            allVideos.forEach(v => {
+                if (v.is_public || v.creator === currentUser || isOwner) {
+                    tubeGrid.appendChild(createCard(v, 'video'));
                 }
             });
         }
 
-        function createGameCard(game, isCreator) {
-            const card = document.createElement('div');
-            card.className = 'game-card';
-            const hasPower = isCreator || isOwner;
-            card.innerHTML = `
+        function createCard(item, type) {
+            const div = document.createElement('div');
+            div.className = 'game-card';
+            const isMine = item.creator === currentUser || isOwner;
+            
+            div.innerHTML = `
                 <div class="card-inner">
-                    <span class="status-tag ${game.is_public ? 'status-public' : 'status-private'}">${game.is_public ? '🌐 Public' : '🔒 Private'}</span>
-                    <span class="creator-label">@${game.creator}</span>
-                    <h3 class="game-name">${game.name || 'Untitled'}</h3>
+                    <span class="creator-label">@${item.creator}</span>
+                    <h3 class="game-name">${item.name || item.title}</h3>
                     <div class="action-row">
-                        <button class="btn-base btn-play" onclick="playGame('${game.id}')">▶ PLAY</button>
-                        ${hasPower ? `
-                            <button class="btn-base btn-edit" onclick="editGame('${game.id}')">✎ Edit</button>
-                            <button class="btn-base btn-delete" onclick="deleteGame('${game.id}')">✖</button>
-                        ` : ''}
+                        <button class="btn-base btn-play">${type === 'game' ? '▶ PLAY' : '▶ WATCH'}</button>
+                        ${isMine ? `<button class="btn-base" style="background:#222; color:white;" onclick="deleteItem('${item.id}', '${type}')">Delete</button>` : ''}
                     </div>
-                </div>`;
-            return card;
+                </div>
+            `;
+
+            div.querySelector('.btn-play').onclick = () => {
+                if (type === 'game') playGame(item.id);
+                else openVideo(item.video_url, item.title);
+            };
+            return div;
         }
 
-        // --- NEW PIRACY / DOWNLOAD DETECTION LOGIC ---
-        function triggerPiracyBan() {
-            localStorage.setItem('pirate_device_ban', 'true');
-            document.getElementById('mainApp').style.display = 'none';
-            document.getElementById('videoModal').style.display = 'none';
-            document.getElementById('scaryPirateScreen').style.display = 'flex';
-            const video = document.getElementById('activeVideo');
-            if(video) {
-                video.pause();
-                video.src = "";
-            }
-        }
+        window.showSection = (section) => {
+            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+            document.getElementById(`${section}-section`).classList.add('active');
+            const headings = { studio: "Your Workshop", global: "Explore Games", bubbletube: "BubbleTube Cinema" };
+            document.getElementById('mainHeading').innerText = headings[section];
+        };
 
-        // Detect right-click on the video to prevent "Save Video As"
-        document.addEventListener('contextmenu', (e) => {
-            if (e.target && e.target.id === 'activeVideo') {
-                e.preventDefault();
-                triggerPiracyBan();
-            }
-        });
-
-        // Detect attempt to use PrintScreen (Screenshot/Recording tool triggers)
-        document.addEventListener('keyup', (e) => {
-            if (document.getElementById('videoModal').style.display === 'flex') {
-                if (e.key === 'PrintScreen') {
-                    triggerPiracyBan();
-                }
-            }
-        });
-
-        // --- BUBBLETUBE MANAGEMENT ---
         window.openVideo = (url, title) => {
-            // Check if the device has been flagged for attempting to steal
-            const isDeviceBanned = (localStorage.getItem('pirate_device_ban') === 'true');
-
-            if (isDeviceBanned) {
-                // Show the scary piracy screen!
-                document.getElementById('mainApp').style.display = 'none';
-                document.getElementById('videoModal').style.display = 'none';
-                document.getElementById('scaryPirateScreen').style.display = 'flex';
-                return; // Stop the video from loading
-            }
-
-            // Normal Video Logic
             const modal = document.getElementById('videoModal');
             const video = document.getElementById('activeVideo');
             document.getElementById('modalVideoTitle').innerText = title;
@@ -432,138 +290,11 @@
         };
 
         window.closeVideo = () => {
-            const modal = document.getElementById('videoModal');
             const video = document.getElementById('activeVideo');
             video.pause();
             video.src = "";
-            modal.style.display = 'none';
+            document.getElementById('videoModal').style.display = 'none';
         };
-
-        window.deleteVideo = async (id) => {
-            if(confirm("Permanently delete this BubbleVid?")) {
-                const { error } = await supabaseClient.from('videos').delete().eq('id', id);
-                if (error) alert(error.message);
-                else {
-                    alert("Deleted!");
-                    location.reload();
-                }
-            }
-        };
-
-        window.editVideo = async (id, oldTitle, currentPrivacy) => {
-            const action = prompt("Type 'rename' to change name, or 'privacy' to toggle visibility:", "rename");
-            
-            if (action === 'rename') {
-                const newTitle = prompt("Enter new title:", oldTitle);
-                if (newTitle && newTitle !== oldTitle) {
-                    const { error } = await supabaseClient.from('videos').update({ title: newTitle }).eq('id', id);
-                    if (error) alert(error.message); else location.reload();
-                }
-            } else if (action === 'privacy') {
-                const { error } = await supabaseClient.from('videos').update({ is_public: !currentPrivacy }).eq('id', id);
-                if (error) alert(error.message); else location.reload();
-            }
-        };
-
-        // --- NAVIGATION & SEARCH ---
-        window.showSection = (section) => {
-            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-            const heading = document.getElementById('mainHeading');
-            
-            if (section === 'studio') {
-                document.getElementById('studio-section').classList.add('active');
-                heading.innerText = "Welcome to your Workshop!";
-            } else if (section === 'global') {
-                document.getElementById('global-section').classList.add('active');
-                heading.innerText = "Explore the Bubbleverse!";
-            } else if (section === 'bubbletube') {
-                document.getElementById('bubbletube-section').classList.add('active');
-                heading.innerText = "What would you like to watch?";
-                renderTube();
-            } else if (section === 'results') {
-                document.getElementById('search-results-section').classList.add('active');
-            }
-        };
-
-        document.getElementById('gameSearch').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                const query = e.target.value.toLowerCase().trim();
-                if (!query) return;
-                const searchGrid = document.getElementById('searchGrid');
-                searchGrid.innerHTML = '';
-                const filtered = allGames.filter(g => g.name.toLowerCase().includes(query) && (g.is_public || g.creator === currentUser || isOwner));
-                filtered.forEach(game => searchGrid.appendChild(createGameCard(game, game.creator === currentUser)));
-                showSection('results');
-            }
-        });
-
-        document.getElementById('tubeSearch').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                renderTube(e.target.value);
-            }
-        });
-
-        // --- UPLOAD LOGIC ---
-        document.getElementById('publishVidBtn').onclick = async () => {
-            const btn = document.getElementById('publishVidBtn');
-            const fileInput = document.getElementById('videoFile');
-            const title = document.getElementById('videoTitle').value.trim();
-            const isPublic = document.getElementById('videoVisibility').value === 'true';
-            const file = fileInput.files[0];
-
-            if (!file || !title) return alert("Fill out all fields!");
-            if (file.size > 50 * 1024 * 1024) return alert("Too large! (50MB Max)");
-
-            btn.innerText = "UPLOADING...";
-            btn.disabled = true;
-
-            const fileName = `${Date.now()}_${file.name}`;
-            const { error: uploadErr } = await supabaseClient.storage.from('bubbletube-videos').upload(fileName, file);
-            
-            if (uploadErr) {
-                alert(uploadErr.message);
-                btn.innerText = "PUBLISH VID";
-                btn.disabled = false;
-                return;
-            }
-
-            const { data: urlData } = supabaseClient.storage.from('bubbletube-videos').getPublicUrl(fileName);
-            const { data: userData } = await supabaseClient.auth.getUser();
-
-            await supabaseClient.from('videos').insert([{
-                title, 
-                video_url: urlData.publicUrl, 
-                creator: currentUser, 
-                is_public: isPublic, 
-                user_id: userData.user.id
-            }]);
-
-            alert("BubbleVid Live! 🚀");
-            location.reload();
-        };
-
-        // --- CORE ACTIONS ---
-        window.playGame = (id) => { localStorage.setItem('currentGameId', id); localStorage.setItem('editMode', 'false'); window.location.href = 'engine.html'; };
-        window.editGame = (id) => { localStorage.setItem('currentGameId', id); localStorage.setItem('editMode', 'true'); window.location.href = 'engine.html'; };
-        window.deleteGame = async (id) => { if(confirm("Delete this game?")) { await supabaseClient.from('games').delete().eq('id', id); location.reload(); }};
-
-        async function handleAuth(mode) {
-            const user = document.getElementById('username').value.trim();
-            const pass = document.getElementById('password').value;
-            if (!user || !pass) return;
-            const email = `${user.toLowerCase()}@bubble.com`;
-            const { error } = mode === 'signup' 
-                ? await supabaseClient.auth.signUp({email, password: pass, options: { data: { username: user, role: 'Player' } }}) 
-                : await supabaseClient.auth.signInWithPassword({email, password: pass});
-            if (error) alert(error.message); else location.reload();
-        }
-
-        document.getElementById('loginBtn').onclick = () => handleAuth('login');
-        document.getElementById('signupBtn').onclick = () => handleAuth('signup');
-        document.getElementById('toSignup').onclick = () => { document.getElementById('loginSection').style.display='none'; document.getElementById('signupSection').style.display='block'; };
-        document.getElementById('toLogin').onclick = () => { document.getElementById('loginSection').style.display='block'; document.getElementById('signupSection').style.display='none'; };
-        document.getElementById('logoutBtn').onclick = async () => { await supabaseClient.auth.signOut(); location.reload(); };
-        document.getElementById('newGameBtn').onclick = () => { localStorage.removeItem('currentGameId'); localStorage.setItem('editMode', 'true'); localStorage.setItem('isNewGame', 'true'); window.location.href = 'engine.html'; };
 
         init();
     </script>
