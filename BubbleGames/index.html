@@ -3,300 +3,212 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bubble Games | Pop Into Play!</title>
+    <title>Bubble Games | Home</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap');
-
-        :root { 
-            --primary: #00d4ff; 
-            --secondary: #ff00c8;
-            --bg: #050508; 
-            --card: #121218; 
-            --danger: #ff4444; 
-            --edit: #ffcc00; 
-            --success: #00ff88; 
-            --owner: #ffcf40;
-            --glass: rgba(255, 255, 255, 0.05);
-            --bubble-gradient: linear-gradient(135deg, #00d4ff 0%, #ff00c8 100%);
-        }
-
-        body { 
-            margin: 0; background: var(--bg); color: white; font-family: 'Outfit', sans-serif; 
-            text-align: center; overflow-x: hidden;
-            background-image: radial-gradient(circle at 10% 20%, rgba(0, 212, 255, 0.05) 0%, transparent 40%),
-                              radial-gradient(circle at 90% 80%, rgba(255, 0, 200, 0.05) 0%, transparent 40%);
-        }
-
-        #loadingState { 
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: var(--bg); display: flex; flex-direction: column; align-items: center; 
-            justify-content: center; z-index: 10000; font-weight: 900; color: var(--primary);
-        }
-
-        nav { 
-            padding: 15px 40px; display: flex; justify-content: space-between; align-items: center; 
-            background: rgba(10, 10, 12, 0.8); backdrop-filter: blur(15px); 
-            position: sticky; top: 0; z-index: 1000; border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .logo { 
-            font-size: 28px; font-weight: 900; background: var(--bubble-gradient);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            text-transform: uppercase; letter-spacing: -1px; cursor: pointer;
-        }
-
-        .container { padding: 40px 20px; max-width: 1200px; margin: auto; }
-
-        #authContainer { 
-            background: var(--card); padding: 50px; border-radius: 35px; 
-            border: 2px solid rgba(255, 255, 255, 0.05); display: inline-block; 
-            margin-top: 80px; box-shadow: 0 30px 60px rgba(0,0,0,0.8);
-        }
-
-        input, select { 
-            display: block; margin: 15px auto; padding: 16px; width: 300px; 
-            border-radius: 15px; border: 2px solid #222; background: #000; 
-            color: white; outline: none; transition: 0.3s; font-size: 1rem;
-        }
-        input:focus { border-color: var(--primary); box-shadow: 0 0 20px rgba(0, 212, 255, 0.2); }
-
-        .search-container { margin: 20px auto 40px; position: relative; width: 100%; max-width: 600px; }
-        .main-search {
-            width: 100%; padding: 20px 25px; font-size: 1.2rem; border-radius: 50px;
-            background: var(--glass); border: 2px solid rgba(255,255,255,0.1); color: white;
-            box-sizing: border-box;
-        }
-
-        .nav-options {
-            display: flex; justify-content: center; gap: 20px; margin-bottom: 50px; flex-wrap: wrap;
-        }
-        .opt-btn {
-            background: var(--card); border: 1px solid rgba(255,255,255,0.1); color: #fff;
-            padding: 15px 30px; border-radius: 20px; cursor: pointer; font-weight: 700;
-            transition: 0.3s; display: flex; align-items: center; gap: 10px; font-size: 0.9rem;
-        }
-        .opt-btn:hover, .opt-btn.active { background: var(--glass); transform: translateY(-3px); border-color: var(--primary); }
-        .opt-btn i { font-style: normal; font-size: 1.4rem; }
-
+        :root { --primary: #00d4ff; --bg: #0a0a0c; --card: #16161a; --danger: #ff4444; --edit: #ffcc00; --success: #00ff88; --owner: #ffcf40; }
+        body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; text-align: center; }
+        nav { padding: 10px 50px; border-bottom: 2px solid var(--primary); display: flex; justify-content: space-between; align-items: center; background: #000; }
+        .logo { font-size: 24px; font-weight: bold; color: var(--primary); text-transform: uppercase; }
+        .container { padding: 50px 20px; max-width: 1000px; margin: auto; }
+        
+        #authContainer { background: var(--card); padding: 40px; border-radius: 20px; border: 1px solid var(--primary); display: inline-block; margin-top: 100px; }
+        input { display: block; margin: 10px auto; padding: 12px; width: 250px; border-radius: 8px; border: 1px solid #333; background: #000; color: white; }
+        
         .btn-launch { 
-            background: var(--bubble-gradient); color: white; padding: 20px 60px; 
-            border-radius: 50px; font-weight: 900; font-size: 1.5rem; cursor: pointer; 
-            border: none; transition: 0.4s; box-shadow: 0 15px 30px rgba(255, 0, 200, 0.3); margin-bottom: 40px;
+            background: var(--primary); color: #000; padding: 15px 40px; 
+            border-radius: 50px; text-decoration: none; font-weight: bold; 
+            font-size: 1.5rem; display: inline-block; transition: 0.3s;
+            cursor: pointer; border: none;
         }
-
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 30px; }
-
-        .game-card { 
-            background: var(--card); border-radius: 28px; text-align: left; 
-            transition: 0.4s; overflow: hidden; border: 1px solid rgba(255,255,255,0.03);
-            display: flex; flex-direction: column;
-        }
-        .game-card:hover { transform: translateY(-8px); border-color: var(--primary); }
-        .card-inner { padding: 25px; flex-grow: 1; }
+        .btn-launch:hover { transform: scale(1.05); box-shadow: 0 0 20px var(--primary); }
         
-        .status-tag { float: right; font-size: 11px; padding: 5px 12px; border-radius: 50px; font-weight: 900; text-transform: uppercase; }
-        .status-private { background: #333; color: #aaa; }
-        .status-public { background: rgba(0, 255, 136, 0.15); color: var(--success); border: 1px solid var(--success); }
-
-        .creator-label { font-size: 12px; color: var(--primary); font-weight: 900; }
-        .game-name { margin: 15px 0 10px; font-size: 1.6rem; font-weight: 900; color: #fff; }
-
-        .action-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 20px; }
-        .btn-base { border: none; padding: 14px; border-radius: 16px; cursor: pointer; font-weight: 900; transition: 0.2s; font-size: 12px; }
-        .btn-play { background: #fff; color: #000; grid-column: span 2; font-size: 18px; }
+        .section-title { text-align: left; margin-top: 50px; color: var(--primary); border-left: 4px solid var(--primary); padding-left: 15px; }
         
-        #videoModal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95);
-            display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 5000;
-        }
-        #videoModal video { max-width: 90%; max-height: 80%; border-radius: 20px; box-shadow: 0 0 50px var(--primary); }
-
-        .content-section { display: none; margin-bottom: 100px; }
-        .content-section.active { display: block; animation: fadeIn 0.5s ease forwards; }
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-top: 20px; }
+        .game-card { background: var(--card); border: 1px solid #333; padding: 20px; border-radius: 15px; text-align: left; transition: 0.3s; }
+        .game-card:hover { border-color: var(--primary); }
+        
+        button { border: none; padding: 12px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-play { background: var(--primary); color: black; width: 100%; margin-top: 10px; }
+        .btn-edit { background: var(--edit); color: black; width: 48%; margin-top: 5px; }
+        .btn-rename { background: #444; color: white; width: 48%; margin-top: 5px; }
+        .btn-delete { background: var(--danger); color: white; width: 100%; margin-top: 5px; }
+        .btn-logout { background: #333; color: white; font-size: 12px; }
+        .owner-tag { color: var(--owner); text-shadow: 0 0 10px var(--owner); }
+        .creator-label { font-size: 12px; color: #00d4ff; font-weight: bold; }
     </style>
 </head>
-
 <body>
-    <div id="loadingState">SYNCHRONIZING...</div>
 
-    <div id="videoModal">
-        <span style="position:absolute; top:30px; right:30px; cursor:pointer; font-size:2rem;" onclick="closeVideo()">× EXIT</span>
-        <h2 id="modalVideoTitle"></h2>
-        <video id="activeVideo" controls autoplay></video>
-    </div>
-
-    <div id="authContainer" style="display:none;">
-        <h1 class="logo" style="font-size: 40px;">Bubble Games</h1>
-        <input type="text" id="username" placeholder="Username">
-        <input type="password" id="password" placeholder="Password">
+    <div id="authContainer">
+        <h1 id="authTitle">Bubble Games</h1>
+        <input type="text" id="username" placeholder="Username" maxlength="15">
+        <input type="password" id="password" placeholder="Password" maxlength="20">
+        
         <div id="loginSection">
-            <button id="loginBtn" class="btn-base btn-play">LOG IN</button>
-            <p>New? <span id="toSignup" style="color:var(--primary);cursor:pointer;">Sign Up</span></p>
+            <button onclick="handleAuth('login')" class="btn-play">LOGIN</button>
+            <p style="font-size: 13px; margin-top:15px;">New creator? <span style="color:var(--primary);cursor:pointer;" onclick="toggleAuth(true)">Create Account</span></p>
         </div>
+
         <div id="signupSection" style="display:none;">
-            <button id="signupBtn" class="btn-base btn-play" style="background:var(--success);">CREATE ACCOUNT</button>
-            <p>Back to <span id="toLogin" style="color:var(--primary);cursor:pointer;">Login</span></p>
+            <button onclick="handleAuth('signup')" style="background:var(--success); color:black; width:100%;" class="btn-play">CREATE ACCOUNT</button>
+            <p style="font-size: 13px; margin-top:15px;">Have an account? <span style="color:var(--primary);cursor:pointer;" onclick="toggleAuth(false)">Back to Login</span></p>
         </div>
+        <p id="msg" style="font-size: 13px; color: var(--danger); margin-top: 10px;"></p>
     </div>
 
     <div id="mainApp" style="display:none;">
         <nav>
-            <div class="logo" onclick="showSection('global')">Bubble Games</div>
+            <div class="logo">Bubble Games</div>
             <div style="display: flex; align-items: center; gap: 15px;">
-                <div id="userDisplay"></div>
-                <button id="logoutBtn" style="background:none; border:1px solid #444; color:white; padding:5px 10px; cursor:pointer; border-radius:5px;">LOGOUT</button>
+                <span id="userDisplay" style="font-weight: bold;"></span>
+                <button class="btn-logout" onclick="handleLogout()">LOGOUT</button>
             </div>
         </nav>
 
         <div class="container">
-            <header style="margin: 40px 0;">
-                <h1 id="mainHeading" style="font-size: 3rem;">What's the plan today?</h1>
-                <div class="nav-options">
-                    <button class="opt-btn" onclick="showSection('studio')">📂 STUDIO</button>
-                    <button class="opt-btn" onclick="showSection('global')">🌎 GLOBAL</button>
-                    <button class="opt-btn" onclick="showSection('bubbletube')">📺 BUBBLETUBE</button>
-                </div>
-            </header>
+            <h1>Build. Play. Publish.</h1>
+            <button onclick="createNewGame()" class="btn-launch">Open Editor 🛠️</button>
+            
+            <h2 class="section-title">Your Studio 📂</h2>
+            <div class="grid" id="myGamesGrid"></div>
 
-            <div id="studio-section" class="content-section">
-                <button id="newGameBtn" class="btn-launch">Create New World 🛠️</button>
-                <div class="grid" id="myGamesGrid"></div>
-            </div>
-
-            <div id="global-section" class="content-section">
-                <div class="search-container">
-                    <input type="text" id="gameSearch" class="main-search" placeholder="Search Games...">
-                </div>
-                <div class="grid" id="globalGamesGrid"></div>
-            </div>
-
-            <div id="bubbletube-section" class="content-section">
-                <div style="background: var(--card); padding: 20px; border-radius: 20px; margin-bottom: 30px;">
-                    <h3>Upload Video</h3>
-                    <input type="file" id="videoFile" accept="video/*">
-                    <input type="text" id="videoTitle" placeholder="Title">
-                    <button id="publishVidBtn" class="btn-base btn-play" style="width:200px; margin:auto;">UPLOAD</button>
-                </div>
-                <div class="grid" id="tubeGrid"></div>
-            </div>
+            <h2 class="section-title">Global Library 🌎</h2>
+            <div class="grid" id="globalGamesGrid"></div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script type="module">
-        const SUPABASE_URL = window.location.origin + '/supabase';
+    <script>
+        const SUPABASE_URL = 'https://sideqpofgknyfagrjnke.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_ULjlm97u7-dg8ekTPU84aA_rA1CtUnH';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
         let currentUser = "";
-        let isOwner = false;
-        let allGames = [];
-        let allVideos = [];
 
-        async function init() {
-            // Unban any devices that were previously locked out
-            localStorage.removeItem('pirate_device_ban');
-
-            try {
-                const { data: { user } } = await supabaseClient.auth.getUser();
-                if (user) {
-                    const { data: profile } = await supabaseClient.from('profiles').select('*').eq('id', user.id).single();
-                    currentUser = profile?.username || user.email.split('@')[0];
-                    isOwner = (user.email === "goomba@bubble.com");
-                    
-                    document.getElementById('loadingState').style.display = 'none';
-                    showApp();
-                } else {
-                    document.getElementById('loadingState').style.display = 'none';
-                    document.getElementById('authContainer').style.display = 'inline-block';
-                }
-            } catch (e) { console.error(e); }
+        // SYNC FUNCTIONS FOR ENGINE
+        function createNewGame() {
+            localStorage.removeItem('currentGameId');
+            localStorage.setItem('editMode', 'true');
+            localStorage.setItem('isNewGame', 'true'); // Critical for the Engine
+            window.location.href = 'engine.html';
         }
 
-        function showApp() {
+        function playId(id) {
+            localStorage.setItem('currentGameId', id);
+            localStorage.setItem('editMode', 'false');
+            localStorage.setItem('isNewGame', 'false');
+            window.location.href = 'engine.html';
+        }
+
+        function editId(id) {
+            localStorage.setItem('currentGameId', id);
+            localStorage.setItem('editMode', 'true');
+            localStorage.setItem('isNewGame', 'false');
+            window.location.href = 'engine.html';
+        }
+
+        async function checkUser() {
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            if (user) {
+                currentUser = user.email.split('@')[0];
+                showApp(currentUser);
+            }
+        }
+        checkUser();
+
+        function toggleAuth(isSignUp) {
+            document.getElementById('authTitle').innerText = isSignUp ? "Join Bubble Games" : "Bubble Games";
+            document.getElementById('signupSection').style.display = isSignUp ? "block" : "none";
+            document.getElementById('loginSection').style.display = isSignUp ? "none" : "block";
+            document.getElementById('msg').innerText = "";
+        }
+
+        async function handleAuth(mode) {
+            const userInput = document.getElementById('username').value.trim();
+            const passInput = document.getElementById('password').value;
+            const msg = document.getElementById('msg');
+
+            if (userInput.length < 3) { msg.innerText = "Username too short! (Min 3)"; return; }
+            if (userInput.length > 15) { msg.innerText = "Username too long! (Max 15)"; return; }
+            if (passInput.length < 6) { msg.innerText = "Password too short! (Min 6)"; return; }
+            const fakeEmail = `${userInput.toLowerCase()}@bubble.com`;
+
+            if (mode === 'signup') {
+                const { error } = await supabaseClient.auth.signUp({ email: fakeEmail, password: passInput });
+                if (error) msg.innerText = error.message;
+                else { msg.style.color = "var(--success)"; msg.innerText = "Account Created! Login now."; toggleAuth(false); }
+            } else {
+                const { error } = await supabaseClient.auth.signInWithPassword({ email: fakeEmail, password: passInput });
+                if (error) { msg.style.color = "var(--danger)"; msg.innerText = "Invalid login!"; }
+                else { currentUser = userInput.toLowerCase(); showApp(currentUser); }
+            }
+        }
+
+        function showApp(username) {
+            const isOwner = username === "abraham";
             document.getElementById('authContainer').style.display = 'none';
             document.getElementById('mainApp').style.display = 'block';
-            document.getElementById('userDisplay').innerHTML = `Hi, <b>${currentUser}</b>`;
-            showSection('global');
-            fetchData();
+            document.getElementById('userDisplay').innerHTML = isOwner ? `<span class="owner-tag">[OWNER] ABRAHAM</span>` : `<span style="color:var(--primary)">${username.toUpperCase()}</span>`;
+            loadGames(isOwner);
         }
 
-        async function fetchData() {
-            const { data: games } = await supabaseClient.from('games').select('*');
-            const { data: vids } = await supabaseClient.from('videos').select('*').order('created_at', {ascending: false});
-            allGames = games || [];
-            allVideos = vids || [];
-            renderAll();
-        }
-
-        function renderAll() {
+        async function loadGames(isOwner) {
             const myGrid = document.getElementById('myGamesGrid');
             const globalGrid = document.getElementById('globalGamesGrid');
-            const tubeGrid = document.getElementById('tubeGrid');
-            
-            myGrid.innerHTML = ''; globalGrid.innerHTML = ''; tubeGrid.innerHTML = '';
+            const { data: savedGames, error } = await supabaseClient.from('games').select('*');
 
-            allGames.forEach(g => {
-                const card = createCard(g, 'game');
-                if (g.creator === currentUser || isOwner) myGrid.appendChild(card.cloneNode(true));
-                if (g.is_public) globalGrid.appendChild(card);
-            });
+            if (error) return;
 
-            allVideos.forEach(v => {
-                if (v.is_public || v.creator === currentUser || isOwner) {
-                    tubeGrid.appendChild(createCard(v, 'video'));
+            myGrid.innerHTML = ''; globalGrid.innerHTML = '';
+
+            savedGames.forEach((game) => {
+                const isCreator = game.creator === currentUser;
+                const card = document.createElement('div');
+                card.className = 'game-card';
+
+                let buttons = `<button class="btn-play" onclick="playId('${game.id}')">PLAY</button>`;
+
+                if (isOwner || isCreator) {
+                    buttons += `
+                        <div style="display:flex; justify-content:space-between;">
+                            <button class="btn-edit" onclick="editId('${game.id}')">EDIT</button>
+                            <button class="btn-rename" onclick="renameGame('${game.id}', '${game.name}')">RENAME</button>
+                        </div>
+                        <button class="btn-delete" onclick="deleteGame('${game.id}')">DELETE</button>
+                    `;
                 }
+
+                card.innerHTML = `
+                    <span class="creator-label">@${game.creator || 'guest'}</span>
+                    <h3 style="margin: 5px 0;">${game.name}</h3>
+                    <p style="color:#666; font-size:12px; margin-bottom:10px;">Blocks: ${game.blocks ? game.blocks.length : 0}</p>
+                    ${buttons}
+                `;
+
+                if (isCreator) myGrid.appendChild(card);
+                else globalGrid.appendChild(card);
             });
+
+            if (myGrid.innerHTML === '') myGrid.innerHTML = '<p style="color:#444">You haven\'t built any games yet.</p>';
+            if (globalGrid.innerHTML === '') globalGrid.innerHTML = '<p style="color:#444">No other games found.</p>';
         }
 
-        function createCard(item, type) {
-            const div = document.createElement('div');
-            div.className = 'game-card';
-            const isMine = item.creator === currentUser || isOwner;
-            
-            div.innerHTML = `
-                <div class="card-inner">
-                    <span class="creator-label">@${item.creator}</span>
-                    <h3 class="game-name">${item.name || item.title}</h3>
-                    <div class="action-row">
-                        <button class="btn-base btn-play">${type === 'game' ? '▶ PLAY' : '▶ WATCH'}</button>
-                        ${isMine ? `<button class="btn-base" style="background:#222; color:white;" onclick="deleteItem('${item.id}', '${type}')">Delete</button>` : ''}
-                    </div>
-                </div>
-            `;
-
-            div.querySelector('.btn-play').onclick = () => {
-                if (type === 'game') playGame(item.id);
-                else openVideo(item.video_url, item.title);
-            };
-            return div;
+        async function deleteGame(id) {
+            if (confirm("Delete this game from the cloud forever?")) {
+                const { error } = await supabaseClient.from('games').delete().eq('id', id);
+                if (!error) loadGames(currentUser === "abraham");
+            }
         }
 
-        window.showSection = (section) => {
-            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-            document.getElementById(`${section}-section`).classList.add('active');
-            const headings = { studio: "Your Workshop", global: "Explore Games", bubbletube: "BubbleTube Cinema" };
-            document.getElementById('mainHeading').innerText = headings[section];
-        };
+        async function renameGame(id, oldName) {
+            const newName = prompt("New name:", oldName);
+            if (newName && newName.length < 20) {
+                const { error } = await supabaseClient.from('games').update({ name: newName }).eq('id', id);
+                if (!error) loadGames(currentUser === "abraham");
+            }
+        }
 
-        window.openVideo = (url, title) => {
-            const modal = document.getElementById('videoModal');
-            const video = document.getElementById('activeVideo');
-            document.getElementById('modalVideoTitle').innerText = title;
-            video.src = url;
-            modal.style.display = 'flex';
-        };
-
-        window.closeVideo = () => {
-            const video = document.getElementById('activeVideo');
-            video.pause();
-            video.src = "";
-            document.getElementById('videoModal').style.display = 'none';
-        };
-
-        init();
+        async function handleLogout() { await supabaseClient.auth.signOut(); location.reload(); }
     </script>
 </body>
 </html>
