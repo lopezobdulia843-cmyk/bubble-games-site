@@ -1,68 +1,85 @@
-/* General Settings */
-body {
-    font-family: 'Arial Rounded MT Bold', 'Helvetica', sans-serif;
-    background-color: #e0f7fa; /* Light Blue Bubble Color */
+/* Full screen centering */
+body, html {
+    height: 100%;
     margin: 0;
-    color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #a1e3ee 0%, #00acc1 100%);
+    font-family: 'Arial Rounded MT Bold', sans-serif;
 }
 
-/* Navigation Bar */
-.navbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px 40px;
+.portal-container {
+    width: 100%;
+    max-width: 400px;
+    padding: 20px;
+}
+
+.auth-box {
     background: white;
-    box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+    padding: 40px;
+    border-radius: 30px; /* Extra round/bubbly */
+    box-shadow: 0px 10px 30px rgba(0,0,0,0.2);
+    text-align: center;
 }
 
 .logo {
-    font-size: 24px;
-    font-weight: bold;
     color: #00acc1;
+    margin-bottom: 30px;
+    font-size: 32px;
 }
 
-/* Buttons */
-button {
-    cursor: pointer;
+/* Tabs for Login/Signup */
+.tabs {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 25px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.tab-btn {
+    background: none;
     border: none;
-    border-radius: 50px; /* Makes them bubbly! */
+    padding: 10px;
+    font-size: 16px;
     font-weight: bold;
-    transition: 0.3s;
+    color: #888;
+    cursor: pointer;
 }
 
-.btn-login {
-    background: transparent;
+.tab-btn.active {
     color: #00acc1;
-    padding: 10px 20px;
+    border-bottom: 3px solid #00acc1;
 }
 
-.btn-signup {
-    background: #00acc1;
+/* Inputs */
+input {
+    width: 100%;
+    padding: 15px;
+    margin-bottom: 15px;
+    border: 2px solid #eee;
+    border-radius: 15px;
+    box-sizing: border-box; /* Keeps it from going off-screen */
+    outline: none;
+}
+
+input:focus {
+    border-color: #00acc1;
+}
+
+.btn-main {
+    width: 100%;
+    background: #ff7043;
     color: white;
-    padding: 10px 25px;
+    padding: 15px;
+    border-radius: 15px;
+    font-size: 18px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0px 4px 0px #d85a36; /* 3D Button effect */
 }
 
-.btn-signup:hover {
-    background: #00838f;
-    transform: scale(1.05);
-}
-
-/* Center Content */
-.hero {
-    text-align: center;
-    margin-top: 100px;
-}
-
-.hero h1 {
-    font-size: 3rem;
-    color: #007c91;
-}
-
-.btn-start {
-    background: #ff7043; /* Bright Orange to stand out */
-    color: white;
-    padding: 20px 40px;
-    font-size: 20px;
-    margin-top: 20px;
+.btn-main:active {
+    transform: translateY(3px);
+    box-shadow: none;
 }
