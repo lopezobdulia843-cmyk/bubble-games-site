@@ -1,100 +1,88 @@
-/* 1. DARK MODERN BACKGROUND */
 body {
-    background: #0a0e14; /* Deep space dark blue */
+    background-color: #f0f4ff; /* Very soft light blue */
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
     margin: 0;
-    overflow: hidden;
-    font-family: 'Segoe UI', sans-serif;
+    font-family: 'Inter', sans-serif;
 }
 
-/* 2. THE GLASS CARD (Glassmorphism) */
-.portal-card {
-    background: rgba(255, 255, 255, 0.05); /* See-through white */
-    backdrop-filter: blur(15px); /* BLUR EFFECT */
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 50px;
-    border-radius: 40px;
-    width: 350px;
+/* The Main Box */
+.bubble-card {
+    background: white;
+    padding: 40px;
+    border-radius: 50px; /* Super round */
+    box-shadow: 0 20px 40px rgba(0,0,0,0.05); /* Soft shadow */
     text-align: center;
-    box-shadow: 0 25px 50px rgba(0,0,0,0.5);
-    animation: float 4s ease-in-out infinite; /* Makes it float */
+    width: 320px;
+    border: 8px solid #e0e7ff; /* A thick, soft border */
 }
 
-/* 3. GLOWING LOGO */
-.logo-text {
-    color: white;
-    letter-spacing: 3px;
+/* The Logo */
+h1 {
+    color: #4f46e5;
     font-size: 28px;
     margin-bottom: 30px;
 }
 
-.logo-text span {
-    color: #00d2ff; /* Cyan glow color */
-    text-shadow: 0 0 15px #00d2ff;
+h1 span {
+    color: #ec4899; /* Bubbly Pink */
 }
 
-/* 4. MODERN TOGGLE */
-.toggle-container {
-    background: rgba(0,0,0,0.3);
-    padding: 5px;
-    border-radius: 15px;
-    display: flex;
-    margin-bottom: 30px;
+.bubble-icon {
+    font-size: 40px;
+    display: block;
+    margin-bottom: 10px;
 }
 
-.toggle-btn {
-    flex: 1;
-    background: none;
-    border: none;
-    color: #888;
-    padding: 10px;
-    cursor: pointer;
-    font-weight: bold;
-    border-radius: 10px;
-}
-
-.toggle-btn.active {
-    background: #00d2ff;
-    color: white;
-}
-
-/* 5. GLASS INPUT BOXES */
-.glass-input {
+/* The Inputs */
+.bouncy-input {
     width: 100%;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
     padding: 15px;
-    border-radius: 12px;
-    color: white;
     margin-bottom: 15px;
-    box-sizing: border-box;
-}
-
-/* 6. THE "LAUNCH" BUTTON (High Polish) */
-.play-btn {
-    width: 100%;
-    padding: 15px;
-    border: none;
-    border-radius: 12px;
-    background: linear-gradient(90deg, #00d2ff, #3a7bd5);
-    color: white;
-    font-weight: bold;
+    border: 2px solid #f3f4f6;
+    border-radius: 20px;
+    background: #f9fafb;
     font-size: 16px;
+    box-sizing: border-box;
+    transition: 0.2s;
+}
+
+.bouncy-input:focus {
+    outline: none;
+    border-color: #ec4899;
+    background: white;
+}
+
+/* The Play Button */
+.go-btn {
+    width: 100%;
+    padding: 18px;
+    background: #ec4899; /* Pink! */
+    color: white;
+    border: none;
+    border-radius: 25px;
+    font-size: 18px;
+    font-weight: bold;
     cursor: pointer;
-    box-shadow: 0 0 20px rgba(0, 210, 255, 0.4);
-    transition: 0.3s;
+    box-shadow: 0 8px 0 #d946ef; /* 3D Bottom effect */
+    transition: 0.1s;
 }
 
-.play-btn:hover {
-    transform: scale(1.02);
-    box-shadow: 0 0 30px rgba(0, 210, 255, 0.6);
+.go-btn:active {
+    transform: translateY(4px);
+    box-shadow: 0 4px 0 #d946ef;
 }
 
-/* 7. FLOATING ANIMATION */
-@keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-15px); }
+/* Small Links */
+.links {
+    margin-top: 25px;
+    font-size: 14px;
+}
+
+.links a {
+    color: #6366f1;
+    text-decoration: none;
+    font-weight: bold;
 }
