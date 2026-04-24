@@ -1,85 +1,100 @@
-/* Full screen centering */
-body, html {
-    height: 100%;
-    margin: 0;
+/* 1. DARK MODERN BACKGROUND */
+body {
+    background: #0a0e14; /* Deep space dark blue */
     display: flex;
     justify-content: center;
     align-items: center;
-    background: linear-gradient(135deg, #a1e3ee 0%, #00acc1 100%);
-    font-family: 'Arial Rounded MT Bold', sans-serif;
+    height: 100vh;
+    margin: 0;
+    overflow: hidden;
+    font-family: 'Segoe UI', sans-serif;
 }
 
-.portal-container {
-    width: 100%;
-    max-width: 400px;
-    padding: 20px;
-}
-
-.auth-box {
-    background: white;
-    padding: 40px;
-    border-radius: 30px; /* Extra round/bubbly */
-    box-shadow: 0px 10px 30px rgba(0,0,0,0.2);
+/* 2. THE GLASS CARD (Glassmorphism) */
+.portal-card {
+    background: rgba(255, 255, 255, 0.05); /* See-through white */
+    backdrop-filter: blur(15px); /* BLUR EFFECT */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 50px;
+    border-radius: 40px;
+    width: 350px;
     text-align: center;
+    box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+    animation: float 4s ease-in-out infinite; /* Makes it float */
 }
 
-.logo {
-    color: #00acc1;
+/* 3. GLOWING LOGO */
+.logo-text {
+    color: white;
+    letter-spacing: 3px;
+    font-size: 28px;
     margin-bottom: 30px;
-    font-size: 32px;
 }
 
-/* Tabs for Login/Signup */
-.tabs {
+.logo-text span {
+    color: #00d2ff; /* Cyan glow color */
+    text-shadow: 0 0 15px #00d2ff;
+}
+
+/* 4. MODERN TOGGLE */
+.toggle-container {
+    background: rgba(0,0,0,0.3);
+    padding: 5px;
+    border-radius: 15px;
     display: flex;
-    justify-content: space-around;
-    margin-bottom: 25px;
-    border-bottom: 2px solid #f0f0f0;
+    margin-bottom: 30px;
 }
 
-.tab-btn {
+.toggle-btn {
+    flex: 1;
     background: none;
     border: none;
-    padding: 10px;
-    font-size: 16px;
-    font-weight: bold;
     color: #888;
+    padding: 10px;
     cursor: pointer;
+    font-weight: bold;
+    border-radius: 10px;
 }
 
-.tab-btn.active {
-    color: #00acc1;
-    border-bottom: 3px solid #00acc1;
-}
-
-/* Inputs */
-input {
-    width: 100%;
-    padding: 15px;
-    margin-bottom: 15px;
-    border: 2px solid #eee;
-    border-radius: 15px;
-    box-sizing: border-box; /* Keeps it from going off-screen */
-    outline: none;
-}
-
-input:focus {
-    border-color: #00acc1;
-}
-
-.btn-main {
-    width: 100%;
-    background: #ff7043;
+.toggle-btn.active {
+    background: #00d2ff;
     color: white;
-    padding: 15px;
-    border-radius: 15px;
-    font-size: 18px;
-    border: none;
-    cursor: pointer;
-    box-shadow: 0px 4px 0px #d85a36; /* 3D Button effect */
 }
 
-.btn-main:active {
-    transform: translateY(3px);
-    box-shadow: none;
+/* 5. GLASS INPUT BOXES */
+.glass-input {
+    width: 100%;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 15px;
+    border-radius: 12px;
+    color: white;
+    margin-bottom: 15px;
+    box-sizing: border-box;
+}
+
+/* 6. THE "LAUNCH" BUTTON (High Polish) */
+.play-btn {
+    width: 100%;
+    padding: 15px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+    color: white;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 0 20px rgba(0, 210, 255, 0.4);
+    transition: 0.3s;
+}
+
+.play-btn:hover {
+    transform: scale(1.02);
+    box-shadow: 0 0 30px rgba(0, 210, 255, 0.6);
+}
+
+/* 7. FLOATING ANIMATION */
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-15px); }
 }
