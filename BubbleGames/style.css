@@ -1,22 +1,22 @@
 body {
-    background-color: #f0f4ff; /* Very soft light blue */
+    background-color: #f0f4ff; 
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
     margin: 0;
-    font-family: 'Inter', sans-serif;
+    font-family: sans-serif;
 }
 
 /* The Main Box */
 .bubble-card {
     background: white;
     padding: 40px;
-    border-radius: 50px; /* Super round */
-    box-shadow: 0 20px 40px rgba(0,0,0,0.05); /* Soft shadow */
+    border-radius: 50px; 
+    box-shadow: 0 20px 40px rgba(0,0,0,0.05); 
     text-align: center;
     width: 320px;
-    border: 8px solid #e0e7ff; /* A thick, soft border */
+    border: 8px solid #e0e7ff; 
 }
 
 /* The Logo */
@@ -27,7 +27,7 @@ h1 {
 }
 
 h1 span {
-    color: #ec4899; /* Bubbly Pink */
+    color: #ec4899; 
 }
 
 .bubble-icon {
@@ -46,28 +46,24 @@ h1 span {
     background: #f9fafb;
     font-size: 16px;
     box-sizing: border-box;
-    transition: 0.2s;
-}
-
-.bouncy-input:focus {
-    outline: none;
-    border-color: #ec4899;
-    background: white;
 }
 
 /* The Play Button */
 .go-btn {
     width: 100%;
     padding: 18px;
-    background: #ec4899; /* Pink! */
+    background: #ec4899; 
     color: white;
     border: none;
     border-radius: 25px;
     font-size: 18px;
     font-weight: bold;
     cursor: pointer;
-    box-shadow: 0 8px 0 #d946ef; /* 3D Bottom effect */
-    transition: 0.1s;
+    box-shadow: 0 8px 0 #d946ef; 
+}
+
+.go-btn:hover {
+    transform: scale(1.02);
 }
 
 .go-btn:active {
