@@ -1,0 +1,68 @@
+/* General Settings */
+body {
+    font-family: 'Arial Rounded MT Bold', 'Helvetica', sans-serif;
+    background-color: #e0f7fa; /* Light Blue Bubble Color */
+    margin: 0;
+    color: #333;
+}
+
+/* Navigation Bar */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 40px;
+    background: white;
+    box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+}
+
+.logo {
+    font-size: 24px;
+    font-weight: bold;
+    color: #00acc1;
+}
+
+/* Buttons */
+button {
+    cursor: pointer;
+    border: none;
+    border-radius: 50px; /* Makes them bubbly! */
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.btn-login {
+    background: transparent;
+    color: #00acc1;
+    padding: 10px 20px;
+}
+
+.btn-signup {
+    background: #00acc1;
+    color: white;
+    padding: 10px 25px;
+}
+
+.btn-signup:hover {
+    background: #00838f;
+    transform: scale(1.05);
+}
+
+/* Center Content */
+.hero {
+    text-align: center;
+    margin-top: 100px;
+}
+
+.hero h1 {
+    font-size: 3rem;
+    color: #007c91;
+}
+
+.btn-start {
+    background: #ff7043; /* Bright Orange to stand out */
+    color: white;
+    padding: 20px 40px;
+    font-size: 20px;
+    margin-top: 20px;
+}
