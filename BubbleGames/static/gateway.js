@@ -1,27 +1,24 @@
-const loader = document.getElementById('loader');
-
-// Show loader and hide button text
-loader.style.display = 'block';
-mainButton.style.opacity = '0.5'; 
-mainButton.disabled = true;
-
 import { supabase } from './supabase.js';
 
 window.handleAuth = async () => {
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
     const mainButton = document.getElementById('main-button');
+    const loader = document.getElementById('loader');
 
     if (!username || !password) {
         alert("Enter both username and password, hacker!");
         return;
     }
 
+    // --- START LOADING ANIMATION ---
+    loader.style.display = 'block';
+    mainButton.style.opacity = '0.5'; 
+    mainButton.disabled = true;
+
     if (window.mode === "signup") {
         mainButton.innerText = "INITIALIZING...";
 
-        // 1. Just send the username. The database will make the ID (1, 2, 3...)
-        // .select('id').single() tells the database: "Send that new ID back to me immediately!"
         const { data: newUser, error: profileError } = await supabase
             .from('profiles')
             .insert([{ username: username }])
@@ -30,11 +27,14 @@ window.handleAuth = async () => {
 
         if (profileError) {
             alert("Username taken! Try another.");
+            // Reset UI on error
+            loader.style.display = 'none';
+            mainButton.style.opacity = '1';
+            mainButton.disabled = false;
             mainButton.innerText = "Create Account!";
             return;
         }
 
-        // 2. Now we have the clean ID (like 1 or 2)! Use it for the Vault.
         const playerID = newUser.id;
         const ghostEmail = `${playerID}@bubblegames.com`;
 
@@ -45,6 +45,9 @@ window.handleAuth = async () => {
 
         if (authError) {
             alert("Auth Error: " + authError.message);
+            loader.style.display = 'none';
+            mainButton.style.opacity = '1';
+            mainButton.disabled = false;
         } else {
             showWelcome(username);
         }
@@ -52,8 +55,6 @@ window.handleAuth = async () => {
     } else {
         mainButton.innerText = "VERIFYING...";
         
-        // LOGIN LOGIC: 
-        // 1. Find the ID for this username
         const { data: profile, error: searchError } = await supabase
             .from('profiles')
             .select('id')
@@ -61,7 +62,6 @@ window.handleAuth = async () => {
             .single();
 
         if (profile) {
-            // 2. Login using the ID-Email
             const { error: loginError } = await supabase.auth.signInWithPassword({
                 email: `${profile.id}@bubblegames.com`,
                 password: password,
@@ -71,10 +71,16 @@ window.handleAuth = async () => {
                 showWelcome(username);
             } else {
                 alert("Wrong password!");
+                loader.style.display = 'none';
+                mainButton.style.opacity = '1';
+                mainButton.disabled = false;
                 mainButton.innerText = "Let's Play!";
             }
         } else {
             alert("Username not found!");
+            loader.style.display = 'none';
+            mainButton.style.opacity = '1';
+            mainButton.disabled = false;
             mainButton.innerText = "Let's Play!";
         }
     }
@@ -90,16 +96,11 @@ function showWelcome(user) {
     setTimeout(() => { console.log("Launching Bubbles..."); }, 2000);
 }
 
-// This runs as soon as the file loads
 const checkSession = async () => {
-    // 1. Ask Supabase if a session exists
     const { data: { user } } = await supabase.auth.getUser();
 
     if (user) {
-        // 2. Extract the ID from the email (e.g., "1" from "1@bubblegames.com")
         const playerID = user.email.split('@')[0];
-
-        // 3. Get the username for that ID
         const { data: profile } = await supabase
             .from('profiles')
             .select('username')
@@ -107,7 +108,6 @@ const checkSession = async () => {
             .single();
 
         if (profile) {
-            // 4. Skip the login card and show the welcome!
             showWelcome(profile.username);
         }
     }
