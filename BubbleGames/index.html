@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bubble Games | Welcome</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="static/style.css">
 </head>
 <body>
 
@@ -40,7 +40,7 @@
     </div>
 
     <script>
-        // Keep this here so gateway.js can see the 'mode' variable
+        // Set mode to window so gateway.js can see it
         window.mode = "login"; 
 
         function switchMode() {
@@ -64,7 +64,8 @@
             }
         }
     </script>
-    <script type="module" src="./static/gateway.js"></script>
-    <script src="./static/bubbles.js"></script>
+
+    <script type="module" src="static/gateway.js"></script>
+    <script src="static/bubbles.js"></script>
 </body>
 </html>
