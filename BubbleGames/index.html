@@ -9,7 +9,8 @@
 <body>
 
     <div class="corner-brand">
-        🫧 Bubble Games
+        <span class="brand-bubble">🫧</span> 
+        Bubble<span class="brand-pink">Games</span>
     </div>
 
     <div class="main-wrapper">
@@ -51,19 +52,17 @@
                 btn.innerText = "Create Account!";
                 forgot.style.display = "none";
                 footer.innerHTML = 'Already a member? <a href="#" class="signup-link" onclick="switchMode()">Log In!</a>';
-                pageTitle.innerText = "Join the Community"; // Switches title for Sign Up
+                pageTitle.innerText = "Join the Community";
                 mode = "signup";
             } else {
                 btn.innerText = "Let's Play!";
                 forgot.style.display = "inline";
                 footer.innerHTML = 'New here? <a href="#" class="signup-link" onclick="switchMode()">Sign Up!</a>';
-                pageTitle.innerText = "Getting Started"; // Switches title back for Login
+                pageTitle.innerText = "Getting Started";
                 mode = "login";
             }
         }
     </script>
-
+    <script src="./bubbles.js"></script>
 </body>
 </html>
-
-<script src="./bubbles.js"></script>
