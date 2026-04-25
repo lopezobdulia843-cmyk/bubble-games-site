@@ -82,3 +82,28 @@ function showWelcome(user) {
     pageTitle.classList.add('bouncy-animation');
     setTimeout(() => { console.log("Launching Bubbles..."); }, 2000);
 }
+
+// This runs as soon as the file loads
+const checkSession = async () => {
+    // 1. Ask Supabase if a session exists
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (user) {
+        // 2. Extract the ID from the email (e.g., "1" from "1@bubblegames.com")
+        const playerID = user.email.split('@')[0];
+
+        // 3. Get the username for that ID
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('username')
+            .eq('id', playerID)
+            .single();
+
+        if (profile) {
+            // 4. Skip the login card and show the welcome!
+            showWelcome(profile.username);
+        }
+    }
+};
+
+checkSession();
