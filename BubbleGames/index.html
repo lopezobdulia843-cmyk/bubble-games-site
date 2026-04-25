@@ -8,7 +8,13 @@
 </head>
 <body>
 
+    <div class="corner-brand">
+        🫧 Bubble Games
+    </div>
+
     <div class="main-wrapper">
+        <h2 class="page-welcome" id="page-title">Getting Started</h2>
+
         <div class="bubble-card">
             <div class="brand">
                 <span class="bubble-icon">🫧</span>
@@ -39,18 +45,19 @@
             const btn = document.getElementById('main-button');
             const forgot = document.getElementById('forgot-pass');
             const footer = document.getElementById('toggle-container');
+            const pageTitle = document.getElementById('page-title');
 
             if (mode === "login") {
-                // Change to Sign Up mode
                 btn.innerText = "Create Account!";
                 forgot.style.display = "none";
                 footer.innerHTML = 'Already a member? <a href="#" class="signup-link" onclick="switchMode()">Log In!</a>';
+                pageTitle.innerText = "Join the Community"; // Switches title for Sign Up
                 mode = "signup";
             } else {
-                // Change back to Login mode
                 btn.innerText = "Let's Play!";
                 forgot.style.display = "inline";
                 footer.innerHTML = 'New here? <a href="#" class="signup-link" onclick="switchMode()">Sign Up!</a>';
+                pageTitle.innerText = "Getting Started"; // Switches title back for Login
                 mode = "login";
             }
         }
