@@ -13,14 +13,13 @@ window.handleAuth = async () => {
     if (window.mode === "signup") {
         mainButton.innerText = "INITIALIZING...";
 
-        // 1. Create a unique ID based on the current time
-        const playerID = Date.now(); 
-        const ghostEmail = `${playerID}@bubblegames.com`;
-
-        // 2. Push to the Profiles table first
-        const { error: profileError } = await supabase
+        // 1. Just send the username. The database will make the ID (1, 2, 3...)
+        // .select('id').single() tells the database: "Send that new ID back to me immediately!"
+        const { data: newUser, error: profileError } = await supabase
             .from('profiles')
-            .insert([{ id: playerID, username: username }]);
+            .insert([{ username: username }])
+            .select('id')
+            .single();
 
         if (profileError) {
             alert("Username taken! Try another.");
@@ -28,7 +27,10 @@ window.handleAuth = async () => {
             return;
         }
 
-        // 3. Push to the Authentication Vault (The ID-Email style)
+        // 2. Now we have the clean ID (like 1 or 2)! Use it for the Vault.
+        const playerID = newUser.id;
+        const ghostEmail = `${playerID}@bubblegames.com`;
+
         const { error: authError } = await supabase.auth.signUp({
             email: ghostEmail,
             password: password,
