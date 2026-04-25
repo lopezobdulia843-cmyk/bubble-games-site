@@ -1,31 +1,18 @@
-from flask import Flask, request, jsonify
+from flask import Flask, render_template
 from flask_cors import CORS
 
-# 1. SETUP: This starts your server engine
 app = Flask(__name__)
+CORS(app) # This keeps the "handshake" open for your school device!
 
-# 2. SECURITY: This lets your "Bubble Games" site talk to this server
-CORS(app)
-
-# 3. THE WELCOME MAT: This is what you see if you visit the server URL directly
+# This route tells the brain: "When someone visits, show them the index.html"
 @app.route('/')
 def home():
+    return render_template('index.html')
+
+# This is your existing "status" check, but we moved it to /status
+@app.route('/status')
+def status():
     return "Bubble Games Server is officially online! 🫧"
 
-# 4. THE LOGIN DESK: This is where your login button will send data later
-@app.route('/login', methods=['POST'])
-def login():
-    # Grab the data sent from your website
-    data = request.json
-    username = data.get('username')
-    
-    # For now, we'll just say "Hello" to prove it's working!
-    # Later, we will add the code here to check a real database.
-    return jsonify({
-        "status": "success",
-        "message": f"Welcome to the game, {username}!"
-    })
-
-# 5. START: This keeps the server running
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000)
