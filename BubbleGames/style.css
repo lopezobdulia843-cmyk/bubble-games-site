@@ -1,3 +1,4 @@
+/* 1. BACKGROUND SETTINGS */
 body {
     background-color: #f0f4ff; 
     display: flex;
@@ -5,10 +6,10 @@ body {
     align-items: center;
     height: 100vh;
     margin: 0;
-    font-family: sans-serif;
+    font-family: 'Arial Rounded MT Bold', sans-serif; /* Rounded font for a bubbly feel */
 }
 
-/* The Main Box */
+/* 2. THE WHITE CARD */
 .bubble-card {
     background: white;
     padding: 40px;
@@ -19,11 +20,11 @@ body {
     border: 8px solid #e0e7ff; 
 }
 
-/* The Logo */
+/* 3. LOGO STYLE */
 h1 {
     color: #4f46e5;
     font-size: 28px;
-    margin-bottom: 30px;
+    margin: 0 0 30px 0;
 }
 
 h1 span {
@@ -31,24 +32,37 @@ h1 span {
 }
 
 .bubble-icon {
-    font-size: 40px;
+    font-size: 45px;
     display: block;
     margin-bottom: 10px;
 }
 
-/* The Inputs */
+/* 4. INPUTS & FORGOT LINK */
 .bouncy-input {
     width: 100%;
     padding: 15px;
-    margin-bottom: 15px;
+    margin-bottom: 10px;
     border: 2px solid #f3f4f6;
     border-radius: 20px;
     background: #f9fafb;
     font-size: 16px;
     box-sizing: border-box;
+    outline: none;
 }
 
-/* The Play Button */
+.password-group {
+    text-align: right;
+    margin-bottom: 25px;
+}
+
+.forgot-link {
+    font-size: 12px;
+    color: #6366f1;
+    text-decoration: none;
+    margin-right: 10px;
+}
+
+/* 5. THE PINK GO BUTTON */
 .go-btn {
     width: 100%;
     padding: 18px;
@@ -59,11 +73,8 @@ h1 span {
     font-size: 18px;
     font-weight: bold;
     cursor: pointer;
-    box-shadow: 0 8px 0 #d946ef; 
-}
-
-.go-btn:hover {
-    transform: scale(1.02);
+    box-shadow: 0 8px 0 #d946ef; /* This makes it look 3D and pressable */
+    transition: 0.1s;
 }
 
 .go-btn:active {
@@ -71,14 +82,21 @@ h1 span {
     box-shadow: 0 4px 0 #d946ef;
 }
 
-/* Small Links */
-.links {
+/* 6. SIGN UP FOOTER */
+.footer-links {
     margin-top: 25px;
-    font-size: 14px;
+    border-top: 2px solid #f0f4ff;
+    padding-top: 15px;
 }
 
-.links a {
-    color: #6366f1;
+.footer-links p {
+    font-size: 15px;
+    color: #666;
+    margin: 0;
+}
+
+.signup-link {
+    color: #ec4899;
     text-decoration: none;
     font-weight: bold;
 }
