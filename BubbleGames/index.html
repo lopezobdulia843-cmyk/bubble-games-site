@@ -40,7 +40,8 @@
     </div>
 
     <script>
-        let mode = "login";
+        // Keep this here so gateway.js can see the 'mode' variable
+        window.mode = "login"; 
 
         function switchMode() {
             const btn = document.getElementById('main-button');
@@ -48,22 +49,22 @@
             const footer = document.getElementById('toggle-container');
             const pageTitle = document.getElementById('page-title');
 
-            if (mode === "login") {
+            if (window.mode === "login") {
                 btn.innerText = "Create Account!";
                 forgot.style.display = "none";
                 footer.innerHTML = 'Already a member? <a href="#" class="signup-link" onclick="switchMode()">Log In!</a>';
                 pageTitle.innerText = "Join the Community";
-                mode = "signup";
+                window.mode = "signup";
             } else {
                 btn.innerText = "Let's Play!";
                 forgot.style.display = "inline";
                 footer.innerHTML = 'New here? <a href="#" class="signup-link" onclick="switchMode()">Sign Up!</a>';
                 pageTitle.innerText = "Getting Started";
-                mode = "login";
+                window.mode = "login";
             }
         }
     </script>
-    <script **type="module"** src="/static/gateway.js"></script>
+    <script type="module" src="/static/gateway.js"></script>
     <script src="/static/bubbles.js"></script>
 </body>
 </html>
