@@ -125,3 +125,27 @@ h1 span {
     font-weight: bold;
     cursor: pointer;
 }
+
+/* BUBBLE STYLE */
+.bubble {
+    position: absolute;
+    bottom: -100px; /* Start below the screen */
+    background: rgba(255, 255, 255, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    pointer-events: auto; /* This allows us to click them! */
+    cursor: pointer;
+    transition: transform 0.2s ease-out;
+}
+
+/* Add a little "shine" to the bubble */
+.bubble::after {
+    content: '';
+    position: absolute;
+    top: 20%;
+    left: 20%;
+    width: 25%;
+    height: 25%;
+    background: rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+}
