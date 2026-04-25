@@ -11,16 +11,45 @@ body {
     overflow: hidden;
 }
 
-/* 2. TOP LEFT CORNER BRAND */
+/* 2. TOP LEFT CORNER BRAND - GLASS CAPSULE VERSION */
 .corner-brand {
     position: absolute;
-    top: 25px;
-    left: 30px;
-    font-size: 20px;
-    color: #4f46e5;
+    top: 20px;
+    left: 20px;
+    font-size: 18px;
     font-weight: bold;
-    opacity: 0.8;
+    color: #4f46e5;
+    
+    /* Glass Effect */
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(10px); /* Blurs the bubbles behind it */
+    padding: 10px 20px;
+    border-radius: 30px;
+    border: 2px solid white;
+    box-shadow: 0 10px 20px rgba(79, 70, 229, 0.1);
+    
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: default;
+    transition: 0.3s transform ease;
+    z-index: 100; /* Stays above floating bubbles */
 }
+
+.corner-brand:hover {
+    transform: scale(1.05);
+}
+
+.brand-pink {
+    color: #ec4899;
+}
+
+.brand-bubble {
+    font-size: 22px;
+    filter: drop-shadow(0 0 5px rgba(255,255,255,0.8));
+}
+
+/* KEEP THE REST OF YOUR CSS BELOW THIS... */
 
 /* 3. MAIN WELCOME TITLE */
 .page-welcome {
