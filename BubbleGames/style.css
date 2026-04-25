@@ -6,7 +6,7 @@ body {
     align-items: center;
     height: 100vh;
     margin: 0;
-    font-family: 'Arial Rounded MT Bold', sans-serif; /* Rounded font for a bubbly feel */
+    font-family: 'Arial Rounded MT Bold', sans-serif; 
 }
 
 /* 2. THE WHITE CARD */
@@ -51,8 +51,11 @@ h1 span {
 }
 
 .password-group {
-    text-align: right;
+    text-align: right; /* Keeps Forgot Password link on the right */
     margin-bottom: 25px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
 }
 
 .forgot-link {
@@ -73,7 +76,7 @@ h1 span {
     font-size: 18px;
     font-weight: bold;
     cursor: pointer;
-    box-shadow: 0 8px 0 #d946ef; /* This makes it look 3D and pressable */
+    box-shadow: 0 8px 0 #d946ef; 
     transition: 0.1s;
 }
 
@@ -99,4 +102,5 @@ h1 span {
     color: #ec4899;
     text-decoration: none;
     font-weight: bold;
+    cursor: pointer;
 }
