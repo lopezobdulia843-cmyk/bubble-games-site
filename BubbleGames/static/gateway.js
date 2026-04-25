@@ -1,3 +1,10 @@
+const loader = document.getElementById('loader');
+
+// Show loader and hide button text
+loader.style.display = 'block';
+mainButton.style.opacity = '0.5'; 
+mainButton.disabled = true;
+
 import { supabase } from './supabase.js';
 
 window.handleAuth = async () => {
