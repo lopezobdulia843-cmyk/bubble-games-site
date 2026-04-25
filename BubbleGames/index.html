@@ -31,6 +31,8 @@
                 </div>
             </div>
 
+            <div id="loader" class="loader"></div>
+
             <button class="go-btn" id="main-button" onclick="handleAuth()">Let's Play!</button>
             
             <div class="footer-links">
@@ -40,7 +42,6 @@
     </div>
 
     <script>
-        // Set mode to window so gateway.js can see it
         window.mode = "login"; 
 
         function switchMode() {
@@ -48,6 +49,12 @@
             const forgot = document.getElementById('forgot-pass');
             const footer = document.getElementById('toggle-container');
             const pageTitle = document.getElementById('page-title');
+            const loader = document.getElementById('loader');
+
+            // Reset UI state when switching
+            loader.style.display = "none";
+            btn.disabled = false;
+            btn.style.opacity = "1";
 
             if (window.mode === "login") {
                 btn.innerText = "Create Account!";
