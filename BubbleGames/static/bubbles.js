@@ -13,8 +13,8 @@ function createBubble() {
     // 3. COLOR PICKER (Pink, Blue, or Purple)
     const colors = ['#ec4899', '#4f46e5', '#a855f7'];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
-    bubble.style.border = `3px solid ${randomColor}`; // Thick colorful border
-    bubble.style.boxShadow = `0 0 15px ${randomColor}44`; // Soft color glow
+    bubble.style.border = `3px solid ${randomColor}`; 
+    bubble.style.boxShadow = `0 0 15px ${randomColor}44`; 
 
     // 4. Random Speed
     const duration = Math.random() * 4 + 6 + "s";
@@ -38,7 +38,7 @@ function createBubble() {
 // Spawn bubbles faster (every 400ms)
 setInterval(createBubble, 400);
 
-// Animation
+// Animation logic
 const style = document.createElement('style');
 style.innerHTML = `
     @keyframes floatUp {
@@ -47,26 +47,3 @@ style.innerHTML = `
     }
 `;
 document.head.appendChild(style);
-
-// Find the "Let's Play" button in your HTML
-const playButton = document.querySelector('button'); // Or use your button's ID if it has one
-
-if (playButton) {
-    playButton.addEventListener('click', () => {
-        console.log("Calling the Brain...");
-        
-        // This is the "Fetch" - the phone call to Render
-        fetch(API_URL)
-            .then(response => response.text())
-            .then(data => {
-                // This is what happens when it WORKS!
-                alert("Worked successfully! Server says: " + data);
-                console.log("Success:", data);
-            })
-            .catch(error => {
-                // This is what happens if there's a block or error
-                alert("Connection failed. Check the console!");
-                console.error("Error:", error);
-            });
-    });
-}
