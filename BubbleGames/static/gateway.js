@@ -1,4 +1,4 @@
-const API_URL = "/";
+const API_URL = "./";
 
 // Find the "Let's Play" button using its ID
 const playButton = document.getElementById('main-button');
