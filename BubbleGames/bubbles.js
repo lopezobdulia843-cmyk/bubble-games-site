@@ -47,3 +47,26 @@ style.innerHTML = `
     }
 `;
 document.head.appendChild(style);
+
+// Find the "Let's Play" button in your HTML
+const playButton = document.querySelector('button'); // Or use your button's ID if it has one
+
+if (playButton) {
+    playButton.addEventListener('click', () => {
+        console.log("Calling the Brain...");
+        
+        // This is the "Fetch" - the phone call to Render
+        fetch(API_URL)
+            .then(response => response.text())
+            .then(data => {
+                // This is what happens when it WORKS!
+                alert("Worked successfully! Server says: " + data);
+                console.log("Success:", data);
+            })
+            .catch(error => {
+                // This is what happens if there's a block or error
+                alert("Connection failed. Check the console!");
+                console.error("Error:", error);
+            });
+    });
+}
