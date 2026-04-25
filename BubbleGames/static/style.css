@@ -189,16 +189,16 @@ h1 span {
     to { transform: translateY(-10px); }
 }
 
-/* THE LOADING SPINNER */
+/* 9. LOADING SPINNER */
 .loader {
-    display: none; /* Hidden by default */
-    width: 40px;
-    height: 40px;
-    border: 5px solid #f3f3f3; /* Light grey */
-    border-top: 5px solid #4f46e5; /* Bubble Blue */
+    display: none; /* Hidden until handleAuth starts */
+    width: 30px;
+    height: 30px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #4f46e5; /* Matches your brand blue */
     border-radius: 50%;
     animation: spin 1s linear infinite;
-    margin: 20px auto;
+    margin: 0 auto 20px auto; /* Centers it and adds space above button */
 }
 
 @keyframes spin {
