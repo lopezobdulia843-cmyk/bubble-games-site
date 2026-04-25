@@ -178,3 +178,13 @@ h1 span {
     background: rgba(255, 255, 255, 0.6);
     border-radius: 50%;
 }
+
+.bouncy-animation {
+    animation: bounce 0.5s infinite alternate;
+    color: #ff69b4; /* That pink brand color you like */
+}
+
+@keyframes bounce {
+    from { transform: translateY(0); }
+    to { transform: translateY(-10px); }
+}
