@@ -1,1 +1,1 @@
-const API_URL = "https://bubblegames-rgox.onrender.com";
+const API_URL = "/status";
