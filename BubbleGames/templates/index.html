@@ -23,15 +23,15 @@
             </div>
 
             <div class="input-area">
-                <input type="text" placeholder="Username" class="bouncy-input">
+                <input type="text" id="username" placeholder="Username" class="bouncy-input">
                 
                 <div class="password-group">
-                    <input type="password" placeholder="Password" class="bouncy-input">
+                    <input type="password" id="password" placeholder="Password" class="bouncy-input">
                     <a href="#" class="forgot-link" id="forgot-pass">Forgot Password?</a>
                 </div>
             </div>
 
-            <button class="go-btn" id="main-button">Let's Play!</button>
+            <button class="go-btn" id="main-button" onclick="handleAuth()">Let's Play!</button>
             
             <div class="footer-links">
                 <p id="toggle-container">New here? <a href="#" class="signup-link" onclick="switchMode()">Sign Up!</a></p>
