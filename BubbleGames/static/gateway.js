@@ -108,23 +108,21 @@ window.handleAuth = async () => {
 };
 
 function showWelcome(user) {
-    const card = document.querySelector('.bubble-card');
-    const pageTitle = document.getElementById('page-title');
-    const userStatus = document.getElementById('user-status');
-    const displayUser = document.getElementById('display-username');
+    const authCard = document.getElementById('auth-card');
+    const hub = document.getElementById('game-hub');
+    const userDisplay = document.getElementById('user-display');
+    const playerName = document.getElementById('player-name');
 
-    card.style.display = 'none';
+    // Hide Login, Show Hub
+    authCard.style.display = 'none';
+    hub.style.display = 'block';
+    
+    // Show Top-Left Welcome
+    userDisplay.style.display = 'block';
+    playerName.innerText = user;
 
-    pageTitle.innerText = `Welcome ${user}!`;
-    pageTitle.style.fontSize = "3rem";
-    pageTitle.classList.add('bouncy-animation');
-
-    if (userStatus && displayUser) {
-        userStatus.style.display = 'flex';
-        displayUser.innerText = user;
-    }
-
-    setTimeout(() => { console.log("Game Start! 🫧🚀"); }, 2000);
+    // Load initial games
+    if (window.renderGames) window.renderGames();
 }
 
 const checkSession = async () => {
