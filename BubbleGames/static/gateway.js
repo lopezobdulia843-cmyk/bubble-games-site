@@ -11,28 +11,21 @@ window.handleAuth = async () => {
         return;
     }
 
-    // --- SECURITY CHECK (SIGNUP ONLY) ---
     if (window.mode === "signup") {
-        // 1. Check for Spaces
         if (password.includes(" ")) {
-            alert("No spaces allowed in your password! Please keep it as one solid string. 🫧");
+            alert("No spaces allowed in your password! 🫧");
             return;
         }
-        
-        // 2. Check for Length (Set to 6 for that "long password" vibe)
         if (password.length < 6) {
-            alert("Your password is too short! Make it a long phrase (at least 6 characters). 🛡️");
+            alert("Your password is too short! (At least 6 characters). 🛡️");
             return;
         }
-
-        // 3. Check Username for Spaces
         if (username.includes(" ")) {
-            alert("Usernames can't have spaces! Try smashing the words together. ✨");
+            alert("Usernames can't have spaces! ✨");
             return;
         }
     }
 
-    // --- START BUBBLE LOADING ---
     loader.style.display = 'block';
     mainButton.style.opacity = '0.5'; 
     mainButton.disabled = true;
@@ -47,7 +40,7 @@ window.handleAuth = async () => {
             .single();
 
         if (profileError) {
-            alert("That username is already taken! Pick another cool name. 🫧");
+            alert("That username is already taken! 🫧");
             loader.style.display = 'none';
             mainButton.style.opacity = '1';
             mainButton.disabled = false;
@@ -68,7 +61,6 @@ window.handleAuth = async () => {
             loader.style.display = 'none';
             mainButton.style.opacity = '1';
             mainButton.disabled = false;
-            mainButton.innerText = "Create Account!"; 
         } else {
             showWelcome(username);
         }
@@ -91,14 +83,14 @@ window.handleAuth = async () => {
             if (!loginError) {
                 showWelcome(username);
             } else {
-                alert("Wrong password! Give it another shot. 🔑");
+                alert("Wrong password! 🔑");
                 loader.style.display = 'none';
                 mainButton.style.opacity = '1';
                 mainButton.disabled = false;
                 mainButton.innerText = "Let's Play!";
             }
         } else {
-            alert("We couldn't find that player! Want to Sign Up instead? ✨");
+            alert("We couldn't find that player! ✨");
             loader.style.display = 'none';
             mainButton.style.opacity = '1';
             mainButton.disabled = false;
@@ -107,21 +99,24 @@ window.handleAuth = async () => {
     }
 };
 
+// --- SYNCED WITH YOUR HTML IDS ---
 function showWelcome(user) {
-    const authCard = document.getElementById('auth-card');
-    const hub = document.getElementById('game-hub');
-    const userDisplay = document.getElementById('user-display');
-    const playerName = document.getElementById('player-name');
+    const authArea = document.getElementById('auth-area');
+    const hubArea = document.getElementById('hub-area');
+    const userStatus = document.getElementById('user-status');
+    const displayUsername = document.getElementById('display-username');
+    const pageTitle = document.getElementById('page-title');
 
-    // Hide Login, Show Hub
-    authCard.style.display = 'none';
-    hub.style.display = 'block';
+    // Hide Login, Show Hub inside the card
+    if (authArea) authArea.style.display = 'none';
+    if (hubArea) hubArea.style.display = 'block';
     
-    // Show Top-Left Welcome
-    userDisplay.style.display = 'block';
-    playerName.innerText = user;
+    // Show Top-Right Status and update title
+    if (userStatus) userStatus.style.display = 'flex';
+    if (displayUsername) displayUsername.innerText = user;
+    if (pageTitle) pageTitle.innerText = "Welcome Back!";
 
-    // Load initial games
+    // Trigger game rendering from hub.js
     if (window.renderGames) window.renderGames();
 }
 
