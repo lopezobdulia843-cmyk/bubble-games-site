@@ -7,17 +7,17 @@ window.handleAuth = async () => {
     const loader = document.getElementById('loader');
 
     if (!username || !password) {
-        alert("Enter both username and password, hacker!");
+        alert("Oops! Don't forget your username and password! ✨");
         return;
     }
 
-    // --- START LOADING ANIMATION ---
+    // --- START BUBBLE LOADING ---
     loader.style.display = 'block';
     mainButton.style.opacity = '0.5'; 
     mainButton.disabled = true;
 
     if (window.mode === "signup") {
-        mainButton.innerText = "INITIALIZING...";
+        mainButton.innerText = "CREATING PLAYER...";
 
         const { data: newUser, error: profileError } = await supabase
             .from('profiles')
@@ -26,8 +26,7 @@ window.handleAuth = async () => {
             .single();
 
         if (profileError) {
-            alert("Username taken! Try another.");
-            // Reset UI on error
+            alert("That username is already taken! Pick another cool name. 🫧");
             loader.style.display = 'none';
             mainButton.style.opacity = '1';
             mainButton.disabled = false;
@@ -44,7 +43,7 @@ window.handleAuth = async () => {
         });
 
         if (authError) {
-            alert("Auth Error: " + authError.message);
+            alert("Something went wrong! Let's try that again. 🎈");
             loader.style.display = 'none';
             mainButton.style.opacity = '1';
             mainButton.disabled = false;
@@ -53,7 +52,7 @@ window.handleAuth = async () => {
         }
 
     } else {
-        mainButton.innerText = "VERIFYING...";
+        mainButton.innerText = "LOADING PROFILE...";
         
         const { data: profile, error: searchError } = await supabase
             .from('profiles')
@@ -70,14 +69,14 @@ window.handleAuth = async () => {
             if (!loginError) {
                 showWelcome(username);
             } else {
-                alert("Wrong password!");
+                alert("Wrong password! Give it another shot. 🔑");
                 loader.style.display = 'none';
                 mainButton.style.opacity = '1';
                 mainButton.disabled = false;
                 mainButton.innerText = "Let's Play!";
             }
         } else {
-            alert("Username not found!");
+            alert("We couldn't find that player! Want to Sign Up instead? ✨");
             loader.style.display = 'none';
             mainButton.style.opacity = '1';
             mainButton.disabled = false;
@@ -89,8 +88,8 @@ window.handleAuth = async () => {
 function showWelcome(user) {
     const card = document.querySelector('.bubble-card');
     const pageTitle = document.getElementById('page-title');
-    const userStatus = document.getElementById('user-status'); // New Line
-    const displayUser = document.getElementById('display-username'); // New Line
+    const userStatus = document.getElementById('user-status');
+    const displayUser = document.getElementById('display-username');
 
     card.style.display = 'none';
 
@@ -98,13 +97,12 @@ function showWelcome(user) {
     pageTitle.style.fontSize = "3rem";
     pageTitle.classList.add('bouncy-animation');
 
-    // THIS IS THE NEW PART: It "wakes up" the top-right corner
     if (userStatus && displayUser) {
         userStatus.style.display = 'flex';
         displayUser.innerText = user;
     }
 
-    setTimeout(() => { console.log("Launching Bubbles..."); }, 2000);
+    setTimeout(() => { console.log("Game Start! 🫧🚀"); }, 2000);
 }
 
 const checkSession = async () => {
@@ -128,5 +126,5 @@ checkSession();
 
 window.handleLogout = async () => {
     await supabase.auth.signOut();
-    window.location.reload(); // Refresh the page to show login again
+    window.location.reload(); 
 };
