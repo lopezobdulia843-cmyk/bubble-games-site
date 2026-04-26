@@ -114,3 +114,8 @@ const checkSession = async () => {
 };
 
 checkSession();
+
+window.handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.reload(); // Refresh the page to show login again
+};
