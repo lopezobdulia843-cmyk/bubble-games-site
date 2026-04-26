@@ -89,10 +89,21 @@ window.handleAuth = async () => {
 function showWelcome(user) {
     const card = document.querySelector('.bubble-card');
     const pageTitle = document.getElementById('page-title');
+    const userStatus = document.getElementById('user-status'); // New Line
+    const displayUser = document.getElementById('display-username'); // New Line
+
     card.style.display = 'none';
+
     pageTitle.innerText = `Welcome ${user}!`;
     pageTitle.style.fontSize = "3rem";
     pageTitle.classList.add('bouncy-animation');
+
+    // THIS IS THE NEW PART: It "wakes up" the top-right corner
+    if (userStatus && displayUser) {
+        userStatus.style.display = 'flex';
+        displayUser.innerText = user;
+    }
+
     setTimeout(() => { console.log("Launching Bubbles..."); }, 2000);
 }
 
