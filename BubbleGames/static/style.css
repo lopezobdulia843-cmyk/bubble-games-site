@@ -2,7 +2,7 @@
 body {
     background-color: #f0f4ff; 
     display: flex;
-    flex-direction: column; /* Stack Title and Card */
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     height: 100vh;
@@ -11,83 +11,111 @@ body {
     overflow: hidden;
 }
 
-/* 2. TOP LEFT CORNER BRAND - GLASS CAPSULE VERSION */
-.corner-brand {
+/* 2. CORNER BRANDS (Glass Capsule) */
+.corner-brand, .user-status {
     position: absolute;
     top: 20px;
-    left: 20px;
-    font-size: 18px;
-    font-weight: bold;
-    color: #4f46e5;
-    
-    /* Glass Effect */
     background: rgba(255, 255, 255, 0.6);
-    backdrop-filter: blur(10px); /* Blurs the bubbles behind it */
+    backdrop-filter: blur(10px);
     padding: 10px 20px;
     border-radius: 30px;
     border: 2px solid white;
     box-shadow: 0 10px 20px rgba(79, 70, 229, 0.1);
-    
     display: flex;
     align-items: center;
-    gap: 8px;
-    cursor: default;
-    transition: 0.3s transform ease;
-    z-index: 100; /* Stays above floating bubbles */
+    z-index: 100;
 }
 
-.corner-brand:hover {
-    transform: scale(1.05);
+.corner-brand { left: 20px; color: #4f46e5; font-weight: bold; gap: 8px; }
+.user-status { right: 20px; gap: 15px; }
+
+.brand-pink { color: #ec4899; }
+.brand-bubble { font-size: 22px; }
+
+/* 3. MAIN WRAPPER & TITLE */
+.main-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 10;
 }
 
-.brand-pink {
-    color: #ec4899;
-}
-
-.brand-bubble {
-    font-size: 22px;
-    filter: drop-shadow(0 0 5px rgba(255,255,255,0.8));
-}
-
-/* KEEP THE REST OF YOUR CSS BELOW THIS... */
-
-/* 3. MAIN WELCOME TITLE */
 .page-welcome {
     color: #4f46e5;
     font-size: 32px;
     margin-bottom: 20px;
-    text-shadow: 2px 2px 0px rgba(255, 255, 255, 1);
+    text-shadow: 2px 2px 0px white;
 }
 
-/* 4. THE WHITE CARD */
-.bubble-card {
+/* 4. THE CARDS (Login & Hub) */
+.bubble-card, .hub-container {
     background: white;
     padding: 40px;
     border-radius: 50px; 
     box-shadow: 0 20px 40px rgba(0,0,0,0.05); 
     text-align: center;
-    width: 320px;
+    width: 350px;
     border: 8px solid #e0e7ff; 
 }
 
-/* 5. LOGO STYLE */
-h1 {
-    color: #4f46e5;
-    font-size: 28px;
-    margin: 0 0 30px 0;
+/* 5. HUB SPECIFIC STYLES */
+.tab-menu {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    justify-content: center;
 }
 
-h1 span {
-    color: #ec4899; 
+.tab-btn {
+    background: #f3f4f6;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 15px;
+    font-weight: bold;
+    color: #666;
+    cursor: pointer;
+    transition: 0.3s;
 }
 
-.bubble-icon {
-    font-size: 45px;
-    display: block;
-    margin-bottom: 10px;
+.tab-btn.active {
+    background: #4f46e5;
+    color: white;
+    transform: scale(1.1);
 }
 
-/* 6. INPUTS & FORGOT LINK */
+/* 6. GAME GRID */
+.game-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.game-card {
+    background: #f9fafb;
+    border: 2px solid #e0e7ff;
+    padding: 15px;
+    border-radius: 20px;
+    transition: 0.3s;
+    cursor: pointer;
+}
+
+.game-card:hover {
+    transform: translateY(-5px);
+    border-color: #ec4899;
+}
+
+.game-icon { font-size: 30px; margin-bottom: 5px; }
+
+.game-card h3 {
+    font-size: 14px;
+    margin: 5px 0;
+    color: #333;
+}
+
+/* 7. INPUTS & BUTTONS */
 .bouncy-input {
     width: 100%;
     padding: 15px;
@@ -100,105 +128,35 @@ h1 span {
     outline: none;
 }
 
-.password-group {
-    text-align: right;
-    margin-bottom: 25px;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-}
-
-.forgot-link {
-    font-size: 12px;
-    color: #6366f1;
-    text-decoration: none;
-    margin-right: 10px;
-}
-
-/* 7. THE PINK GO BUTTON */
-.go-btn {
-    width: 100%;
-    padding: 18px;
+.go-btn, .play-small-btn {
     background: #ec4899; 
     color: white;
     border: none;
-    border-radius: 25px;
-    font-size: 18px;
     font-weight: bold;
     cursor: pointer;
-    box-shadow: 0 8px 0 #d946ef; 
+    box-shadow: 0 5px 0 #d946ef; 
     transition: 0.1s;
 }
 
-.go-btn:active {
-    transform: translateY(4px);
-    box-shadow: 0 4px 0 #d946ef;
-}
+.go-btn { width: 100%; padding: 18px; border-radius: 25px; font-size: 18px; }
+.play-small-btn { padding: 5px 10px; border-radius: 10px; font-size: 12px; }
 
-/* 8. SIGN UP FOOTER */
-.footer-links {
-    margin-top: 25px;
-    border-top: 2px solid #f0f4ff;
-    padding-top: 15px;
-}
+.go-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #d946ef; }
 
-.footer-links p {
-    font-size: 15px;
-    color: #666;
-    margin: 0;
-}
-
-.signup-link {
-    color: #ec4899;
-    text-decoration: none;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-/* UPDATED COLORFUL BUBBLE STYLE */
+/* 8. BUBBLES & ANIMATIONS */
 .bubble {
     position: absolute;
     bottom: -100px;
-    background: rgba(255, 255, 255, 0.4); /* Slightly more solid */
+    background: rgba(255, 255, 255, 0.4);
     border-radius: 50%;
-    pointer-events: auto;
-    cursor: pointer;
-    transition: transform 0.2s ease-out, opacity 0.2s;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5); /* Soft glow */
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
 
-/* The "Shine" on the bubble */
-.bubble::after {
-    content: '';
-    position: absolute;
-    top: 15%;
-    left: 15%;
-    width: 30%;
-    height: 30%;
-    background: rgba(255, 255, 255, 0.6);
-    border-radius: 50%;
-}
-
-.bouncy-animation {
-    animation: bounce 0.5s infinite alternate;
-    color: #ff69b4; /* That pink brand color you like */
-}
+.bouncy-animation { animation: bounce 0.5s infinite alternate; }
 
 @keyframes bounce {
     from { transform: translateY(0); }
-    to { transform: translateY(-10px); }
-}
-
-/* 9. LOADING SPINNER */
-.loader {
-    display: none; /* Hidden until handleAuth starts */
-    width: 30px;
-    height: 30px;
-    border: 4px solid #f3f3f3;
-    border-top: 4px solid #4f46e5; /* Matches your brand blue */
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin: 0 auto 20px auto; /* Centers it and adds space above button */
+    to { transform: translateY(-5px); }
 }
 
 @keyframes spin {
@@ -206,27 +164,16 @@ h1 span {
     100% { transform: rotate(360deg); }
 }
 
-/* 10. TOP RIGHT USER STATUS */
-.user-status {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    background: rgba(255, 255, 255, 0.6);
-    backdrop-filter: blur(10px);
-    padding: 10px 20px;
-    border-radius: 30px;
-    border: 2px solid white;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    z-index: 100;
-    font-family: 'Arial Rounded MT Bold', sans-serif;
-}
-
-#display-username {
-    color: #4f46e5;
-    font-weight: bold;
+/* 9. UTILS */
+.loader {
+    display: none;
+    width: 30px;
+    height: 30px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #4f46e5;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px auto;
 }
 
 .logout-btn {
@@ -238,10 +185,4 @@ h1 span {
     font-size: 12px;
     font-weight: bold;
     cursor: pointer;
-    transition: 0.2s;
-}
-
-.logout-btn:hover {
-    background: #d946ef;
-    transform: scale(1.1);
 }
