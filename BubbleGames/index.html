@@ -43,14 +43,14 @@
             </div>
 
             <div id="hub-area" style="display: none;">
-                <input type="text" id="game-search" placeholder="What would you like to play?" class="bouncy-input">
+                <input type="text" id="game-search" placeholder="What would you like to play? 🔍" class="bouncy-input">
                 
-                <div class="tab-menu" style="display: flex; gap: 10px; margin: 15px 0; justify-content: center;">
-                    <button id="btn-your" class="tab-btn active" onclick="switchTab('your')">Your Games</button>
-                    <button id="btn-global" class="tab-btn" onclick="switchTab('global')">Global Games</button>
+                <div class="tab-menu">
+                    <button id="tab-global" class="tab-btn active" onclick="switchTab('global')">Global Games</button>
+                    <button id="tab-mine" class="tab-btn" onclick="switchTab('mine')">My Games</button>
                 </div>
 
-                <div id="game-list" style="max-height: 250px; overflow-y: auto;">
+                <div id="game-list">
                     </div>
             </div>
         </div>
