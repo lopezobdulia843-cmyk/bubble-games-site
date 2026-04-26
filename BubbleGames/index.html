@@ -13,6 +13,11 @@
         Bubble<span class="brand-pink">Games</span>
     </div>
 
+    <div id="user-status" class="user-status" style="display: none;">
+        <span id="display-username">Player</span>
+        <button class="logout-btn" onclick="handleLogout()">Logout ⏻</button>
+    </div>
+
     <div class="main-wrapper">
         <h2 class="page-welcome" id="page-title">Getting Started</h2>
 
@@ -51,7 +56,6 @@
             const pageTitle = document.getElementById('page-title');
             const loader = document.getElementById('loader');
 
-            // Reset UI state when switching
             loader.style.display = "none";
             btn.disabled = false;
             btn.style.opacity = "1";
