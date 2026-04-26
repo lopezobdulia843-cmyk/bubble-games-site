@@ -1,62 +1,73 @@
-// hub.js - Managing the Game Dashboard
-window.currentTab = 'your-games';
+// --- BUBBLE GAMES HUB ENGINE ---
 
-// Example Data (You can move this to Supabase later!)
-const games = [
-    { id: 1, title: "Bubble Pop Rage", type: "global", icon: "🫧" },
-    { id: 2, title: "iPad Parkour", type: "global", icon: "🏃" },
-    { id: 3, title: "My Secret Level", type: "personal", icon: "💎" }
+// 1. Game Templates (The "Global" Library)
+const gameTemplates = [
+    { id: 't1', title: 'Platformer Pro', icon: '🏃‍♂️', category: 'Global' },
+    { id: 't2', title: 'Bubble Pop', icon: '🫧', category: 'Global' },
+    { id: 't3', title: 'Speed Racer', icon: '🏎️', category: 'Global' },
+    { id: 't4', title: 'Physics Sandbox', icon: '📦', category: 'Global' },
+    { id: 't5', title: 'Obby Master', icon: '🧗', category: 'Global' },
+    { id: 't6', title: 'Clicker Tycoon', icon: '💰', category: 'Global' }
 ];
 
-window.switchTab = (tabName) => {
-    window.currentTab = tabName;
-    
-    // Update Button Styles
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-        if(btn.innerText.toLowerCase().includes(tabName.split('-')[0])) {
-            btn.classList.add('active');
-        }
-    });
+let currentTab = 'global'; // Default view
 
-    renderGames();
-};
+// 2. The Core Render Function
+window.renderGames = (filter = '') => {
+    const gameList = document.getElementById('game-list');
+    if (!gameList) return; // Safety check
 
-window.renderGames = (filter = "") => {
-    const list = document.getElementById('game-list');
-    list.innerHTML = ""; // Clear current list
+    gameList.innerHTML = ''; // Clear the "ghost" games
 
-    const filtered = games.filter(g => {
-        const matchesTab = (window.currentTab === 'global-games' && g.type === 'global') || 
-                           (window.currentTab === 'your-games' && g.type === 'personal');
-        const matchesSearch = g.title.toLowerCase().includes(filter.toLowerCase());
-        return matchesTab && matchesSearch;
-    });
-
-    if (filtered.length === 0) {
-        list.innerHTML = `<p class="no-games">No games found... yet! 🎈</p>`;
-        return;
+    // Decide what to show
+    let gamesToShow = [];
+    if (currentTab === 'global') {
+        gamesToShow = gameTemplates;
+    } else {
+        // This is where we will eventually fetch YOUR games from Supabase
+        gamesToShow = [{ id: 'user1', title: 'My First Project', icon: '🏗️', category: 'Mine' }];
     }
 
+    // Filter by search if the user typed something
+    const filtered = gamesToShow.filter(g => 
+        g.title.toLowerCase().includes(filter.toLowerCase())
+    );
+
+    // Create the big Roblox-style tiles
     filtered.forEach(game => {
         const card = document.createElement('div');
-        card.className = 'game-card bouncy-animation';
+        card.className = 'game-card';
         card.innerHTML = `
-            <div class="game-icon">${game.icon}</div>
+            <span class="game-icon">${game.icon}</span>
             <h3>${game.title}</h3>
-            <button class="play-small-btn">Launch</button>
         `;
-        list.appendChild(card);
+        
+        card.onclick = () => console.log(`Opening ${game.title}...`);
+        gameList.appendChild(card);
     });
 };
 
-// Search Bar Listener
-document.getElementById('game-search')?.addEventListener('input', (e) => {
-    renderGames(e.target.value);
-});
+// 3. Tab Switching Logic
+window.switchTab = (tab) => {
+    currentTab = tab;
+    
+    // Update Button Styles
+    document.getElementById('tab-mine').classList.toggle('active', tab === 'mine');
+    document.getElementById('tab-global').classList.toggle('active', tab === 'global');
 
-window.resetHub = () => {
-    document.getElementById('game-search').value = "";
-    switchTab('your-games');
-    document.getElementById('hub-back').style.display = 'none';
+    window.renderGames();
 };
+
+// 4. Initialization (The "Anti-Flicker" Fix)
+document.addEventListener('DOMContentLoaded', () => {
+    // Look for the search bar (if you added it)
+    const searchBar = document.getElementById('game-search');
+    if (searchBar) {
+        searchBar.addEventListener('input', (e) => {
+            window.renderGames(e.target.value);
+        });
+    }
+
+    // If we are already logged in (checked by gateway.js), show games
+    // Note: showWelcome() in gateway.js calls this too.
+});
