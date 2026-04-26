@@ -21,7 +21,7 @@ window.handleAuth = async () => {
         
         // 2. Check for Length (Set to 6 for that "long password" vibe)
         if (password.length < 6) {
-            alert("Your password is too short! Make it a long phrase (at least 20 characters). 🛡️");
+            alert("Your password is too short! Make it a long phrase (at least 6 characters). 🛡️");
             return;
         }
 
