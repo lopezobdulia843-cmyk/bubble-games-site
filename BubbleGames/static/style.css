@@ -205,3 +205,43 @@ h1 span {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+/* 10. TOP RIGHT USER STATUS */
+.user-status {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(10px);
+    padding: 10px 20px;
+    border-radius: 30px;
+    border: 2px solid white;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    z-index: 100;
+    font-family: 'Arial Rounded MT Bold', sans-serif;
+}
+
+#display-username {
+    color: #4f46e5;
+    font-weight: bold;
+}
+
+.logout-btn {
+    background: #ec4899;
+    color: white;
+    border: none;
+    padding: 5px 12px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.logout-btn:hover {
+    background: #d946ef;
+    transform: scale(1.1);
+}
