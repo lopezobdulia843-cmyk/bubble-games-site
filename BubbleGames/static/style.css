@@ -57,15 +57,23 @@ body {
     text-shadow: 2px 2px 0px rgba(255, 255, 255, 1);
 }
 
-/* 4. THE WHITE CARD */
+/* 4. THE WHITE CARD - NOW EXPANDED */
 .bubble-card {
     background: white;
     padding: 40px;
     border-radius: 50px; 
     box-shadow: 0 20px 40px rgba(0,0,0,0.05); 
     text-align: center;
-    width: 320px;
+    
+    /* THE FIX: Fluid width for that Big Screen vibe */
+    width: 90%; 
+    max-width: 1000px; /* It can grow up to 1000px wide now! */
+    min-height: 500px; /* Gives it some vertical presence */
+    
     border: 8px solid #e0e7ff; 
+    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    z-index: 10;
 }
 
 /* 5. LOGO STYLE */
