@@ -1,133 +1,83 @@
-import { supabase } from './supabase.js';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bubble Games | Welcome</title>
+    <link rel="stylesheet" href="static/style.css">
+</head>
+<body>
 
-window.handleAuth = async () => {
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
-    const mainButton = document.getElementById('main-button');
-    const loader = document.getElementById('loader');
+    <div class="corner-brand">
+        <span class="brand-bubble">🫧</span> 
+        Bubble<span class="brand-pink">Games</span>
+    </div>
 
-    if (!username || !password) {
-        alert("Oops! Don't forget your username and password! ✨");
-        return;
-    }
+    <div id="user-status" class="user-status" style="display: none;">
+        <span id="display-username">Player</span>
+        <button class="logout-btn" onclick="handleLogout()">Logout ⏻</button>
+    </div>
 
-    // --- START BUBBLE LOADING ---
-    loader.style.display = 'block';
-    mainButton.style.opacity = '0.5'; 
-    mainButton.disabled = true;
+    <div class="main-wrapper">
+        <h2 class="page-welcome" id="page-title">Getting Started</h2>
 
-    if (window.mode === "signup") {
-        mainButton.innerText = "CREATING PLAYER...";
+        <div class="bubble-card">
+            <div class="brand">
+                <span class="bubble-icon">🫧</span>
+                <h1>Bubble<span>Games</span></h1>
+            </div>
 
-        const { data: newUser, error: profileError } = await supabase
-            .from('profiles')
-            .insert([{ username: username }])
-            .select('id')
-            .single();
+            <div class="input-area">
+                <input type="text" id="username" placeholder="Username" class="bouncy-input">
+                
+                <div class="password-group">
+                    <input type="password" id="password" placeholder="Password" class="bouncy-input">
+                    <a href="#" class="forgot-link" id="forgot-pass">Forgot Password?</a>
+                </div>
+            </div>
 
-        if (profileError) {
-            alert("That username is already taken! Pick another cool name. 🫧");
-            // Reset UI
-            loader.style.display = 'none';
-            mainButton.style.opacity = '1';
-            mainButton.disabled = false;
-            mainButton.innerText = "Create Account!";
-            return;
-        }
+            <div id="loader" class="loader"></div>
 
-        const playerID = newUser.id;
-        const ghostEmail = `${playerID}@bubblegames.com`;
+            <button class="go-btn" id="main-button" onclick="handleAuth()">Let's Play!</button>
+            
+            <div class="footer-links">
+                <p id="toggle-container">New here? <a href="#" class="signup-link" onclick="switchMode()">Sign Up!</a></p>
+            </div>
+        </div>
+    </div>
 
-        const { error: authError } = await supabase.auth.signUp({
-            email: ghostEmail,
-            password: password,
-        });
+    <script>
+        // Internal UI logic for switching between login and signup
+        window.mode = "login"; 
 
-        if (authError) {
-            alert("Something went wrong! Let's try that again. 🎈");
-            // --- BUG FIX HERE ---
-            loader.style.display = 'none';
-            mainButton.style.opacity = '1';
-            mainButton.disabled = false;
-            mainButton.innerText = "Create Account!"; 
-        } else {
-            showWelcome(username);
-        }
+        function switchMode() {
+            const btn = document.getElementById('main-button');
+            const forgot = document.getElementById('forgot-pass');
+            const footer = document.getElementById('toggle-container');
+            const pageTitle = document.getElementById('page-title');
+            const loader = document.getElementById('loader');
 
-    } else {
-        mainButton.innerText = "LOADING PROFILE...";
-        
-        const { data: profile, error: searchError } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('username', username)
-            .single();
+            loader.style.display = "none";
+            btn.disabled = false;
+            btn.style.opacity = "1";
 
-        if (profile) {
-            const { error: loginError } = await supabase.auth.signInWithPassword({
-                email: `${profile.id}@bubblegames.com`,
-                password: password,
-            });
-
-            if (!loginError) {
-                showWelcome(username);
+            if (window.mode === "login") {
+                btn.innerText = "Create Account!";
+                forgot.style.display = "none";
+                footer.innerHTML = 'Already a member? <a href="#" class="signup-link" onclick="switchMode()">Log In!</a>';
+                pageTitle.innerText = "Join the Community";
+                window.mode = "signup";
             } else {
-                alert("Wrong password! Give it another shot. 🔑");
-                loader.style.display = 'none';
-                mainButton.style.opacity = '1';
-                mainButton.disabled = false;
-                mainButton.innerText = "Let's Play!";
+                btn.innerText = "Let's Play!";
+                forgot.style.display = "inline";
+                footer.innerHTML = 'New here? <a href="#" class="signup-link" onclick="switchMode()">Sign Up!</a>';
+                pageTitle.innerText = "Getting Started";
+                window.mode = "login";
             }
-        } else {
-            alert("We couldn't find that player! Want to Sign Up instead? ✨");
-            loader.style.display = 'none';
-            mainButton.style.opacity = '1';
-            mainButton.disabled = false;
-            mainButton.innerText = "Let's Play!";
         }
-    }
-};
+    </script>
 
-function showWelcome(user) {
-    const card = document.querySelector('.bubble-card');
-    const pageTitle = document.getElementById('page-title');
-    const userStatus = document.getElementById('user-status');
-    const displayUser = document.getElementById('display-username');
-
-    card.style.display = 'none';
-
-    pageTitle.innerText = `Welcome ${user}!`;
-    pageTitle.style.fontSize = "3rem";
-    pageTitle.classList.add('bouncy-animation');
-
-    if (userStatus && displayUser) {
-        userStatus.style.display = 'flex';
-        displayUser.innerText = user;
-    }
-
-    setTimeout(() => { console.log("Game Start! 🫧🚀"); }, 2000);
-}
-
-const checkSession = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (user) {
-        const playerID = user.email.split('@')[0];
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('username')
-            .eq('id', playerID)
-            .single();
-
-        if (profile) {
-            showWelcome(profile.username);
-        }
-    }
-};
-
-checkSession();
-
-window.handleLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.reload(); 
-};
+    <script type="module" src="static/gateway.js"></script>
+    <script src="static/bubbles.js"></script>
+</body>
+</html>
