@@ -11,6 +11,27 @@ window.handleAuth = async () => {
         return;
     }
 
+    // --- SECURITY CHECK (SIGNUP ONLY) ---
+    if (window.mode === "signup") {
+        // 1. Check for Spaces
+        if (password.includes(" ")) {
+            alert("No spaces allowed in your password! Please keep it as one solid string. 🫧");
+            return;
+        }
+        
+        // 2. Check for Length (Set to 20 for that "long password" vibe)
+        if (password.length < 20) {
+            alert("Your password is too short! Make it a long phrase (at least 20 characters). 🛡️");
+            return;
+        }
+
+        // 3. Check Username for Spaces
+        if (username.includes(" ")) {
+            alert("Usernames can't have spaces! Try smashing the words together. ✨");
+            return;
+        }
+    }
+
     // --- START BUBBLE LOADING ---
     loader.style.display = 'block';
     mainButton.style.opacity = '0.5'; 
@@ -47,6 +68,7 @@ window.handleAuth = async () => {
             loader.style.display = 'none';
             mainButton.style.opacity = '1';
             mainButton.disabled = false;
+            mainButton.innerText = "Create Account!"; 
         } else {
             showWelcome(username);
         }
