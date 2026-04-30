@@ -3,100 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bubble Games | Welcome</title>
-    <!-- Keep this pointing to your static folder -->
-    <link rel="stylesheet" href="static/style.css">
+    <title>Bubble Games | Dashboard</title>
+    <!-- This line pulls in all your styles from the separate file -->
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <div class="corner-brand">
-        <span class="brand-bubble">🫧</span> 
-        Bubble<span class="brand-pink">Games</span>
-    </div>
-
-    <div id="user-status" class="user-status" style="display: none;">
-        <span id="display-username">Player</span>
-        <!-- Keep your original onclick -->
-        <button class="logout-btn" onclick="handleLogout()">Logout ⏻</button>
-    </div>
-
-    <div class="main-wrapper">
-        <h2 class="page-welcome" id="page-title">Getting Started</h2>
-
+    <!-- AUTH SECTION -->
+    <div id="auth-screen" class="auth-container">
         <div class="bubble-card">
-            <div class="brand">
-                <span class="bubble-icon">🫧</span>
-                <h1>Bubble<span>Games</span></h1>
-            </div>
-
-            <div id="auth-area">
-                <div class="input-area">
-                    <input type="text" id="username" placeholder="Username" class="bouncy-input">
-                    <div class="password-group">
-                        <input type="password" id="password" placeholder="Password" class="bouncy-input">
-                        <a href="#" class="forgot-link" id="forgot-pass">Forgot Password?</a>
-                    </div>
-                </div>
-                <div id="loader" class="loader"></div>
-                <!-- Keep your original onclick -->
-                <button class="go-btn" id="main-button" onclick="handleAuth()">Let's Play!</button>
-                <div class="footer-links">
-                    <p id="toggle-container">New here? <a href="#" class="signup-link" onclick="switchMode()">Sign Up!</a></p>
-                </div>
-            </div>
-
-            <div id="hub-area" style="display: none;">
-                <input type="text" id="game-search" placeholder="What would you like to play? 🔍" class="bouncy-input">
-                
-                <div class="tab-menu">
-                    <!-- Keep your original onclicks -->
-                    <button id="tab-global" class="tab-btn active" onclick="switchTab('global')">Global Games</button>
-                    <button id="tab-mine" class="tab-btn" onclick="switchTab('mine')">My Games</button>
-                </div>
-
-                <div id="game-list">
-                    <!-- This stays empty for Supabase to fill later -->
-                </div>
-            </div>
+            <h1 class="logo-text">Bubble<span>Games</span></h1>
+            <p id="auth-title">Welcome Back!</p>
+            <input type="text" id="username" placeholder="Username" class="bouncy-input">
+            <input type="password" id="password" placeholder="Password" class="bouncy-input">
+            <button class="go-btn" id="main-auth-btn" onclick="handleAuth()">Let's Play!</button>
+            <p class="toggle-text">
+                <a href="#" onclick="switchMode()" id="toggle-link">New here? Sign Up!</a>
+            </p>
         </div>
     </div>
 
-    <!-- YOUR ORIGINAL LOGIC - I'm not touching this! -->
+    <!-- SIDEBAR -->
+    <div id="sidebar" class="sidebar">
+        <div id="nav-home" class="side-icon active" onclick="switchTab('home')">🏠</div>
+        <div id="nav-create" class="side-icon" onclick="switchTab('create')">🧱</div>
+        <div id="nav-settings" class="side-icon" onclick="switchTab('settings')">⚙️</div>
+    </div>
+
+    <!-- VIEWS -->
+    <div id="view-home" class="main-content">
+        <h2 class="section-title">Discover Games</h2>
+        <div id="global-game-list" class="game-grid"></div>
+    </div>
+
+    <div id="view-create" class="main-content" style="display:none;">
+        <div class="header-row">
+            <h2 class="section-title">Your Creations</h2>
+            <button class="new-game-btn" onclick="createNewGame()">+ New Game</button>
+        </div>
+        <div id="user-game-list" class="game-grid"></div>
+    </div>
+
+    <div id="view-settings" class="main-content" style="display:none;">
+        <h2 class="section-title">Settings</h2>
+        <div class="settings-card">
+            <p><strong>Appearance</strong></p>
+            <button onclick="toggleDarkMode()" class="ui-btn">Toggle Theme</button>
+            <button class="logout-btn" onclick="handleLogout()">Logout ⏻</button>
+        </div>
+    </div>
+
+    <!-- SCRIPTS -->
     <script>
-        window.mode = "login"; 
-
-        function switchMode() {
-            const btn = document.getElementById('main-button');
-            const forgot = document.getElementById('forgot-pass');
-            const footer = document.getElementById('toggle-container');
-            const pageTitle = document.getElementById('page-title');
-            const loader = document.getElementById('loader');
-
-            loader.style.display = "none";
-            btn.disabled = false;
-            btn.style.opacity = "1";
-
-            if (window.mode === "login") {
-                btn.innerText = "Create Account!";
-                forgot.style.display = "none";
-                footer.innerHTML = 'Already a member? <a href="#" class="signup-link" onclick="switchMode()">Log In!</a>';
-                pageTitle.innerText = "Join the Community";
-                window.mode = "signup";
-            } else {
-                btn.innerText = "Let's Play!";
-                forgot.style.display = "inline";
-                footer.innerHTML = 'New here? <a href="#" class="signup-link" onclick="switchMode()">Sign Up!</a>';
-                pageTitle.innerText = "Getting Started";
-                window.mode = "login";
-            }
+        // Tab switching logic kept here for speed, or move to hub.js
+        function switchTab(tabName) {
+            ['view-home', 'view-create', 'view-settings'].forEach(id => document.getElementById(id).style.display = 'none');
+            ['nav-home', 'nav-create', 'nav-settings'].forEach(id => document.getElementById(id).classList.remove('active'));
+            document.getElementById('view-' + tabName).style.display = 'flex';
+            document.getElementById('nav-' + tabName).classList.add('active');
         }
     </script>
-
-    <!-- The 4 "Brains" from your list -->
-    <script type="module" src="static/gateway.js"></script>
-    <script type="module" src="static/hub.js"></script>
-    <script src="static/bubbles.js"></script>
     <script type="module" src="static/supabase.js"></script>
-
+    <script type="module" src="static/gateway.js"></script>
 </body>
 </html>
