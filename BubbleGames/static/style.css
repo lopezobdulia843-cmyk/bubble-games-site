@@ -3,16 +3,13 @@
     --bubble-blue: #4f46e5;
     --bubble-pink: #ec4899;
     --bubble-bg: #f0f4ff;
-    --glass: rgba(255, 255, 255, 0.6);
     --card-bg: white;
     --sidebar-bg: white;
     --border-color: #e0e7ff;
     --text-main: #4f46e5;
     --text-sub: #333;
-    --juicy-gradient: linear-gradient(135deg, #4f46e5, #ec4899);
 }
 
-/* DARK MODE OVERRIDES */
 .dark-theme {
     --bubble-bg: #0f172a;
     --card-bg: #1e293b;
@@ -21,7 +18,6 @@
     --text-sub: #f1f5f9;
 }
 
-/* 1. BACKGROUND & LAYOUT */
 body {
     background-color: var(--bubble-bg); 
     display: flex;
@@ -29,181 +25,80 @@ body {
     font-family: 'Arial Rounded MT Bold', sans-serif; 
     height: 100vh;
     overflow: hidden;
-    transition: background 0.3s ease;
-}
-
-/* 2. AUTH SCREEN (STILL CENTERED) */
-.auth-container {
-    position: fixed;
-    inset: 0;
-    background: var(--bubble-bg);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-
-.page-welcome {
-    color: var(--bubble-blue);
-    font-size: 48px;
-    margin-bottom: 25px;
-    text-shadow: 3px 3px 0px white;
-    font-weight: 900;
-}
-
-.bubble-card {
-    background: var(--card-bg);
-    padding: 50px;
-    border-radius: 60px; 
-    box-shadow: 0 30px 60px rgba(0,0,0,0.05); 
-    text-align: center;
-    width: 90%; 
-    max-width: 400px; /* Kept tight for login */
-    border: 10px solid var(--border-color); 
-    position: relative;
-}
-
-/* 3. INPUTS & BUTTONS (iPad Optimized) */
-.bouncy-input {
-    width: 100%;
-    padding: 22px;
-    margin-bottom: 15px;
-    border: 3px solid #f3f4f6;
-    border-radius: 30px;
-    background: #f9fafb;
-    color: #333;
-    font-size: 20px;
-    box-sizing: border-box;
-    outline: none;
     transition: 0.3s;
 }
 
-.bouncy-input:focus {
-    border-color: var(--bubble-blue);
-    transform: scale(1.02);
-    background: white;
+/* 1. AUTH SCREEN */
+.auth-container {
+    position: fixed; inset: 0;
+    background: var(--bubble-bg);
+    display: flex; justify-content: center; align-items: center;
+    z-index: 1000;
+}
+
+.logo-text { font-size: 3rem; color: var(--bubble-blue); margin-bottom: 10px; }
+.logo-text span { color: var(--bubble-pink); }
+
+.bubble-card {
+    background: var(--card-bg);
+    padding: 40px;
+    border-radius: 50px; 
+    box-shadow: 0 25px 50px rgba(79, 70, 229, 0.1); 
+    text-align: center;
+    width: 350px;
+    border: 8px solid var(--border-color);
+}
+
+/* 2. INPUTS & BUTTONS */
+.bouncy-input {
+    width: 100%; padding: 18px; margin-bottom: 15px;
+    border: 3px solid var(--border-color); border-radius: 25px;
+    background: var(--bubble-bg); color: var(--text-sub);
+    font-size: 18px; box-sizing: border-box; outline: none;
 }
 
 .go-btn {
-    width: 100%;
-    padding: 22px;
-    background: var(--bubble-pink); 
-    color: white;
-    border: none;
-    border-radius: 35px;
-    font-size: 22px;
-    font-weight: bold;
-    cursor: pointer;
-    box-shadow: 0 10px 0 #be185d; /* Darker pink for the 3D look */
-    transition: 0.1s;
+    width: 100%; padding: 18px;
+    background: var(--bubble-pink); color: white;
+    border: none; border-radius: 30px;
+    font-size: 20px; font-weight: bold; cursor: pointer;
+    box-shadow: 0 8px 0 #be185d; transition: 0.1s;
 }
 
-.go-btn:active {
-    transform: translateY(6px);
-    box-shadow: 0 4px 0 #be185d;
-}
+.go-btn:active { transform: translateY(4px); box-shadow: 0 4px 0 #be185d; }
 
-/* 4. SIDEBAR NAVIGATION */
+/* 3. SIDEBAR */
 .sidebar {
-    width: 90px;
-    background: var(--sidebar-bg);
+    width: 90px; background: var(--sidebar-bg);
     border-right: 4px solid var(--border-color);
-    display: none; /* Hub.js will toggle this */
-    flex-direction: column;
-    align-items: center;
-    padding-top: 30px;
-    gap: 25px;
-    z-index: 100;
+    display: none; /* Changed to flex via JS */
+    flex-direction: column; align-items: center;
+    padding-top: 30px; gap: 20px;
 }
 
 .side-icon {
-    width: 65px;
-    height: 65px;
-    background: #f3f4f6;
-    border-radius: 22px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 30px;
-    cursor: pointer;
-    transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    width: 60px; height: 60px; background: #f3f4f6;
+    border-radius: 20px; display: flex; justify-content: center;
+    align-items: center; font-size: 28px; cursor: pointer;
 }
 
-.side-icon:hover { transform: scale(1.1); }
-.side-icon.active {
-    background: var(--bubble-blue);
-    color: white;
-    box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3);
-}
+.side-icon.active { background: var(--bubble-blue); color: white; }
 
-/* 5. DASHBOARD CONTENT */
+/* 4. DASHBOARD */
 .main-content {
-    flex-grow: 1;
-    padding: 40px;
-    overflow-y: auto;
-    display: none; /* Hub.js will toggle this */
-    flex-direction: column;
+    flex-grow: 1; padding: 40px; 
+    display: none; /* Changed to flex via JS */
+    flex-direction: column; overflow-y: auto;
 }
 
-.section-title {
-    color: var(--text-main);
-    font-size: 36px;
-    margin-bottom: 30px;
-}
+.section-title { color: var(--text-main); font-size: 32px; margin-bottom: 20px; }
 
 .game-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 25px;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 20px;
 }
 
-.market-card {
-    background: var(--card-bg);
-    border-radius: 40px;
-    padding: 30px;
-    border: 6px solid var(--border-color);
-    text-align: center;
-    transition: 0.3s ease;
-    cursor: pointer;
-    color: var(--text-sub);
-}
-
-.market-card:hover {
-    transform: translateY(-10px);
-    border-color: var(--bubble-pink);
-    box-shadow: 0 20px 40px var(--shadow);
-}
-
-/* 6. UTILITIES */
-.logout-btn {
-    background: #ef4444;
-    color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 20px;
-    cursor: pointer;
-    margin-top: 20px;
-    font-weight: bold;
-}
-
-/* Scrollbar Style */
-::-webkit-scrollbar { width: 10px; }
-::-webkit-scrollbar-thumb {
-    background: var(--border-color);
-    border-radius: 10px;
-}
-
-@media (max-width: 768px) {
-    .sidebar {
-        width: 100%;
-        height: 70px;
-        flex-direction: row;
-        bottom: 0;
-        border-right: none;
-        border-top: 4px solid var(--border-color);
-        justify-content: space-around;
-        padding-top: 0;
-    }
-    body { flex-direction: column; }
-}
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
