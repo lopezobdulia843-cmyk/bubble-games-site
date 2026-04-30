@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bubble Games | Welcome</title>
+    <!-- Keep this pointing to your static folder -->
     <link rel="stylesheet" href="static/style.css">
 </head>
 <body>
@@ -15,6 +16,7 @@
 
     <div id="user-status" class="user-status" style="display: none;">
         <span id="display-username">Player</span>
+        <!-- Keep your original onclick -->
         <button class="logout-btn" onclick="handleLogout()">Logout ⏻</button>
     </div>
 
@@ -36,6 +38,7 @@
                     </div>
                 </div>
                 <div id="loader" class="loader"></div>
+                <!-- Keep your original onclick -->
                 <button class="go-btn" id="main-button" onclick="handleAuth()">Let's Play!</button>
                 <div class="footer-links">
                     <p id="toggle-container">New here? <a href="#" class="signup-link" onclick="switchMode()">Sign Up!</a></p>
@@ -46,16 +49,19 @@
                 <input type="text" id="game-search" placeholder="What would you like to play? 🔍" class="bouncy-input">
                 
                 <div class="tab-menu">
+                    <!-- Keep your original onclicks -->
                     <button id="tab-global" class="tab-btn active" onclick="switchTab('global')">Global Games</button>
                     <button id="tab-mine" class="tab-btn" onclick="switchTab('mine')">My Games</button>
                 </div>
 
                 <div id="game-list">
-                    </div>
+                    <!-- This stays empty for Supabase to fill later -->
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- YOUR ORIGINAL LOGIC - I'm not touching this! -->
     <script>
         window.mode = "login"; 
 
@@ -86,8 +92,11 @@
         }
     </script>
 
+    <!-- The 4 "Brains" from your list -->
     <script type="module" src="static/gateway.js"></script>
     <script type="module" src="static/hub.js"></script>
     <script src="static/bubbles.js"></script>
+    <script type="module" src="static/supabase.js"></script>
+
 </body>
 </html>
