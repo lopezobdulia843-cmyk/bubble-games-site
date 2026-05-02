@@ -1,6 +1,6 @@
-// --- BUBBLE GAMES HUB ENGINE ---
+// --- BUBBLE GAMES HYBRID HUB ENGINE ---
 
-// 1. Game Templates (The "Global" Library)
+// 1. DATA: The Global Library
 const gameTemplates = [
     { id: 't1', title: 'Platformer Pro', icon: '🏃‍♂️', category: 'Global' },
     { id: 't2', title: 'Bubble Pop', icon: '🫧', category: 'Global' },
@@ -10,64 +10,122 @@ const gameTemplates = [
     { id: 't6', title: 'Clicker Tycoon', icon: '💰', category: 'Global' }
 ];
 
-let currentTab = 'global'; // Default view
+// 2. UI NAVIGATION: The "Juicy" Controller
+function switchTab(tabName) {
+    closePanel();
+    
+    // UI Logic: Hide all views
+    ['view-home', 'view-create', 'view-settings'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
 
-// 2. The Core Render Function
-window.renderGames = (filter = '') => {
+    // UI Logic: Deactivate all icons
+    ['nav-home', 'nav-create', 'nav-settings'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('active');
+    });
+
+    // UI Logic: Activate current tab
+    const targetView = document.getElementById('view-' + tabName);
+    const targetNav = document.getElementById('nav-' + tabName);
+    
+    if (targetView) targetView.style.display = 'flex';
+    if (targetNav) targetNav.classList.add('active');
+
+    // ENGINE LOGIC: Refresh games based on the tab
+    renderGames();
+}
+
+// 3. THE RENDER ENGINE: Creating the Tiles
+function renderGames(filter = '') {
     const gameList = document.getElementById('game-list');
-    if (!gameList) return; // Safety check
+    if (!gameList) return; 
 
-    gameList.innerHTML = ''; // Clear the "ghost" games
+    gameList.innerHTML = ''; 
 
-    // Decide what to show
+    // Filter logic: Decide if we show Global or User games
     let gamesToShow = [];
-    if (currentTab === 'global') {
+    const activeNav = document.querySelector('.side-icon.active');
+    
+    if (activeNav && activeNav.id === 'nav-home') {
         gamesToShow = gameTemplates;
-    } else {
-        // This is where we will eventually fetch YOUR games from Supabase
-        gamesToShow = [{ id: 'user1', title: 'My First Project', icon: '🏗️', category: 'Mine' }];
+    } else if (activeNav && activeNav.id === 'nav-create') {
+        gamesToShow = [{ id: 'user1', title: 'Bubble Craft', icon: '🫧', category: 'Mine' }];
     }
 
-    // Filter by search if the user typed something
     const filtered = gamesToShow.filter(g => 
         g.title.toLowerCase().includes(filter.toLowerCase())
     );
 
-    // Create the big Roblox-style tiles
     filtered.forEach(game => {
         const card = document.createElement('div');
-        card.className = 'game-card';
+        card.className = 'market-card'; // Using your CSS class name
         card.innerHTML = `
-            <span class="game-icon">${game.icon}</span>
+            <span class="market-icon">${game.icon}</span>
             <h3>${game.title}</h3>
         `;
         
-        card.onclick = () => console.log(`Opening ${game.title}...`);
+        // Link the click to the UI Panel
+        card.onclick = () => openPanel(game.title, game.icon, (game.category === 'Mine'));
         gameList.appendChild(card);
     });
-};
+}
 
-// 3. Tab Switching Logic
-window.switchTab = (tab) => {
-    currentTab = tab;
+// 4. ACTION PANEL LOGIC: The Slide-up Menu
+function openPanel(name, icon, isOwned) {
+    document.getElementById('panelTitle').innerText = name;
+    document.getElementById('panelIcon').innerText = icon;
     
-    // Update Button Styles
-    document.getElementById('tab-mine').classList.toggle('active', tab === 'mine');
-    document.getElementById('tab-global').classList.toggle('active', tab === 'global');
+    const ownedControls = document.getElementById('ownedControls');
+    const visitorStats = document.getElementById('visitorStats');
+    const editNameInput = document.getElementById('editName');
 
-    window.renderGames();
-};
+    if (isOwned) {
+        if (ownedControls) ownedControls.style.display = 'block';
+        if (visitorStats) visitorStats.style.display = 'none';
+        if (editNameInput) editNameInput.value = name;
+    } else {
+        if (ownedControls) ownedControls.style.display = 'none';
+        if (visitorStats) visitorStats.style.display = 'block';
+    }
 
-// 4. Initialization (The "Anti-Flicker" Fix)
-document.addEventListener('DOMContentLoaded', () => {
-    // Look for the search bar (if you added it)
-    const searchBar = document.getElementById('game-search');
+    document.getElementById('actionPanel').classList.add('open');
+}
+
+function closePanel() {
+    document.getElementById('actionPanel').classList.remove('open');
+}
+
+// 5. SETTINGS & SYSTEM
+function fakeLogout() {
+    if(confirm("Are you sure you want to log out of Bubble Games?")) {
+        alert("You have been logged out! (Returning to gateway...)");
+    }
+}
+
+function toggleDarkMode() {
+    document.body.classList.toggle('dark-theme');
+    localStorage.setItem('bubbleTheme', document.body.classList.contains('dark-theme') ? 'dark' : 'light');
+}
+
+// 6. INITIALIZATION: Keeping it Alive
+window.onload = () => {
+    // Apply Theme
+    if (localStorage.getItem('bubbleTheme') === 'dark') {
+        document.body.classList.add('dark-theme');
+        const darkToggle = document.getElementById('darkToggle');
+        if (darkToggle) darkToggle.checked = true;
+    }
+
+    // Connect Search Bar to Engine
+    const searchBar = document.querySelector('.hero-search');
     if (searchBar) {
         searchBar.addEventListener('input', (e) => {
-            window.renderGames(e.target.value);
+            renderGames(e.target.value);
         });
     }
 
-    // If we are already logged in (checked by gateway.js), show games
-    // Note: showWelcome() in gateway.js calls this too.
-});
+    // Initial render
+    renderGames();
+};
