@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bubble Games | Welcome</title>
+
+    <!-- CSS FILE -->
     <link rel="stylesheet" href="static/style.css">
 </head>
 <body>
@@ -30,64 +32,69 @@
             <div id="auth-area">
                 <div class="input-area">
                     <input type="text" id="username" placeholder="Username" class="bouncy-input">
+
                     <div class="password-group">
                         <input type="password" id="password" placeholder="Password" class="bouncy-input">
-                        <a href="#" class="forgot-link" id="forgot-pass">Forgot Password?</a>
+
+                        <a href="#" class="forgot-link" id="forgot-pass">
+                            Forgot Password?
+                        </a>
                     </div>
                 </div>
+
                 <div id="loader" class="loader"></div>
-                <button class="go-btn" id="main-button" onclick="handleAuth()">Let's Play!</button>
+
+                <button class="go-btn" id="main-button" onclick="handleAuth()">
+                    Let's Play!
+                </button>
+
                 <div class="footer-links">
-                    <p id="toggle-container">New here? <a href="#" class="signup-link" onclick="switchMode()">Sign Up!</a></p>
+                    <p id="toggle-container">
+                        New here?
+                        <a href="#" class="signup-link" onclick="switchMode()">
+                            Sign Up!
+                        </a>
+                    </p>
                 </div>
             </div>
 
             <div id="hub-area" style="display: none;">
-                <input type="text" id="game-search" placeholder="What would you like to play? 🔍" class="bouncy-input">
-                
+
+                <input
+                    type="text"
+                    id="game-search"
+                    placeholder="What would you like to play? 🔍"
+                    class="bouncy-input"
+                >
+
                 <div class="tab-menu">
-                    <button id="tab-global" class="tab-btn active" onclick="switchTab('global')">Global Games</button>
-                    <button id="tab-mine" class="tab-btn" onclick="switchTab('mine')">My Games</button>
+                    <button
+                        id="tab-global"
+                        class="tab-btn active"
+                        onclick="switchTab('global')"
+                    >
+                        Global Games
+                    </button>
+
+                    <button
+                        id="tab-mine"
+                        class="tab-btn"
+                        onclick="switchTab('mine')"
+                    >
+                        My Games
+                    </button>
                 </div>
 
-                <div id="game-list">
-                    </div>
+                <div id="game-list"></div>
+
             </div>
         </div>
     </div>
 
-    <script>
-        window.mode = "login"; 
-
-        function switchMode() {
-            const btn = document.getElementById('main-button');
-            const forgot = document.getElementById('forgot-pass');
-            const footer = document.getElementById('toggle-container');
-            const pageTitle = document.getElementById('page-title');
-            const loader = document.getElementById('loader');
-
-            loader.style.display = "none";
-            btn.disabled = false;
-            btn.style.opacity = "1";
-
-            if (window.mode === "login") {
-                btn.innerText = "Create Account!";
-                forgot.style.display = "none";
-                footer.innerHTML = 'Already a member? <a href="#" class="signup-link" onclick="switchMode()">Log In!</a>';
-                pageTitle.innerText = "Join the Community";
-                window.mode = "signup";
-            } else {
-                btn.innerText = "Let's Play!";
-                forgot.style.display = "inline";
-                footer.innerHTML = 'New here? <a href="#" class="signup-link" onclick="switchMode()">Sign Up!</a>';
-                pageTitle.innerText = "Getting Started";
-                window.mode = "login";
-            }
-        }
-    </script>
-
+    <!-- YOUR FILES -->
     <script type="module" src="static/gateway.js"></script>
     <script type="module" src="static/hub.js"></script>
     <script src="static/bubbles.js"></script>
+
 </body>
 </html>
