@@ -1,5 +1,37 @@
 import { supabase } from './supabase.js';
 
+// 1. SET DEFAULT MODE
+window.mode = "login"; 
+
+// 2. TOGGLE BETWEEN SIGNUP AND LOGIN (NOW WITH MORE HYPE!)
+window.switchMode = () => {
+    const title = document.getElementById('page-title');
+    const btn = document.getElementById('main-button');
+    const toggleContainer = document.getElementById('toggle-container');
+    const forgotPass = document.getElementById('forgot-pass');
+
+    if (window.mode === "login") {
+        window.mode = "signup";
+        title.innerText = "Join the Club! ✨";
+        btn.innerText = "🫧 Let's Play! 🫧"; // Keeping it fun!
+        if (forgotPass) forgotPass.style.display = 'none'; // Bye bye link!
+        toggleContainer.innerHTML = `
+            Already a pro? 
+            <a href="#" class="signup-link" onclick="switchMode()">Log In!</a>
+        `;
+    } else {
+        window.mode = "login";
+        title.innerText = "Getting Started";
+        btn.innerText = "🫧 Let's Play! 🫧";
+        if (forgotPass) forgotPass.style.display = 'inline'; // Welcome back link!
+        toggleContainer.innerHTML = `
+            New here? 
+            <a href="#" class="signup-link" onclick="switchMode()">Sign Up!</a>
+        `;
+    }
+};
+
+// 3. HANDLE AUTHENTICATION
 window.handleAuth = async () => {
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
@@ -12,16 +44,12 @@ window.handleAuth = async () => {
     }
 
     if (window.mode === "signup") {
-        if (password.includes(" ")) {
-            alert("No spaces allowed in your password! 🫧");
+        if (password.includes(" ") || username.includes(" ")) {
+            alert("No spaces allowed! 🫧");
             return;
         }
         if (password.length < 6) {
-            alert("Your password is too short! (At least 6 characters). 🛡️");
-            return;
-        }
-        if (username.includes(" ")) {
-            alert("Usernames can't have spaces! ✨");
+            alert("Password must be at least 6 characters! 🛡️");
             return;
         }
     }
@@ -41,26 +69,18 @@ window.handleAuth = async () => {
 
         if (profileError) {
             alert("That username is already taken! 🫧");
-            loader.style.display = 'none';
-            mainButton.style.opacity = '1';
-            mainButton.disabled = false;
-            mainButton.innerText = "Create Account!";
+            resetButton(mainButton, loader);
             return;
         }
 
-        const playerID = newUser.id;
-        const ghostEmail = `${playerID}@bubblegames.com`;
-
         const { error: authError } = await supabase.auth.signUp({
-            email: ghostEmail,
+            email: `${newUser.id}@bubblegames.com`,
             password: password,
         });
 
         if (authError) {
-            alert("Something went wrong! Let's try that again. 🎈");
-            loader.style.display = 'none';
-            mainButton.style.opacity = '1';
-            mainButton.disabled = false;
+            alert("Auth error! Try again. 🎈");
+            resetButton(mainButton, loader);
         } else {
             showWelcome(username);
         }
@@ -84,22 +104,23 @@ window.handleAuth = async () => {
                 showWelcome(username);
             } else {
                 alert("Wrong password! 🔑");
-                loader.style.display = 'none';
-                mainButton.style.opacity = '1';
-                mainButton.disabled = false;
-                mainButton.innerText = "Let's Play!";
+                resetButton(mainButton, loader);
             }
         } else {
-            alert("We couldn't find that player! ✨");
-            loader.style.display = 'none';
-            mainButton.style.opacity = '1';
-            mainButton.disabled = false;
-            mainButton.innerText = "Let's Play!";
+            alert("Player not found! ✨");
+            resetButton(mainButton, loader);
         }
     }
 };
 
-// --- SYNCED WITH YOUR HTML IDS ---
+function resetButton(btn, ldr) {
+    ldr.style.display = 'none';
+    btn.style.opacity = '1';
+    btn.disabled = false;
+    btn.innerText = "Let's Play! 🫧"; // Always stay fun!
+}
+
+// 4. UI SWAP TO HUB
 function showWelcome(user) {
     const authArea = document.getElementById('auth-area');
     const hubArea = document.getElementById('hub-area');
@@ -107,22 +128,18 @@ function showWelcome(user) {
     const displayUsername = document.getElementById('display-username');
     const pageTitle = document.getElementById('page-title');
 
-    // Hide Login, Show Hub inside the card
     if (authArea) authArea.style.display = 'none';
     if (hubArea) hubArea.style.display = 'block';
-    
-    // Show Top-Right Status and update title
     if (userStatus) userStatus.style.display = 'flex';
     if (displayUsername) displayUsername.innerText = user;
     if (pageTitle) pageTitle.innerText = "Welcome Back!";
 
-    // Trigger game rendering from hub.js
-    if (window.renderGames) window.renderGames();
+    if (window.renderGameList) window.renderGameList();
 }
 
+// 5. AUTO-LOGIN CHECK
 const checkSession = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-
     if (user) {
         const playerID = user.email.split('@')[0];
         const { data: profile } = await supabase
@@ -131,9 +148,7 @@ const checkSession = async () => {
             .eq('id', playerID)
             .single();
 
-        if (profile) {
-            showWelcome(profile.username);
-        }
+        if (profile) showWelcome(profile.username);
     }
 };
 
