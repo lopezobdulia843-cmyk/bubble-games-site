@@ -117,7 +117,7 @@ function resetButton(btn, ldr) {
     ldr.style.display = 'none';
     btn.style.opacity = '1';
     btn.disabled = false;
-    btn.innerText = "Let's Play! 🫧"; // Always stay fun!
+    btn.innerText = "🫧 Let's Play! 🫧"; // Always stay fun!
 }
 
 // 4. UI SWAP TO HUB
