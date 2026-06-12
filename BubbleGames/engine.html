@@ -232,7 +232,7 @@ BlockColor:
     <button onclick="document.getElementById('publishModal').style.display='block'" style="background:#00a8ff; color:white; border:none; padding:5px 10px; border-radius:10px; cursor:pointer; font-weight:bold;">Publish Game</button>
 </div>
 
-<div id="publishModal" style="display:none; position:absolute; top:120px; left:20px; background:white; padding:20px; border-radius:15px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 200;">
+<div id="publishModal" onmousedown="event.stopPropagation()" style="display:none; position:absolute; top:120px; left:20px; background:white; padding:20px; border-radius:15px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 200;">
     <h3>Publish Game</h3>
     Name: <br><input type="text" id="pubName"><br><br>
     Description: <br><textarea id="pubDesc"></textarea><br><br>
