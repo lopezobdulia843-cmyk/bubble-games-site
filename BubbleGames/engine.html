@@ -227,6 +227,19 @@ BlockColor:
 
    <div style="position: absolute; top: 20px; left: 20px; background: rgba(255, 255, 255, 0.85); padding: 10px 20px; border-radius: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); backdrop-filter: blur(5px); z-index: 100;">
     <a href="hub.html" style="text-decoration: none; color: #333; font-weight: bold;">🏠 Hub</a>
+       <div style="position: absolute; top: 20px; left: 20px; background: rgba(255, 255, 255, 0.85); padding: 10px 20px; border-radius: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); backdrop-filter: blur(5px); z-index: 100;">
+    <a href="hub.html" style="text-decoration: none; color: #333; font-weight: bold;">🏠 Hub</a>
+    <br><br>
+    <button onclick="document.getElementById('publishModal').style.display='block'" style="background:#00a8ff; color:white; border:none; padding:5px 10px; border-radius:10px; cursor:pointer; font-weight:bold;">Publish Game</button>
+</div>
+
+<div id="publishModal" style="display:none; position:absolute; top:120px; left:20px; background:white; padding:20px; border-radius:15px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 200;">
+    <h3>Publish Game</h3>
+    Name: <br><input type="text" id="pubName"><br><br>
+    Description: <br><textarea id="pubDesc"></textarea><br><br>
+    Thumbnail (1 Emoji Only!): <br><input type="text" id="pubThumb" maxlength="1"><br><br>
+    <button onclick="document.getElementById('publishModal').style.display='none'">Close</button>
+</div>
 </div>
     <div id="ui">        
         
