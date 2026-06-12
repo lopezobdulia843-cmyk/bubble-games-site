@@ -226,7 +226,7 @@ BlockColor:
 </div><body>
 
 
-      <div id="topLeftMenu" style="position: absolute; top: 20px; left: 20px; background: rgba(255, 255, 255, 0.85); padding: 10px 20px; border-radius: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); backdrop-filter: blur(5px); z-index: 100; display: flex; gap: 15px; align-items: center;">
+      <div style="position: absolute; top: 20px; left: 20px; background: rgba(255, 255, 255, 0.85); padding: 10px 20px; border-radius: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); backdrop-filter: blur(5px); z-index: 100; display: flex; gap: 15px; align-items: center;">
     <a href="hub.html" style="text-decoration: none; color: #333; font-weight: bold;">🏠 Hub</a>
     
     <button id="pubBtn" style="background: #ff9f43; color: white; border: 2px solid #d35400; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-weight: bold;">🚀 Publish</button>
@@ -466,7 +466,7 @@ let editorState = [];
 
         // Player Setup
         const playerHeight = 1.9; 
-        const playerRadius = 0.45;
+        const playerRadius = 0.35; // tighter box like Roblox
         
         const playerSpeed16 = 0.030; 
         const robloxGravity = 0.0020; 
@@ -494,6 +494,7 @@ let editorState = [];
         // Round Head
         const headMesh = new THREE.Mesh(new THREE.SphereGeometry(0.32, 16, 16), skinMat);
         headMesh.position.y = 1.62;
+playerGroup.rotation.y = Math.PI;
 
         function createPlushieLimb(radius, length, material) {
             const jointGroup = new THREE.Group();
@@ -955,10 +956,6 @@ setMode('build');
 
 };
 btns.paint.onclick = () => setMode('paint');
-// Stop top-left menu clicks from affecting the world
-document.getElementById('topLeftMenu').addEventListener('mousedown', (e) => {
-    e.stopPropagation();
-});
 
         // Dialog Panel Click Hooks
         document.getElementById('cancelBtn').onclick = () => {
@@ -1615,8 +1612,13 @@ updateScripts();
                     horizontalMovement.normalize().multiplyScalar(playerSpeed16);
 
                     if (!isFirstPerson) {
-                        characterYaw = Math.atan2(-horizontalMovement.x, -horizontalMovement.z);
-                    }
+    const targetYaw = Math.atan2(-horizontalMovement.x, -horizontalMovement.z);
+    // Smoothly spin toward movement direction like Roblox!
+    let diff = targetYaw - characterYaw;
+    while (diff > Math.PI) diff -= Math.PI * 2;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    characterYaw += diff * 0.18;
+}
                     
                     // --- X AXIS COLLISION ---
                     playerTarget.x += horizontalMovement.x;
@@ -1636,14 +1638,19 @@ if (b.userData.isMegaBlock) {
     halfZ = b.geometry.parameters.depth / 2;
 }
 
-                        const insideX = Math.abs(playerTarget.x - b.position.x) < (halfX + playerRadius);
-                        const insideZ = Math.abs(playerTarget.z - b.position.z) < (halfZ + playerRadius);
-                        const footLevel = playerTarget.y - playerHeight;
-                        const insideY = (footLevel < b.position.y + halfY) && (playerTarget.y > b.position.y - halfY);
-                        const strictlyBelowTop = footLevel < b.position.y + (halfY - 0.05);
+                        const pMinX = playerTarget.x - playerRadius;
+const pMaxX = playerTarget.x + playerRadius;
+const pMinZ = playerTarget.z - playerRadius;
+const pMaxZ = playerTarget.z + playerRadius;
+const footLevel = playerTarget.y - playerHeight;
 
-                        if (insideX && insideZ && insideY && strictlyBelowTop) {
-                            playerTarget.x -= horizontalMovement.x; 
+const overlapX = pMaxX > b.position.x - halfX && pMinX < b.position.x + halfX;
+const overlapZ = pMaxZ > b.position.z - halfZ && pMinZ < b.position.z + halfZ;
+const overlapY = footLevel < b.position.y + halfY && playerTarget.y > b.position.y - halfY;
+const notOnTop = footLevel < b.position.y + halfY - 0.05;
+
+if (overlapX && overlapZ && overlapY && notOnTop) {
+    playerTarget.x -= horizontalMovement.x;
                             break;
                         }
                     }
@@ -1666,14 +1673,19 @@ if (b.userData.isMegaBlock) {
     halfZ = b.geometry.parameters.depth / 2;
 }
 
-                        const insideX = Math.abs(playerTarget.x - b.position.x) < (halfX + playerRadius);
-                        const insideZ = Math.abs(playerTarget.z - b.position.z) < (halfZ + playerRadius);
-                        const footLevel = playerTarget.y - playerHeight;
-                        const insideY = (footLevel < b.position.y + halfY) && (playerTarget.y > b.position.y - halfY);
-                        const strictlyBelowTop = footLevel < b.position.y + (halfY - 0.05);
+                        const pMinX2 = playerTarget.x - playerRadius;
+const pMaxX2 = playerTarget.x + playerRadius;
+const pMinZ2 = playerTarget.z - playerRadius;
+const pMaxZ2 = playerTarget.z + playerRadius;
+const footLevel2 = playerTarget.y - playerHeight;
 
-                        if (insideX && insideZ && insideY && strictlyBelowTop) {
-                            playerTarget.z -= horizontalMovement.z; 
+const overlapX2 = pMaxX2 > b.position.x - halfX && pMinX2 < b.position.x + halfX;
+const overlapZ2 = pMaxZ2 > b.position.z - halfZ && pMinZ2 < b.position.z + halfZ;
+const overlapY2 = footLevel2 < b.position.y + halfY && playerTarget.y > b.position.y - halfY;
+const notOnTop2 = footLevel2 < b.position.y + halfY - 0.05;
+
+if (overlapX2 && overlapZ2 && overlapY2 && notOnTop2) {
+    playerTarget.z -= horizontalMovement.z;
                             break;
                         }
                     }
