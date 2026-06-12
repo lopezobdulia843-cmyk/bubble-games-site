@@ -226,10 +226,10 @@ BlockColor:
 </div><body>
 
 
-       <div style="position: absolute; top: 20px; left: 20px; background: rgba(255, 255, 255, 0.85); padding: 10px 20px; border-radius: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); backdrop-filter: blur(5px); z-index: 100;">
+      <div id="topLeftMenu" style="position: absolute; top: 20px; left: 20px; background: rgba(255, 255, 255, 0.85); padding: 10px 20px; border-radius: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); backdrop-filter: blur(5px); z-index: 100; display: flex; gap: 15px; align-items: center;">
     <a href="hub.html" style="text-decoration: none; color: #333; font-weight: bold;">🏠 Hub</a>
-    <br><br>
- 
+    
+    <button id="pubBtn" style="background: #ff9f43; color: white; border: 2px solid #d35400; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-weight: bold;">🚀 Publish</button>
 </div>
 
 <div id="publishModal" onmousedown="event.stopPropagation()" style="display:none; position:absolute; top:120px; left:20px; background:white; padding:20px; border-radius:15px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 200;">
@@ -250,7 +250,6 @@ BlockColor:
 <button id="paintBtn" class="btn">🪣</button>
 <input type="color" id="paintColor" value="#ff0000" style="width:40px; height:40px; border:none; background:none; cursor:pointer;">
         <button id="playBtn" class="btn">Play Test</button>
-        <button id="pubBtn" class="btn" style="background: #ff9f43; color: white; border: 2px solid #d35400;">🚀 Publish</button>
         <div class="counter">Blocks: <span id="count">1</span></div>
     </div>
 
@@ -432,6 +431,7 @@ const runningTasks = [];
 const sandboxState = [];
 let groupIdCounter = 0;
 
+
 document.getElementById('nameInput').oninput = (e) => {
     if (selectedBlock) {
         selectedBlock.userData.name = e.target.value;
@@ -447,7 +447,8 @@ document.getElementById('nameInput').oninput = (e) => {
         // Force material update
         selectedBlock.material.needsUpdate = true;
     }
-};        const blocks = [spawnPad];
+};        
+const blocks = [spawnPad];
         updateWorldList(); 
         const objectsToIntersect = [floor, spawnPad];
         const raycaster = new THREE.Raycaster(), mouse = new THREE.Vector2();
@@ -595,71 +596,57 @@ transformControl.addEventListener('mouseDown', () => {
 });
 
 transformControl.addEventListener('objectChange', () => {
-            const obj = transformControl.object;
-if (obj && obj.userData.selectedBlocks) {
+    const obj = transformControl.object;
+    if (!obj) return; // Safety first!
 
-    // SNAP THE PIVOT TO GRID
-    obj.position.x = Math.round(obj.position.x - 0.5) + 0.5;
-    obj.position.y = Math.round(obj.position.y - 0.5) + 0.5;
-    obj.position.z = Math.round(obj.position.z - 0.5) + 0.5;
+    // 1. GROUP DRAG LOGIC
+    if (obj.userData.selectedBlocks) {
+        // Snap the pivot to grid
+        obj.position.x = Math.round(obj.position.x - 0.5) + 0.5;
+        obj.position.y = Math.round(obj.position.y - 0.5) + 0.5;
+        obj.position.z = Math.round(obj.position.z - 0.5) + 0.5;
 
-    const movement = new THREE.Vector3();
-
-    movement.subVectors(
-        obj.position,
-        obj.userData.lastPosition || obj.position.clone()
-    );
-if (movement.lengthSq() === 0) return;
-
-   obj.userData.selectedBlocks.forEach(block => {
-
-    block.position.x =
-        Math.round(block.position.x + movement.x - 0.5) + 0.5;
-
-    block.position.y =
-        Math.max(
-            0.5,
-            Math.round(block.position.y + movement.y - 0.5) + 0.5
+        const movement = new THREE.Vector3();
+        movement.subVectors(
+            obj.position,
+            obj.userData.lastPosition || obj.position.clone()
         );
+        
+        if (movement.lengthSq() !== 0) {
+            obj.userData.selectedBlocks.forEach(block => {
+                block.position.x = Math.round(block.position.x + movement.x - 0.5) + 0.5;
+                block.position.y = Math.max(0.5, Math.round(block.position.y + movement.y - 0.5) + 0.5);
+                block.position.z = Math.round(block.position.z + movement.z - 0.5) + 0.5;
+            });
+            obj.userData.lastPosition = obj.position.clone();
+        }
+        return; // Exit here so single block logic doesn't run
+    }
 
-    block.position.z =
-        Math.round(block.position.z + movement.z - 0.5) + 0.5;
+    // 2. SINGLE BLOCK DRAG LOGIC
+    if (transformControl.getMode() === 'translate') {
+        let offsetX = 0.5, offsetY = 0.5, offsetZ = 0.5;
 
+        // Mega blocks need even/odd size checking
+        if (obj.userData.isMegaBlock) {
+            const { width, height, depth } = obj.geometry.parameters;
+            offsetX = (width % 2 === 0) ? 0 : 0.5;
+            offsetY = (height % 2 === 0) ? 0 : 0.5;
+            offsetZ = (depth % 2 === 0) ? 0 : 0.5;
+        }
+
+        obj.position.x = Math.round(obj.position.x - offsetX) + offsetX;
+        obj.position.y = Math.round(obj.position.y - offsetY) + offsetY;
+        obj.position.z = Math.round(obj.position.z - offsetZ) + offsetZ;
+        
+        if (obj.position.y < 0.5) obj.position.y = 0.5;
+
+        if (mode === 'fill' && fillStartPoint) {
+            fillEndPoint.copy(obj.position);
+            updateFillPreviewVolume();
+        }
+    }
 });
-
-    obj.userData.lastPosition = obj.position.clone();
-
-    return;
-}
-            if (obj && transformControl.getMode() === 'translate') {
-                let offsetX = 0.5;
-let offsetY = 0.5;
-let offsetZ = 0.5;
-
-// Mega blocks need EVEN/ODD size checking!
-if (obj.userData.isMegaBlock) {
-
-    const width = obj.geometry.parameters.width;
-    const height = obj.geometry.parameters.height;
-    const depth = obj.geometry.parameters.depth;
-
-    offsetX = (width % 2 === 0) ? 0 : 0.5;
-    offsetY = (height % 2 === 0) ? 0 : 0.5;
-    offsetZ = (depth % 2 === 0) ? 0 : 0.5;
-}
-
-obj.position.x = Math.round(obj.position.x - offsetX) + offsetX;
-obj.position.y = Math.round(obj.position.y - offsetY) + offsetY;
-obj.position.z = Math.round(obj.position.z - offsetZ) + offsetZ;
-                if (obj.position.y < 0.5) obj.position.y = 0.5;
-
-                if (mode === 'fill' && fillStartPoint) {
-                    fillEndPoint.copy(obj.position);
-                    updateFillPreviewVolume();
-                }
-            }
-        });
-
         const btns = {
             build: document.getElementById('buildBtn'),
             move: document.getElementById('moveBtn'),
@@ -890,25 +877,31 @@ blocks.forEach(block => {
                 transformControl.detach();
                 clearFillSequenceData();
             } else {
-// 🧹 REMOVE PLAY MODE OBJECTS (like Roblox Stop button)
+// 🧹 CLEANUP: SECURELY PURGE ALL PLAY-SPAWNED OBJECTS
+const toRemove = [];
 
-for (let i = blocks.length - 1; i >= 0; i--) {
+// Identify all blocks that were created during play
+blocks.forEach(block => {
+    if (block.userData._playSpawned) {
+        toRemove.push(block);
+    }
+});
 
-    const block = blocks[i];
-
-    if (!block.userData._playSpawned) continue;
-
+// Remove them from the scene and arrays
+toRemove.forEach(block => {
     scene.remove(block);
+    
+    // Remove from main list
+    const bIndex = blocks.indexOf(block);
+    if (bIndex !== -1) blocks.splice(bIndex, 1);
+    
+    // Remove from intersection list
+    const oIndex = objectsToIntersect.indexOf(block);
+    if (oIndex !== -1) objectsToIntersect.splice(oIndex, 1);
+});
 
-    blocks.splice(i, 1);
-
-    const objIndex =
-        objectsToIntersect.indexOf(block);
-
-    if (objIndex !== -1)
-        objectsToIntersect.splice(objIndex, 1);
-}
-
+// Clear the tracking array so it doesn't hold onto memory
+playCreatedBlocks = [];
 for (let i = blocks.length - 1; i >= 0; i--) {
     if (blocks[i].userData._playSpawned) {
         blocks.splice(i, 1);
@@ -962,6 +955,10 @@ setMode('build');
 
 };
 btns.paint.onclick = () => setMode('paint');
+// Stop top-left menu clicks from affecting the world
+document.getElementById('topLeftMenu').addEventListener('mousedown', (e) => {
+    e.stopPropagation();
+});
 
         // Dialog Panel Click Hooks
         document.getElementById('cancelBtn').onclick = () => {
@@ -1005,7 +1002,6 @@ megaBlock.userData.isMegaBlock = true;
 scene.add(megaBlock);
 blocks.push(megaBlock);
 objectsToIntersect.push(megaBlock);
-scene.add(megaBlock);
 
 // Update UI
 document.getElementById('count').innerText = blocks.length;
@@ -1015,82 +1011,57 @@ updateWorldList();            }
 
         
 // ==========================
-
 // CTRL + D DUPLICATE
 
-        window.addEventListener('keydown', (e) => {
-
+window.addEventListener('keydown', (e) => {
     if (e.ctrlKey && e.key.toLowerCase() === 'd') {
-
         e.preventDefault();
 
-        // No selected block? do nothing
-        if (
-    selectedBlock &&
-    selectedBlock.userData &&
-    selectedBlock.userData.group
-) {
+        // 1. Group Duplication Logic
+        if (selectedBlock && selectedBlock.userData && selectedBlock.userData.group) {
+            saveWorldState();
+            const newBlocks = [];
+            selectedBlock.userData.group.blocks.forEach(oldBlock => {
+                const copy = new THREE.Mesh(
+                    oldBlock.geometry.clone(),
+                    new THREE.MeshStandardMaterial({
+                        color: oldBlock.material.color.getHex()
+                    })
+                );
+                copy.position.copy(oldBlock.position);
+                copy.position.x += 1;
+                copy.userData.name = oldBlock.userData.name || "";
+                copy.userData.isMegaBlock = oldBlock.userData.isMegaBlock;
+                scene.add(copy);
+                blocks.push(copy);
+                objectsToIntersect.push(copy);
+                newBlocks.push(copy);
+            });
 
-    saveWorldState();
+            const newGroup = {
+                id: groupIdCounter++,
+                name: "Group",
+                blocks: newBlocks
+            };
 
-    const newBlocks = [];
+            groups.push(newGroup);
+            newBlocks.forEach(block => {
+                block.userData.group = newGroup;
+            });
 
-    selectedBlock.userData.group.blocks.forEach(oldBlock => {
+            updateWorldList();
+            return;
+        }
 
-        const copy = new THREE.Mesh(
+        // 2. Single Block Duplication Logic
+        if (!selectedBlock || selectedBlock.userData.isSpawn) return;
 
-            oldBlock.geometry.clone(),
-
-            new THREE.MeshStandardMaterial({
-                color: oldBlock.material.color.getHex()
-            })
-        );
-
-        copy.position.copy(oldBlock.position);
-        copy.position.x += 1;
-
-        copy.userData.name =
-            oldBlock.userData.name || "";
-
-        copy.userData.isMegaBlock =
-            oldBlock.userData.isMegaBlock;
-
-        scene.add(copy);
-
-        blocks.push(copy);
-        objectsToIntersect.push(copy);
-
-        newBlocks.push(copy);
-
-    });
-
-    const newGroup = {
-        id: groupIdCounter++,
-        name: "Group",
-        blocks: newBlocks
-    };
-
-    groups.push(newGroup);
-newBlocks.forEach(block => {
-    block.userData.group = newGroup;
-});
-
-    updateWorldList();
-
-    return;
-}
-if (!selectedBlock) return;
-
-        // NEVER duplicate spawn point!!!
-        if (selectedBlock.userData.isSpawn) return;
-
+        saveWorldState();
         const original = selectedBlock;
-
         let newBlock;
 
         // MEGA BLOCK COPY
         if (original.userData.isMegaBlock) {
-
             newBlock = new THREE.Mesh(
                 new THREE.BoxGeometry(
                     original.geometry.parameters.width,
@@ -1101,88 +1072,33 @@ if (!selectedBlock) return;
                     color: original.material.color.getHex()
                 })
             );
-
             newBlock.userData.isMegaBlock = true;
-
-       sandboxState.forEach(data => {
-
-    data.block.position.copy(data.position);
-
-    data.block.rotation.copy(data.rotation);
-
-    data.block.scale.copy(data.scale);
-
-});
- } else {
-
+        } else {
             // NORMAL BLOCK COPY
             newBlock = new THREE.Mesh(
-                new THREE.BoxGeometry(1,1,1),
+                new THREE.BoxGeometry(1, 1, 1),
                 new THREE.MeshStandardMaterial({
                     color: original.material.color.getHex()
                 })
             );
         }
 
-        // Move duplicated block over
-       saveWorldState();
- newBlock.position.copy(original.position);
+        // Finish the job
+        newBlock.position.copy(original.position);
         newBlock.position.x += 1;
-
-        // Copy name
         newBlock.userData.name = original.userData.name || "";
 
-        // Add to world
-        // SPAWN AT SPAWN PAD
-newBlock.position.copy(spawnPad.position);
-newBlock.position.y += 1;
-scene.add(newBlock);
-if (isPlaying) {
-    newBlock.userData._playSpawned = true;
-}
-if (isPlaying) {
-    playCreatedBlocks.push(newBlock);
-}
-
+        scene.add(newBlock);
         blocks.push(newBlock);
         objectsToIntersect.push(newBlock);
 
-        // Update counter
-document.getElementById('count').innerText = blocks.length;
-
-// Only rebuild if sidebar is visible
-if (
-    document.getElementById('myWorldPanel').style.display !== 'none'
-) {
-    requestAnimationFrame(() => {
+        document.getElementById('count').innerText = blocks.length;
         updateWorldList();
-    });
-}
 
-        // 🦆 AUTO SELECT THE NEW BLOCK
         selectedBlock = newBlock;
-
-        // 🦆 SWITCH TO MOVE MODE
         setMode('move');
-
-        // 🦆 ATTACH MOVE ARROWS
         transformControl.attach(newBlock);
-
-        // 🦆 SHOW PROPERTY PANEL
-        document.getElementById('emptyMessage').style.display = 'none';
-        document.getElementById('propertyEditor').style.display = 'block';
-
-        document.getElementById('nameInput').value =
-            newBlock.userData.name || "";
-
-        document.getElementById('colorInput').value =
-            "#" + newBlock.material.color.getHexString();
-
-        // 🦆 SAVE ORIGINAL COLOR
-        const originalColor = newBlock.material.color.getHex();
-
-        // 🦆 YELLOW HIGHLIGHT
-            }
+    }
 });
         
         document.getElementById('paintColor').addEventListener('input', (e) => {
@@ -2806,5 +2722,6 @@ animate();
     document.getElementById('publishModal').style.display = 'block';
 };
     </script>
+
 </body>
 </html>
