@@ -1,0 +1,2793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Build Engine</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #87ceeb;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+
+        /* UI Toolbar Container */
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.85);
+            padding: 10px 20px;
+            border-radius: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        #ui.minimized {
+            top: -100px;
+        }
+
+        /* Control Buttons */
+        .btn {
+            background: #ffffff;
+            border: 2px solid #ccc;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #333;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            background: #f0f0f0;
+            transform: translateY(-1px);
+        }
+
+        .btn.active {
+            background: #00a8ff;
+            color: white;
+            border-color: #0081c4;
+        }
+
+        #playBtn {
+            background: #2ed573;
+            color: white;
+            border-color: #26af5f;
+        }
+
+        #playBtn:hover {
+            background: #26af5f;
+        }
+
+        /* Block Counter */
+        .counter {
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            margin-left: 10px;
+        }
+
+        /* Play Mode HUD Hints */
+        #play-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            display: none;
+            pointer-events: none;
+            text-align: center;
+            z-index: 100;
+        }
+
+        /* Fill Dialog Prompt Panel */
+        #fill-dialog {
+            position: absolute;
+            bottom: -150px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px 30px;
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            backdrop-filter: blur(5px);
+            transition: bottom 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 101;
+        }
+
+        #fill-dialog.visible {
+            bottom: 0px;
+        }
+
+        #fill-dialog span {
+            font-size: 14px;
+            font-weight: bold;
+            color: #444;
+        }
+
+        .dialog-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        #doneBtn {
+            background: #2ed573;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 15px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(46, 213, 115, 0.2);
+            transition: all 0.2s;
+        }
+
+        #doneBtn:hover {
+            background: #26af5f;
+            transform: translateY(-2px);
+        }
+
+        #cancelBtn {
+            background: #ff4757;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        #cancelBtn:hover {
+            background: #ff2233;
+        }
+#myWorldPanel {
+    position: absolute;
+    top: 80px;
+    right: 20px;
+    width: 150px;
+    height: 300px; /* This makes it shorter! */
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 15px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column; /* This keeps things tidy */
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+#propertiesPanel {
+    position: absolute;
+    top: 390px; /* This sits right below your 300px tall My World panel! */
+    right: 20px;
+    width: 220px;
+    height: 180px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 15px;
+    padding: 10px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+#blockList {
+    flex: 1;
+    overflow-y: auto; /* This lets your list scroll inside the box! */
+}.panel-header { font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #ccc; }
+.block-item { cursor: pointer; padding: 5px; border-bottom: 1px solid #eee; font-size: 12px; }
+.block-item:hover { background: #f0f0f0; }    
+</style>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<div id="myWorldPanel">
+    <div id="blockList"></div>
+</div>
+
+<div id="propertiesPanel">
+    <div class="panel-header">Properties</div>
+
+    <div id="propContent" style="font-size: 12px; color: #555;">
+        <div id="emptyMessage">Click an object to see stats!</div>
+
+        <div id="propertyEditor" style="display: none;">
+            Name:
+            <input type="text" id="nameInput" style="width: 140px;">
+<br><br>
+
+BlockColor:
+<input type="color" id="colorInput" value="#ffffff">
+        </div>
+    </div>
+</div><body>
+
+   <div style="position: absolute; top: 20px; left: 20px; background: rgba(255, 255, 255, 0.85); padding: 10px 20px; border-radius: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); backdrop-filter: blur(5px); z-index: 100;">
+    <a href="hub.html" style="text-decoration: none; color: #333; font-weight: bold;">🏠 Hub</a>
+</div>
+    <div id="ui">        
+        
+        <button id="buildBtn" class="btn active">Build</button>
+        <button id="moveBtn" class="btn">Move</button>
+
+        <button id="fillBtn" class="btn">Fill</button>
+        <button id="deleteBtn" class="btn">Delete</button>
+<button id="paintBtn" class="btn">🪣</button>
+<input type="color" id="paintColor" value="#ff0000" style="width:40px; height:40px; border:none; background:none; cursor:pointer;">
+        <button id="playBtn" class="btn">Play Test</button>
+        <div class="counter">Blocks: <span id="count">1</span></div>
+    </div>
+
+    <div id="fill-dialog">
+        <span>Use the arrows or click to resize the preview bounds!</span>
+        <div class="dialog-buttons">
+            <button id="doneBtn">Done!</button>
+            <button id="cancelBtn">Cancel</button>
+        </div>
+    </div>
+
+    <div id="scriptEditor" style="
+position:absolute;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:#1e1e1e;
+display:none;
+z-index:500;
+pointer-events:auto;
+">
+
+<div style="
+height:40px;
+background:#2b2b2b;
+color:white;
+display:flex;
+align-items:center;
+justify-content:space-between;
+padding-left:15px;
+padding-right:15px;
+font-weight:bold;
+">
+
+<div style="display:flex;align-items:center;gap:10px;">
+
+<span>Script Editor</span>
+
+<input
+id="scriptNameInput"
+type="text"
+placeholder="Script Name"
+style="
+height:24px;
+border:none;
+border-radius:4px;
+padding-left:5px;
+"
+>
+
+</div>
+
+<button id="closeScriptEditor" style="
+background:#ff4757;
+border:none;
+color:white;
+width:30px;
+height:30px;
+cursor:pointer;
+border-radius:5px;
+font-weight:bold;
+">
+X
+</button>
+
+</div>
+
+<div style="
+display:flex;
+height:calc(100% - 40px);
+">
+
+
+<textarea id="scriptText" style="
+flex:1;
+background:#1e1e1e;
+color:white;
+border:none;
+outline:none;
+resize:none;
+padding:10px;
+font-family:monospace;
+font-size:14px;
+"></textarea>
+
+</div>
+
+</div>
+<div id="play-hint">
+        <strong>Play Mode Active</strong><br>
+        WASD to Move | Space to Jump | Mouse Scroll to Zoom<br>
+        Press <strong>P</strong> or Click 'Stop Test' to return to editor.
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { TransformControls } from 'three/addons/controls/TransformControls.js';
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87ceeb);
+        scene.fog = new THREE.Fog(0x87ceeb, 20, 100);
+        
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.body.appendChild(renderer.domElement);
+
+        const light = new THREE.DirectionalLight(0xffffff, 1.2);
+        light.position.set(10, 20, 10);
+        scene.add(light, new THREE.AmbientLight(0xffffff, 0.6));
+
+        // GRASS TEXTURE
+        const canvas = document.createElement('canvas');
+        canvas.width = 128; canvas.height = 128;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#2e7d32'; ctx.fillRect(0,0,128,128);
+        for(let i=0; i<500; i++) {
+            ctx.fillStyle = Math.random() > 0.5 ? '#1b5e20' : '#388e3c';
+            ctx.fillRect(Math.random()*128, Math.random()*128, 2, 2);
+        }
+        ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 4; ctx.strokeRect(0,0,128,128);
+        const grassTex = new THREE.CanvasTexture(canvas);
+        grassTex.wrapS = grassTex.wrapT = THREE.RepeatWrapping;
+        grassTex.repeat.set(100, 100);
+
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshStandardMaterial({ map: grassTex }));
+        floor.rotation.x = -Math.PI / 2;
+        scene.add(floor);
+
+        
+        // BUBBLES
+        const bubbles = [];
+        const bubbleGeo = new THREE.SphereGeometry(0.5, 12, 12);
+        const bubbleMat = new THREE.MeshPhongMaterial({ color: 0xffffff, transparent: true, opacity: 0.3 });
+        for(let i=0; i<60; i++) {
+            const b = new THREE.Mesh(bubbleGeo, bubbleMat);
+            b.position.set((Math.random()-0.5)*100, Math.random()*20, (Math.random()-0.5)*100);
+            b.scale.setScalar(Math.random() * 0.4 + 0.1);
+            b.userData = { speed: Math.random() * 0.05 + 0.02, offset: Math.random() * 10 };
+            b.userData.originalPosition =
+    b.position.clone();
+scene.add(b);
+            bubbles.push(b);
+        }
+
+        // SPAWN POINT TEXTURE
+        const spawnCanvas = document.createElement('canvas');
+        spawnCanvas.width = 128; spawnCanvas.height = 128;
+        const sCtx = spawnCanvas.getContext('2d');
+        sCtx.fillStyle = '#f1c40f'; sCtx.fillRect(0,0,128,128);
+        sCtx.strokeStyle = '#d35400'; sCtx.lineWidth = 10; sCtx.strokeRect(0,0,128,128);
+        sCtx.fillStyle = '#fff'; sCtx.beginPath(); sCtx.arc(64,64,30,0,Math.PI*2); sCtx.fill();
+        sCtx.strokeStyle = '#d35400'; sCtx.lineWidth = 5; sCtx.beginPath(); sCtx.arc(64,64,40,0,Math.PI*2); sCtx.stroke();
+        const spawnTex = new THREE.CanvasTexture(spawnCanvas);
+
+        const spawnPad = new THREE.Mesh(
+            new THREE.BoxGeometry(1, 1, 1),
+            new THREE.MeshStandardMaterial({ map: spawnTex })
+        );
+        spawnPad.position.set(0.5, 0.5, 0.5);
+        spawnPad.userData.isSpawn = true;
+        scene.add(spawnPad);
+
+        let mode = 'build', isPlaying = false;
+let paintColor = "#ff0000";
+// --- THE NAME BRAIN ---
+let selectedBlock = null;
+const undoStack = [];
+const redoStack = [];
+let selectedBlocks = [];
+let groups = [];
+let scripts = [];
+let scriptEditorOpen = false;
+let currentScript = null;
+const worldObjects = {};
+const runningTasks = [];
+const sandboxState = [];
+let groupIdCounter = 0;
+
+document.getElementById('nameInput').oninput = (e) => {
+    if (selectedBlock) {
+        selectedBlock.userData.name = e.target.value;
+
+        updateWorldList(); // refresh My World instantly
+    }
+};document.getElementById('colorInput').oninput = (e) => {
+    if (selectedBlock) {
+
+        // Set REAL accurate color
+        selectedBlock.material.color = new THREE.Color(e.target.value);
+
+        // Force material update
+        selectedBlock.material.needsUpdate = true;
+    }
+};        const blocks = [spawnPad];
+        updateWorldList(); 
+        const objectsToIntersect = [floor, spawnPad];
+        const raycaster = new THREE.Raycaster(), mouse = new THREE.Vector2();
+let isBoxSelecting = false;
+let selectStartX = 0;
+let selectStartY = 0;
+        let rotX = 0, rotY = 0, isRightDragging = false;
+        let velocityY = 0, canJump = false;
+
+        // Saved Editor View States
+        const savedEditorPos = new THREE.Vector3();
+        let savedEditorRotX = 0;
+        let savedEditorRotY = 0;
+let editorState = [];
+
+        // Player Setup
+        const playerHeight = 1.9; 
+        const playerRadius = 0.45;
+        
+        const playerSpeed16 = 0.030; 
+        const robloxGravity = 0.0020; 
+        const robloxJumpPower = 0.09; 
+        
+        let playerTarget = new THREE.Vector3(); 
+        let cameraZoomDistance = 6;
+        let isFirstPerson = false;
+
+        // Visible Player Character Model 
+        const playerGroup = new THREE.Group();
+
+        // --- PLUSHIE FABRIC MATERIALS ---
+        const fabricConfig = { roughness: 0.9, metalness: 0.0 };
+        const skinMat = new THREE.MeshStandardMaterial({ color: 0xffdbac, ...fabricConfig });
+        const torsoMat = new THREE.MeshStandardMaterial({ color: 0x00a8ff, ...fabricConfig }); 
+        const pantsMat = new THREE.MeshStandardMaterial({ color: 0x555555, ...fabricConfig }); 
+
+        // Round Plushie Torso
+        const torsoGeo = new THREE.SphereGeometry(0.38, 16, 16);
+        torsoGeo.scale(1, 1.1, 0.8); 
+        const torso = new THREE.Mesh(torsoGeo, torsoMat);
+        torso.position.y = 1.1;
+        
+        // Round Head
+        const headMesh = new THREE.Mesh(new THREE.SphereGeometry(0.32, 16, 16), skinMat);
+        headMesh.position.y = 1.62;
+
+        function createPlushieLimb(radius, length, material) {
+            const jointGroup = new THREE.Group();
+            const limbGeo = new THREE.CapsuleGeometry(radius, length, 4, 12);
+            const limbMesh = new THREE.Mesh(limbGeo, material);
+            limbMesh.position.y = -(length / 2 + radius); 
+            jointGroup.add(limbMesh);
+            return jointGroup;
+        }
+
+        // Stubby Limbs
+        const leftArm = createPlushieLimb(0.11, 0.35, skinMat);
+        leftArm.position.set(0.42, 1.35, 0);
+        
+        const rightArm = createPlushieLimb(0.11, 0.35, skinMat);
+        rightArm.position.set(-0.42, 1.35, 0);
+
+        const leftLeg = createPlushieLimb(0.13, 0.32, pantsMat);
+        leftLeg.position.set(0.18, 0.75, 0);
+        
+        const rightLeg = createPlushieLimb(0.13, 0.32, pantsMat);
+        rightLeg.position.set(-0.18, 0.75, 0);
+
+        playerGroup.add(torso, headMesh, leftArm, rightArm, leftLeg, rightLeg);
+        scene.add(playerGroup);
+       console.log("Restoring", sandboxState.length, "blocks");
+sandboxState.forEach(data => {
+
+    data.block.position.copy(data.position);
+
+    data.block.rotation.copy(data.rotation);
+
+    data.block.scale.copy(data.scale);
+
+});
+ 
+
+editorState = [];
+playerGroup.visible = false;
+sandboxState.forEach(data => {
+
+    data.block.position.copy(data.position);
+
+    data.block.rotation.copy(data.rotation);
+
+    data.block.scale.copy(data.scale);
+
+});
+document.getElementById('count').innerText = blocks.length;
+
+updateWorldList();
+
+editorState = [];
+
+
+        const ghostBlock = new THREE.Mesh(
+            new THREE.BoxGeometry(1.002, 1.002, 1.002),
+            new THREE.MeshStandardMaterial({ color: 0x00a8ff, transparent: true, opacity: 0.4 })
+        );
+        scene.add(ghostBlock);
+
+        // --- GRID FILL SYSTEM STORAGE & PREVIEW PROPS ---
+        let fillStartPoint = null;
+        let fillEndPoint = null;
+
+        // Visual indicator block for the editable dynamic end point link
+        const fillEndControlBlock = new THREE.Mesh(
+            new THREE.BoxGeometry(1.01, 1.01, 1.01),
+            new THREE.MeshStandardMaterial({ color: 0x2ed573, transparent: true, opacity: 0.7 })
+        );
+        scene.add(fillEndControlBlock);
+        fillEndControlBlock.visible = false;
+
+        const fillAnchorVisual = new THREE.Mesh(
+            new THREE.BoxGeometry(1.02, 1.02, 1.02),
+            new THREE.MeshStandardMaterial({ color: 0x00a8ff, transparent: true, opacity: 0.6, wireframe: false })
+        );
+        scene.add(fillAnchorVisual);
+        fillAnchorVisual.visible = false;
+
+        // Big transparent layout zone showing what blocks are about to be populated
+        const fillRegionPreviewMesh = new THREE.Mesh(
+            new THREE.BoxGeometry(1, 1, 1),
+            new THREE.MeshStandardMaterial({ color: 0x2ed573, transparent: true, opacity: 0.35, wireframe: false })
+        );
+        scene.add(fillRegionPreviewMesh);
+        fillRegionPreviewMesh.visible = false;
+
+        // Shared transform engine context
+        const transformControl = new TransformControls(camera, renderer.domElement);
+        transformControl.setTranslationSnap(1);
+        scene.add(transformControl);
+
+        // Custom update function logic to handle box sizing transformations on drag hooks
+        let wasDraggingTransform = false;
+transformControl.addEventListener('mouseDown', () => {
+
+    saveWorldState();
+
+});
+
+transformControl.addEventListener('objectChange', () => {
+            const obj = transformControl.object;
+if (obj && obj.userData.selectedBlocks) {
+
+    // SNAP THE PIVOT TO GRID
+    obj.position.x = Math.round(obj.position.x - 0.5) + 0.5;
+    obj.position.y = Math.round(obj.position.y - 0.5) + 0.5;
+    obj.position.z = Math.round(obj.position.z - 0.5) + 0.5;
+
+    const movement = new THREE.Vector3();
+
+    movement.subVectors(
+        obj.position,
+        obj.userData.lastPosition || obj.position.clone()
+    );
+if (movement.lengthSq() === 0) return;
+
+   obj.userData.selectedBlocks.forEach(block => {
+
+    block.position.x =
+        Math.round(block.position.x + movement.x - 0.5) + 0.5;
+
+    block.position.y =
+        Math.max(
+            0.5,
+            Math.round(block.position.y + movement.y - 0.5) + 0.5
+        );
+
+    block.position.z =
+        Math.round(block.position.z + movement.z - 0.5) + 0.5;
+
+});
+
+    obj.userData.lastPosition = obj.position.clone();
+
+    return;
+}
+            if (obj && transformControl.getMode() === 'translate') {
+                let offsetX = 0.5;
+let offsetY = 0.5;
+let offsetZ = 0.5;
+
+// Mega blocks need EVEN/ODD size checking!
+if (obj.userData.isMegaBlock) {
+
+    const width = obj.geometry.parameters.width;
+    const height = obj.geometry.parameters.height;
+    const depth = obj.geometry.parameters.depth;
+
+    offsetX = (width % 2 === 0) ? 0 : 0.5;
+    offsetY = (height % 2 === 0) ? 0 : 0.5;
+    offsetZ = (depth % 2 === 0) ? 0 : 0.5;
+}
+
+obj.position.x = Math.round(obj.position.x - offsetX) + offsetX;
+obj.position.y = Math.round(obj.position.y - offsetY) + offsetY;
+obj.position.z = Math.round(obj.position.z - offsetZ) + offsetZ;
+                if (obj.position.y < 0.5) obj.position.y = 0.5;
+
+                if (mode === 'fill' && fillStartPoint) {
+                    fillEndPoint.copy(obj.position);
+                    updateFillPreviewVolume();
+                }
+            }
+        });
+
+        const btns = {
+            build: document.getElementById('buildBtn'),
+            move: document.getElementById('moveBtn'),
+
+            fill: document.getElementById('fillBtn'),
+            delete: document.getElementById('deleteBtn'),
+paint: document.getElementById('paintBtn'),
+            play: document.getElementById('playBtn')
+        };
+
+        function setMode(newMode) {
+            mode = newMode;
+            Object.values(btns).forEach(b => b.classList.remove('active'));
+            btns[mode].classList.add('active');
+            transformControl.detach();
+            
+            // Wipe running systems cleanly out on mode swaps
+            clearFillSequenceData();
+
+            ghostBlock.visible = !isPlaying && (mode === 'build' || mode === 'delete' || mode === 'fill');
+            
+            if (mode === 'move') {
+                transformControl.setMode('translate');
+                transformControl.showX = true;
+                transformControl.showY = true;
+                transformControl.showZ = true;
+            }
+
+        }
+
+        function clearFillSequenceData() {
+            fillStartPoint = null;
+            fillEndPoint = null;
+            fillAnchorVisual.visible = false;
+            fillEndControlBlock.visible = false;
+            fillRegionPreviewMesh.visible = false;
+            document.getElementById('fill-dialog').classList.remove('visible');
+            if(mode === 'fill') transformControl.detach();
+        }
+
+        // Dynamically scales and shifts the box preview geometry based on corners
+        function updateFillPreviewVolume() {
+            if(!fillStartPoint || !fillEndPoint) return;
+
+            const minX = Math.min(fillStartPoint.x, fillEndPoint.x);
+            const maxX = Math.max(fillStartPoint.x, fillEndPoint.x);
+            const minY = Math.max(0.5, Math.min(fillStartPoint.y, fillEndPoint.y));
+            const maxY = Math.max(fillStartPoint.y, fillEndPoint.y);
+            const minZ = Math.min(fillStartPoint.z, fillEndPoint.z);
+            const maxZ = Math.max(fillStartPoint.z, fillEndPoint.z);
+
+            const sizeX = (maxX - minX) + 1;
+            const sizeY = (maxY - minY) + 1;
+            const sizeZ = (maxZ - minZ) + 1;
+
+            fillRegionPreviewMesh.scale.set(sizeX, sizeY, sizeZ);
+            fillRegionPreviewMesh.position.set(
+                minX + (sizeX / 2) - 0.5,
+                minY + (sizeY / 2) - 0.5,
+                minZ + (sizeZ / 2) - 0.5
+            );
+            fillRegionPreviewMesh.visible = true;
+        }
+
+        function respawn() {
+            playerTarget.set(spawnPad.position.x, spawnPad.position.y + 0.5 + playerHeight, spawnPad.position.z);
+            velocityY = 0;
+            updateCameraAndPlayerTransform();
+        }
+
+        function updatePointerLock() {
+            if (isPlaying && isFirstPerson) {
+                if (document.pointerLockElement !== renderer.domElement) {
+                    renderer.domElement.requestPointerLock();
+                }
+            } else {
+                if (document.pointerLockElement === renderer.domElement) {
+                    document.exitPointerLock();
+                }
+            }
+        }
+
+       
+ btns.play.onclick = (e) => {
+            e.target.blur();
+            isPlaying = !isPlaying;
+if (!isPlaying) {
+
+    playCreatedBlocks.forEach(block => {
+// Restore original MyWorld blocks
+
+sandboxState.forEach(data => {
+
+    data.block.position.copy(data.position);
+
+    data.block.rotation.copy(data.rotation);
+
+    data.block.scale.copy(data.scale);
+
+});
+
+        scene.remove(block);
+
+        const bIndex = blocks.indexOf(block);
+        if (bIndex !== -1)
+            blocks.splice(bIndex, 1);
+
+        const oIndex = objectsToIntersect.indexOf(block);
+        if (oIndex !== -1)
+            objectsToIntersect.splice(oIndex, 1);
+
+    });
+
+    playCreatedBlocks = [];
+
+    runningTasks.length = 0;
+updateWorldList();
+}
+            document.getElementById('ui').classList.toggle('minimized', isPlaying);
+            
+            // ADD THIS LINE BELOW:
+            document.getElementById('myWorldPanel').style.display = isPlaying ? 'none' : 'flex';
+
+// Add this line to hide the properties panel too!
+document.getElementById('propertiesPanel').style.display = isPlaying ? 'none' : 'flex';
+            
+            document.getElementById('play-hint').style.display = isPlaying ? 'block' : 'none';
+            // ... (rest of the code)
+            document.getElementById('play-hint').style.display = isPlaying ? 'block' : 'none';
+            btns.play.innerText = isPlaying ? "Stop Test" : "Play Test";
+            ghostBlock.visible = false; 
+            playerGroup.visible = isPlaying;
+            
+            if (isPlaying) { 
+                savedEditorPos.copy(camera.position);
+                savedEditorRotX = rotX;
+                savedEditorRotY = rotY;
+
+editorState = [];
+
+blocks.forEach(block => {
+
+    if (block.userData.isSpawn) return;
+
+    editorState.push({
+    isSpawn: block.userData.isSpawn || false,
+    isMegaBlock: block.userData.isMegaBlock || false,
+
+    position: block.position.clone(),
+    rotation: block.rotation.clone(),
+
+    color: block.material.color.getHex(),
+
+    width: block.userData.isMegaBlock
+        ? block.geometry.parameters.width
+        : 1,
+
+    height: block.userData.isMegaBlock
+        ? block.geometry.parameters.height
+        : 1,
+
+    depth: block.userData.isMegaBlock
+        ? block.geometry.parameters.depth
+        : 1,
+
+    name: block.userData.name || ""
+});
+
+});
+sandboxState.length = 0;
+
+blocks.forEach(block => {
+
+    sandboxState.push({
+
+        block: block,
+
+        position: block.position.clone(),
+
+        rotation: block.rotation.clone(),
+
+        scale: block.scale.clone()
+
+    });
+
+});
+
+                sandboxState.length = 0;
+blocks.forEach(block => {
+    sandboxState.push({
+        block: block,
+        position: block.position.clone(),
+        rotation: block.rotation.clone(),
+        scale: block.scale.clone()
+    });
+});
+cameraZoomDistance = 6; 
+                isFirstPerson = false;
+
+                respawn();
+
+sandboxState.length = 0;
+console.log("Saving", blocks.length, "blocks");
+
+blocks.forEach(block => {
+
+    sandboxState.push({
+
+        block: block,
+
+        position: block.position.clone(),
+
+        rotation: block.rotation.clone(),
+
+        scale: block.scale.clone()
+
+    });
+
+});scripts.forEach(script => {
+
+    if (script.code) {
+
+        executeWorldScript(script.code);
+
+    }
+
+});
+                transformControl.detach();
+                clearFillSequenceData();
+            } else {
+// 🧹 REMOVE PLAY MODE OBJECTS (like Roblox Stop button)
+
+for (let i = blocks.length - 1; i >= 0; i--) {
+
+    const block = blocks[i];
+
+    if (!block.userData._playSpawned) continue;
+
+    scene.remove(block);
+
+    blocks.splice(i, 1);
+
+    const objIndex =
+        objectsToIntersect.indexOf(block);
+
+    if (objIndex !== -1)
+        objectsToIntersect.splice(objIndex, 1);
+}
+
+for (let i = blocks.length - 1; i >= 0; i--) {
+    if (blocks[i].userData._playSpawned) {
+        blocks.splice(i, 1);
+    }
+}
+
+for (let i = objectsToIntersect.length - 1; i >= 0; i--) {
+    if (objectsToIntersect[i].userData._playSpawned) {
+        objectsToIntersect.splice(i, 1);
+    }
+}
+                if (document.pointerLockElement === renderer.domElement) {
+                    document.exitPointerLock();
+                }
+                
+
+// SHOW REAL BLOCKS AGAIN
+
+sandboxState.forEach(data => {
+    data.block.position.copy(data.position);
+    data.block.rotation.copy(data.rotation);
+    data.block.scale.copy(data.scale);
+});
+blocks.forEach(block => {
+
+    block.visible = true;
+
+});
+playerGroup.visible = false;
+                
+             mouse.x = 0;
+mouse.y = 0;  
+camera.position.copy(savedEditorPos);
+rotX = savedEditorRotX;
+rotY = savedEditorRotY;
+camera.quaternion.setFromEuler(new THREE.Euler(rotX, rotY, 0, 'YXZ'));
+
+camera.updateMatrixWorld();
+
+setMode('build');
+            }
+        };
+
+        btns.build.onclick = () => setMode('build');
+        btns.move.onclick = () => setMode('move');
+
+        btns.fill.onclick = () => setMode('fill');
+        btns.delete.onclick = () => {
+
+    setMode('delete');
+
+};
+btns.paint.onclick = () => setMode('paint');
+
+        // Dialog Panel Click Hooks
+        document.getElementById('cancelBtn').onclick = () => {
+            clearFillSequenceData();
+        };
+
+        document.getElementById('doneBtn').onclick = () => {
+            if (fillStartPoint && fillEndPoint) {
+                const minX = Math.min(fillStartPoint.x, fillEndPoint.x);
+                const maxX = Math.max(fillStartPoint.x, fillEndPoint.x);
+                const minY = Math.max(0.5, Math.min(fillStartPoint.y, fillEndPoint.y));
+                const maxY = Math.max(fillStartPoint.y, fillEndPoint.y);
+                const minZ = Math.min(fillStartPoint.z, fillEndPoint.z);
+                const maxZ = Math.max(fillStartPoint.z, fillEndPoint.z);
+
+                const sharedColor = Math.random() * 0xffffff;
+
+// Size of the giant block
+const sizeX = (maxX - minX) + 1;
+const sizeY = (maxY - minY) + 1;
+const sizeZ = (maxZ - minZ) + 1;
+
+// Center position of giant block
+const centerX = minX + (sizeX / 2) - 0.5;
+const centerY = minY + (sizeY / 2) - 0.5;
+const centerZ = minZ + (sizeZ / 2) - 0.5;
+
+// Create ONE mega block
+const megaBlock = new THREE.Mesh(
+    new THREE.BoxGeometry(sizeX, sizeY, sizeZ),
+    new THREE.MeshStandardMaterial({ color: sharedColor })
+);
+
+// Position it correctly
+megaBlock.position.set(centerX, centerY, centerZ);
+
+// Save size data
+megaBlock.userData.isMegaBlock = true;
+
+// Add to world
+scene.add(megaBlock);
+blocks.push(megaBlock);
+objectsToIntersect.push(megaBlock);
+scene.add(megaBlock);
+
+// Update UI
+document.getElementById('count').innerText = blocks.length;
+updateWorldList();            }
+            clearFillSequenceData();
+        };
+
+        
+// ==========================
+
+// CTRL + D DUPLICATE
+window.addEventListener('keydown', (e) => {
+
+    if (e.ctrlKey && e.key.toLowerCase() === 'd') {
+
+        e.preventDefault();
+
+        // No selected block? do nothing
+        if (
+    selectedBlock &&
+    selectedBlock.userData &&
+    selectedBlock.userData.group
+) {
+
+    saveWorldState();
+
+    const newBlocks = [];
+
+    selectedBlock.userData.group.blocks.forEach(oldBlock => {
+
+        const copy = new THREE.Mesh(
+
+            oldBlock.geometry.clone(),
+
+            new THREE.MeshStandardMaterial({
+                color: oldBlock.material.color.getHex()
+            })
+        );
+
+        copy.position.copy(oldBlock.position);
+        copy.position.x += 1;
+
+        copy.userData.name =
+            oldBlock.userData.name || "";
+
+        copy.userData.isMegaBlock =
+            oldBlock.userData.isMegaBlock;
+
+        scene.add(copy);
+
+        blocks.push(copy);
+        objectsToIntersect.push(copy);
+
+        newBlocks.push(copy);
+
+    });
+
+    const newGroup = {
+        id: groupIdCounter++,
+        name: "Group",
+        blocks: newBlocks
+    };
+
+    groups.push(newGroup);
+newBlocks.forEach(block => {
+    block.userData.group = newGroup;
+});
+
+    updateWorldList();
+
+    return;
+}
+if (!selectedBlock) return;
+
+        // NEVER duplicate spawn point!!!
+        if (selectedBlock.userData.isSpawn) return;
+
+        const original = selectedBlock;
+
+        let newBlock;
+
+        // MEGA BLOCK COPY
+        if (original.userData.isMegaBlock) {
+
+            newBlock = new THREE.Mesh(
+                new THREE.BoxGeometry(
+                    original.geometry.parameters.width,
+                    original.geometry.parameters.height,
+                    original.geometry.parameters.depth
+                ),
+                new THREE.MeshStandardMaterial({
+                    color: original.material.color.getHex()
+                })
+            );
+
+            newBlock.userData.isMegaBlock = true;
+
+       sandboxState.forEach(data => {
+
+    data.block.position.copy(data.position);
+
+    data.block.rotation.copy(data.rotation);
+
+    data.block.scale.copy(data.scale);
+
+});
+ } else {
+
+            // NORMAL BLOCK COPY
+            newBlock = new THREE.Mesh(
+                new THREE.BoxGeometry(1,1,1),
+                new THREE.MeshStandardMaterial({
+                    color: original.material.color.getHex()
+                })
+            );
+        }
+
+        // Move duplicated block over
+       saveWorldState();
+ newBlock.position.copy(original.position);
+        newBlock.position.x += 1;
+
+        // Copy name
+        newBlock.userData.name = original.userData.name || "";
+
+        // Add to world
+        // SPAWN AT SPAWN PAD
+newBlock.position.copy(spawnPad.position);
+newBlock.position.y += 1;
+scene.add(newBlock);
+if (isPlaying) {
+    newBlock.userData._playSpawned = true;
+}
+if (isPlaying) {
+    playCreatedBlocks.push(newBlock);
+}
+
+        blocks.push(newBlock);
+        objectsToIntersect.push(newBlock);
+
+        // Update counter
+document.getElementById('count').innerText = blocks.length;
+
+// Only rebuild if sidebar is visible
+if (
+    document.getElementById('myWorldPanel').style.display !== 'none'
+) {
+    requestAnimationFrame(() => {
+        updateWorldList();
+    });
+}
+
+        // 🦆 AUTO SELECT THE NEW BLOCK
+        selectedBlock = newBlock;
+
+        // 🦆 SWITCH TO MOVE MODE
+        setMode('move');
+
+        // 🦆 ATTACH MOVE ARROWS
+        transformControl.attach(newBlock);
+
+        // 🦆 SHOW PROPERTY PANEL
+        document.getElementById('emptyMessage').style.display = 'none';
+        document.getElementById('propertyEditor').style.display = 'block';
+
+        document.getElementById('nameInput').value =
+            newBlock.userData.name || "";
+
+        document.getElementById('colorInput').value =
+            "#" + newBlock.material.color.getHexString();
+
+        // 🦆 SAVE ORIGINAL COLOR
+        const originalColor = newBlock.material.color.getHex();
+
+        // 🦆 YELLOW HIGHLIGHT
+            }
+});
+        
+        document.getElementById('paintColor').addEventListener('input', (e) => {
+    paintColor = e.target.value;
+});
+window.addEventListener('mousemove', (e) => {
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            
+            const usingPointerLock = (document.pointerLockElement === renderer.domElement);
+            if (usingPointerLock || isRightDragging) {
+                rotY -= e.movementX * 0.003;
+                rotX -= e.movementY * 0.003;
+                rotX = Math.max(-Math.PI/2 + 0.1, Math.min(Math.PI/2 - 0.1, rotX));
+            }
+        });
+if (isBoxSelecting && mode === "move") {
+
+    const x = Math.min(selectStartX, e.clientX);
+    const y = Math.min(selectStartY, e.clientY);
+
+    const width = Math.abs(e.clientX - selectStartX);
+    const height = Math.abs(e.clientY - selectStartY);
+
+    selectionBox.style.left = x + "px";
+    selectionBox.style.top = y + "px";
+    selectionBox.style.width = width + "px";
+    selectionBox.style.height = height + "px";
+}
+
+        window.addEventListener('wheel', (e) => {
+            if (!isPlaying) return;
+            cameraZoomDistance += e.deltaY * 0.01;
+            cameraZoomDistance = Math.max(0, Math.min(12, cameraZoomDistance));
+            
+            const freshFirstPerson = (cameraZoomDistance <= 0.05);
+            if (freshFirstPerson !== isFirstPerson) {
+                isFirstPerson = freshFirstPerson;
+                if (isFirstPerson) cameraZoomDistance = 0;
+                updatePointerLock();
+            }
+        }, { passive: true });
+
+        window.addEventListener('mousedown', (e) => {
+            if (e.button === 2) isRightDragging = true;
+            
+            if (isPlaying && isFirstPerson && document.pointerLockElement !== renderer.domElement) {
+                renderer.domElement.requestPointerLock();
+                return;
+            }
+
+            
+            
+            if (e.button === 0 && !transformControl.dragging) {
+if (
+    !isPlaying &&
+    mode === 'move' &&
+    !e.target.closest('#ui') &&
+    !e.target.closest('#fill-dialog') &&
+    !e.target.closest('#myWorldPanel') &&
+    !e.target.closest('#propertiesPanel')
+) {
+
+    isBoxSelecting = true;
+    selectStartX = e.clientX;
+    selectStartY = e.clientY;
+
+    selectionBox.style.left = selectStartX + "px";
+    selectionBox.style.top = selectStartY + "px";
+    selectionBox.style.width = "0px";
+    selectionBox.style.height = "0px";
+    selectionBox.style.display = "block";
+}
+
+// 🦆 If right click menu is open, do NOTHING
+
+
+// 🦆 Ignore accidental click after menu closes
+
+// Duck-friendly guard: If we are playing, just stop and do nothing!
+// Ignore everything while script editor is open
+if (scriptEditorOpen) return;
+if (isPlaying) return;
+                // The security guard: if you click the UI, don't do anything else!
+                if (
+    e.target.closest('#ui') ||
+    e.target.closest('#fill-dialog') ||
+    e.target.closest('#myWorldPanel') ||
+    e.target.closest('#propertiesPanel')
+) return;
+
+                raycaster.setFromCamera(mouse, camera);
+                if (mode === 'build') {
+                    const hits = raycaster.intersectObjects(objectsToIntersect);
+                    if (hits.length > 0) {
+                        if (ghostBlock.position.y >= 0.5 && ghostBlock.visible) {
+                            const b = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff }));
+                            b.position.copy(ghostBlock.position);
+
+saveWorldState();                            
+scene.add(b); blocks.push(b); objectsToIntersect.push(b);
+                            document.getElementById('count').innerText = blocks.length;
+                            updateWorldList();
+                        }
+                    }
+                } else if (mode === 'fill') {
+                    const hits = raycaster.intersectObjects(objectsToIntersect);
+                    if (hits.length > 0 && ghostBlock.visible) {
+                        const targetPos = ghostBlock.position.clone();
+                        
+                        if (!fillStartPoint) {
+                            // First Point chosen (Anchor initialization)
+                            fillStartPoint = targetPos;
+                            fillEndPoint = targetPos.clone();
+
+                            fillAnchorVisual.position.copy(fillStartPoint);
+                            fillAnchorVisual.visible = true;
+
+                            fillEndControlBlock.position.copy(fillEndPoint);
+                            fillEndControlBlock.visible = true;
+
+                            // Attach arrows immediately onto the dynamic end block so users can pull it instantly into space
+                            transformControl.setMode('translate');
+                            transformControl.attach(fillEndControlBlock);
+
+                            updateFillPreviewVolume();
+                            document.getElementById('fill-dialog').classList.add('visible');
+                        } else {
+                            // Second Point update via regular environment surface clicks instead of arrow manipulation
+                            fillEndPoint.copy(targetPos);
+                            fillEndControlBlock.position.copy(fillEndPoint);
+                            updateFillPreviewVolume();
+                        }
+                    }
+                } else if (mode === 'paint') {
+
+    const hits = raycaster.intersectObjects(blocks);
+
+    if (hits.length > 0) {
+
+        const target = hits[0].object;
+
+        // Don't paint spawn
+        if (target.userData.isSpawn) return;
+
+        target.material.color.set(paintColor);
+        target.material.needsUpdate = true;
+
+        // Save the color
+        target.userData.savedColor = paintColor;
+    }
+} else if (mode === 'delete') {
+
+    const hits = raycaster.intersectObjects(blocks);
+
+    if (hits.length > 0) {
+
+        const target = hits[0].object;
+if (!target.isMesh) return;
+
+        // Don't delete spawn
+        if (target.userData.isSpawn) return;
+
+        // Remove from scene
+saveWorldState();        
+// Remove block from group if it belongs to one
+if (target.userData.group) {
+
+    const group = target.userData.group;
+
+    group.blocks = group.blocks.filter(
+        b => b !== target
+    );
+
+    // Delete empty groups
+    if (group.blocks.length === 0) {
+
+        groups = groups.filter(
+            g => g !== group
+        );
+    }
+}
+scene.remove(target);
+
+        // Remove from arrays
+        blocks.splice(blocks.indexOf(target), 1);
+        objectsToIntersect.splice(objectsToIntersect.indexOf(target), 1);
+
+        // Remove move arrows if deleting selected block
+        if (selectedBlock === target) {
+            selectedBlock = null;
+selectedBlocks = [];
+            transformControl.detach();
+
+            document.getElementById('emptyMessage').style.display = 'block';
+            document.getElementById('propertyEditor').style.display = 'none';
+        }
+
+        // Update counter
+        document.getElementById('count').innerText = blocks.length;
+
+        // 🦆 THE IMPORTANT MAGIC
+        updateWorldList();
+    }               } else if (mode === 'move') {
+    const hits = raycaster.intersectObjects(blocks);
+    if (hits.length > 0) {
+        // This grabs the block you clicked
+        selectedBlock = hits[0].object;
+
+        document.getElementById('emptyMessage').style.display = 'none';
+        document.getElementById('propertyEditor').style.display = 'block';
+
+        document.getElementById('nameInput').value = selectedBlock.userData.name || "";
+document.getElementById('colorInput').value =
+    "#" + selectedBlock.material.color.getHexString();
+
+        if (mode === 'move') {
+    transformControl.setMode('translate');
+}
+
+
+
+transformControl.attach(hits[0].object);
+    }
+}
+            }
+        });
+
+       function saveWorldState() {
+
+    const state = [];
+
+    blocks.forEach(block => {
+
+        state.push({
+
+            isSpawn: block.userData.isSpawn || false,
+            isMegaBlock: block.userData.isMegaBlock || false,
+
+            x: block.position.x,
+            y: block.position.y,
+            z: block.position.z,
+
+            color: block.material.color.getHex(),
+
+            width: block.userData.isMegaBlock
+                ? block.geometry.parameters.width
+                : 1,
+
+            height: block.userData.isMegaBlock
+                ? block.geometry.parameters.height
+                : 1,
+
+            depth: block.userData.isMegaBlock
+                ? block.geometry.parameters.depth
+                : 1,
+
+            name: block.userData.name || ""
+        });
+
+    });
+
+    undoStack.push(JSON.stringify(state));
+
+    if (undoStack.length > 50) {
+        undoStack.shift();
+    }
+
+    redoStack.length = 0;
+}
+
+function loadWorldState(serialized) {
+
+    const state = JSON.parse(serialized);
+groups = [];
+
+    blocks.slice().forEach(block => {
+
+        if (block.userData.isSpawn) return;
+
+        scene.remove(block);
+
+        const bIndex = blocks.indexOf(block);
+        if (bIndex !== -1) blocks.splice(bIndex, 1);
+
+        const oIndex = objectsToIntersect.indexOf(block);
+        if (oIndex !== -1) objectsToIntersect.splice(oIndex, 1);
+    });
+
+    state.forEach(data => {
+
+        if (data.isSpawn) return;
+
+        const block = new THREE.Mesh(
+
+            new THREE.BoxGeometry(
+                data.width,
+                data.height,
+                data.depth
+            ),
+
+            new THREE.MeshStandardMaterial({
+                color: data.color
+            })
+        );
+
+        block.position.set(
+            data.x,
+            data.y,
+            data.z
+        );
+
+        block.userData.name = data.name;
+
+        if (data.isMegaBlock) {
+            block.userData.isMegaBlock = true;
+        }
+
+        scene.add(block);
+
+        blocks.push(block);
+        objectsToIntersect.push(block);
+    });
+
+    document.getElementById('count').innerText = blocks.length;
+
+    updateWorldList();
+
+    transformControl.detach();
+
+    selectedBlock = null;
+    selectedBlocks = [];
+}
+ selectedBlocks = [];
+window.addEventListener('mouseup', (e) => {
+
+if (isBoxSelecting && mode === "move") {
+
+    isBoxSelecting = false;
+
+    selectionBox.style.display = "none";
+
+    selectedBlocks = [];
+
+blocks.forEach(block => {
+
+        const screenPos = block.position.clone();
+        screenPos.project(camera);
+
+        const screenX =
+            (screenPos.x * 0.5 + 0.5) * window.innerWidth;
+
+        const screenY =
+            (-screenPos.y * 0.5 + 0.5) * window.innerHeight;
+
+        const minX = Math.min(selectStartX, e.clientX);
+        const maxX = Math.max(selectStartX, e.clientX);
+
+        const minY = Math.min(selectStartY, e.clientY);
+        const maxY = Math.max(selectStartY, e.clientY);
+
+        if (
+            screenX >= minX &&
+            screenX <= maxX &&
+            screenY >= minY &&
+            screenY <= maxY
+        ) {
+
+            selectedBlocks.push(block);
+        }
+    });
+if (selectedBlocks.length > 0 && mode === "move") {
+
+    const box = new THREE.Box3();
+
+    selectedBlocks.forEach(block => {
+        box.expandByPoint(block.position);
+    });
+
+    const center = new THREE.Vector3();
+box.getCenter(center);
+
+
+// SNAP PIVOT TO GRID
+center.x = Math.round(center.x - 0.5) + 0.5;
+center.y = Math.round(center.y - 0.5) + 0.5;
+center.z = Math.round(center.z - 0.5) + 0.5;
+
+    const selectionPivot = new THREE.Object3D();
+    selectionPivot.position.copy(center);
+
+    scene.add(selectionPivot);
+
+    transformControl.attach(selectionPivot);
+selectionPivot.userData.selectedBlocks = [...selectedBlocks];
+selectionPivot.userData.lastPosition =
+    selectionPivot.position.clone();
+}
+}
+// STOP RIGHT CLICK MENU
+window.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+});
+            if (e.button === 2) isRightDragging = false;
+        });
+        
+        const keys = {};
+        window.addEventListener('keydown', (e) => {
+
+    if (scriptEditorOpen) return;
+
+    keys[e.key.toLowerCase()] = true;
+
+    if (e.key.toLowerCase() === 'p' && isPlaying) {
+        btns.play.click();
+    }
+});
+
+window.addEventListener('keyup', (e) => {
+
+    if (scriptEditorOpen) return;
+
+    keys[e.key.toLowerCase()] = false;
+});
+
+        camera.position.set(5, 5, 5);
+
+        let characterYaw = 0;
+
+        function updateCameraAndPlayerTransform() {
+            const targetRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(rotX, rotY, 0, 'YXZ'));
+            camera.quaternion.copy(targetRotation);
+
+            const directionOffset = new THREE.Vector3(0, 0, cameraZoomDistance).applyQuaternion(targetRotation);
+            let desiredPosition = new THREE.Vector3().copy(playerTarget).add(directionOffset);
+
+            // Change this line to include the floor!
+            const ray = new THREE.Raycaster(playerTarget, desiredPosition.clone().sub(playerTarget).normalize());
+            ray.far = cameraZoomDistance;
+            
+            // We add [floor, ...blocks] so it checks everything
+            const hits = ray.intersectObjects(
+    [floor, ...blocks]
+);
+
+            if (hits.length > 0 && hits[0].distance < cameraZoomDistance) {
+                camera.position.copy(hits[0].point);
+            } else {
+                camera.position.copy(desiredPosition);
+            }
+
+            // ... (keep the rest of the function the same)
+            playerGroup.position.set(playerTarget.x, playerTarget.y - playerHeight, playerTarget.z);
+            
+            if (isFirstPerson) {
+                playerGroup.rotation.y = rotY; 
+            } else {
+                playerGroup.rotation.y = characterYaw; 
+            }
+
+            playerGroup.visible = isPlaying && (cameraZoomDistance > 0.3);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = performance.now() * 0.001;
+updateScripts();
+// Reset all MyWorld blocks back to their original positions
+            
+            bubbles.forEach(b => {
+                b.position.y += b.userData.speed;
+                b.position.x += Math.sin(time + b.userData.offset) * 0.01;
+                if (b.position.y > 25) b.position.y = -2;
+            });
+
+            const moveDir = new THREE.Vector3();
+            const editSpeed = 0.25;
+
+            if (isPlaying) {
+                velocityY -= robloxGravity; 
+                playerTarget.y += velocityY;
+                
+                let onGround = false;
+                const offMap = Math.abs(playerTarget.x) > 50 || Math.abs(playerTarget.z) > 50;
+
+                if (!offMap && playerTarget.y <= playerHeight) { 
+                    playerTarget.y = playerHeight; 
+                    velocityY = 0; 
+                    onGround = true; 
+                }
+                
+                if (playerTarget.y < -20) respawn();
+
+                let horizontalMovement = new THREE.Vector3();
+                const camYawDir = new THREE.Vector3(0, 0, -1).applyEuler(new THREE.Euler(0, rotY, 0)).normalize();
+                
+                let inputDir = new THREE.Vector3();
+                if (keys.w) inputDir.z -= 1;
+                if (keys.s) inputDir.z += 1;
+                if (keys.a) inputDir.x -= 1;
+                if (keys.d) inputDir.x += 1;
+
+                let isMoving = inputDir.lengthSq() > 0;
+
+                if (isFirstPerson) {
+                    characterYaw = rotY;
+                }
+
+                if (isMoving) {
+                    inputDir.normalize();
+                    horizontalMovement.copy(camYawDir).multiplyScalar(-inputDir.z); 
+                    const camRight = new THREE.Vector3(-camYawDir.z, 0, camYawDir.x);
+                    horizontalMovement.addScaledVector(camRight, inputDir.x);
+                    horizontalMovement.normalize().multiplyScalar(playerSpeed16);
+
+                    if (!isFirstPerson) {
+                        characterYaw = Math.atan2(-horizontalMovement.x, -horizontalMovement.z);
+                    }
+                    
+                    // --- X AXIS COLLISION ---
+                    playerTarget.x += horizontalMovement.x;
+                    for (let i = 0; i < blocks.length; i++) {
+                        const b = blocks[i];
+                        if (b.userData.isSpawn) continue; 
+
+                        // Duck brain reads REAL block size 🦆
+let halfX = 0.5;
+let halfY = 0.5;
+let halfZ = 0.5;
+
+// If it's a mega block, use its REAL geometry size
+if (b.userData.isMegaBlock) {
+    halfX = b.geometry.parameters.width / 2;
+    halfY = b.geometry.parameters.height / 2;
+    halfZ = b.geometry.parameters.depth / 2;
+}
+
+                        const insideX = Math.abs(playerTarget.x - b.position.x) < (halfX + playerRadius);
+                        const insideZ = Math.abs(playerTarget.z - b.position.z) < (halfZ + playerRadius);
+                        const footLevel = playerTarget.y - playerHeight;
+                        const insideY = (footLevel < b.position.y + halfY) && (playerTarget.y > b.position.y - halfY);
+                        const strictlyBelowTop = footLevel < b.position.y + (halfY - 0.05);
+
+                        if (insideX && insideZ && insideY && strictlyBelowTop) {
+                            playerTarget.x -= horizontalMovement.x; 
+                            break;
+                        }
+                    }
+
+                    // --- Z AXIS COLLISION ---
+                    playerTarget.z += horizontalMovement.z;
+                    for (let i = 0; i < blocks.length; i++) {
+                        const b = blocks[i];
+                        if (b.userData.isSpawn) continue; 
+
+                        // Duck brain reads REAL block size 🦆
+let halfX = 0.5;
+let halfY = 0.5;
+let halfZ = 0.5;
+
+// If it's a mega block, use its REAL geometry size
+if (b.userData.isMegaBlock) {
+    halfX = b.geometry.parameters.width / 2;
+    halfY = b.geometry.parameters.height / 2;
+    halfZ = b.geometry.parameters.depth / 2;
+}
+
+                        const insideX = Math.abs(playerTarget.x - b.position.x) < (halfX + playerRadius);
+                        const insideZ = Math.abs(playerTarget.z - b.position.z) < (halfZ + playerRadius);
+                        const footLevel = playerTarget.y - playerHeight;
+                        const insideY = (footLevel < b.position.y + halfY) && (playerTarget.y > b.position.y - halfY);
+                        const strictlyBelowTop = footLevel < b.position.y + (halfY - 0.05);
+
+                        if (insideX && insideZ && insideY && strictlyBelowTop) {
+                            playerTarget.z -= horizontalMovement.z; 
+                            break;
+                        }
+                    }
+                }
+
+                // --- Y AXIS FLOOR & CEILING DETECTIONS ---
+                const collisionBlocks = blocks;
+
+collisionBlocks.forEach(b => {
+                    if (b.userData.isSpawn) return; 
+
+                    // Duck brain reads REAL block size 🦆
+let halfX = 0.5;
+let halfY = 0.5;
+let halfZ = 0.5;
+
+// If it's a mega block, use its REAL geometry size
+if (b.userData.isMegaBlock) {
+    halfX = b.geometry.parameters.width / 2;
+    halfY = b.geometry.parameters.height / 2;
+    halfZ = b.geometry.parameters.depth / 2;
+}
+
+                    const insideX = Math.abs(playerTarget.x - b.position.x) < (halfX + playerRadius);
+                    const insideZ = Math.abs(playerTarget.z - b.position.z) < (halfZ + playerRadius);
+                    
+                    if (insideX && insideZ) {
+const movingX =
+    b.position.x - (b.userData.lastX ?? b.position.x);
+
+const movingY =
+    b.position.y - (b.userData.lastY ?? b.position.y);
+
+const movingZ =
+    b.position.z - (b.userData.lastZ ?? b.position.z);
+
+playerTarget.x += movingX;
+playerTarget.y += movingY;
+playerTarget.z += movingZ;
+                        const footLevel = playerTarget.y - playerHeight;
+                        
+                        if (footLevel >= b.position.y + halfY - 0.15 && footLevel + velocityY <= b.position.y + halfY) {
+                            playerTarget.y = b.position.y + halfY + playerHeight;
+                            velocityY = 0;
+                            onGround = true;
+                        }
+                        
+                        if (velocityY > 0 && playerTarget.y >= b.position.y - halfY && playerTarget.y - velocityY <= b.position.y - (halfY - 0.15)) {
+                            playerTarget.y = b.position.y - halfY;
+                            velocityY = 0; 
+                        }
+                    }
+                });
+
+                canJump = onGround;
+                if (keys[' '] && canJump) { velocityY = robloxJumpPower; canJump = false; } 
+
+                if (isMoving && onGround) {
+                    const swingTime = time * 18; 
+                    const angle = Math.sin(swingTime) * 0.45;
+                    leftLeg.rotation.x = angle; rightLeg.rotation.x = -angle;
+                    leftArm.rotation.x = -angle; rightArm.rotation.x = angle;
+                    leftArm.rotation.z = 0; rightArm.rotation.z = 0;
+                } else if (!onGround) {
+                    leftLeg.rotation.x = 0.2; rightLeg.rotation.x = -0.2;
+                    leftArm.rotation.x = 0; rightArm.rotation.x = 0;
+                    leftArm.rotation.z = Math.PI;
+                    rightArm.rotation.z = -Math.PI;
+                } else {
+                    leftLeg.rotation.x = 0; rightLeg.rotation.x = 0;
+                    leftArm.rotation.x = 0; rightArm.rotation.x = 0;
+                    leftArm.rotation.z = 0; rightArm.rotation.z = 0;
+                }
+
+                updateCameraAndPlayerTransform();
+
+            } else {
+                camera.quaternion.setFromEuler(new THREE.Euler(rotX, rotY, 0, 'YXZ'));
+                if (keys.w) { camera.getWorldDirection(moveDir); camera.position.addScaledVector(moveDir, editSpeed); }
+                if (keys.s) { camera.getWorldDirection(moveDir); camera.position.addScaledVector(moveDir, -editSpeed); }
+                if (keys.a) camera.translateX(-editSpeed);
+                if (keys.d) camera.translateX(editSpeed);
+
+                raycaster.setFromCamera(mouse, camera);
+                const hits = raycaster.intersectObjects(objectsToIntersect);
+                if (hits.length > 0 && (mode === 'build' || mode === 'delete' || mode === 'fill') && !transformControl.dragging) {
+                    ghostBlock.visible = true;
+                    const h = hits[0];
+                    if (mode === 'delete' && h.object !== floor) {
+
+    ghostBlock.material.color.set(0xff4757);
+
+    // NORMAL BLOCK DEFAULT SIZE
+    let sizeX = 1;
+    let sizeY = 1;
+    let sizeZ = 1;
+
+    // IF MEGA BLOCK → READ REAL SIZE
+    if (h.object.userData.isMegaBlock) {
+        sizeX = h.object.geometry.parameters.width;
+        sizeY = h.object.geometry.parameters.height;
+        sizeZ = h.object.geometry.parameters.depth;
+    }
+
+    // MAKE GHOST MATCH THE BLOCK SIZE
+ghostBlock.scale.set(sizeX, sizeY, sizeZ);
+
+// COPY POSITION
+ghostBlock.position.copy(h.object.position);
+
+// 🦆 COPY ROTATION TOO!!
+ghostBlock.rotation.copy(h.object.rotation);
+
+} else {
+                        if (mode === 'fill' && fillStartPoint) {
+                            ghostBlock.material.color.set(0x2ed573);
+                        } else {
+                            ghostBlock.material.color.set(0x00a8ff);
+                        }
+                        ghostBlock.scale.set(1, 1, 1); 
+ghostBlock.rotation.set(0, 0, 0);
+                        const pos = h.point.clone().add(h.face.normal.clone().multiplyScalar(0.5));
+                        let finalX = Math.floor(pos.x) + 0.5;
+                        let finalY = Math.floor(pos.y) + 0.5;
+                        let finalZ = Math.floor(pos.z) + 0.5;
+                        if (finalY < 0.5) finalY = 0.5;
+                        ghostBlock.position.set(finalX, finalY, finalZ);
+
+                        const underFloor = (finalY < 0.5); 
+                        const blockAlreadyThere = blocks.some(b => {
+
+    // Normal block size
+    let halfX = 0.5;
+    let halfY = 0.5;
+    let halfZ = 0.5;
+
+    // Mega block REAL size
+    if (b.userData.isMegaBlock) {
+        halfX = b.geometry.parameters.width / 2;
+        halfY = b.geometry.parameters.height / 2;
+        halfZ = b.geometry.parameters.depth / 2;
+    }
+
+    // Check if ghost block is INSIDE the block
+    return (
+        finalX > b.position.x - halfX &&
+        finalX < b.position.x + halfX &&
+        finalY > b.position.y - halfY &&
+        finalY < b.position.y + halfY &&
+        finalZ > b.position.z - halfZ &&
+        finalZ < b.position.z + halfZ
+    );
+});
+
+                        if (underFloor || blockAlreadyThere) {
+                            ghostBlock.visible = false;
+                        }
+                    }
+                } else {
+                    ghostBlock.visible = false;
+                }
+            }
+
+           blocks.forEach(b => {
+
+    b.userData.lastX = b.position.x;
+    b.userData.lastY = b.position.y;
+    b.userData.lastZ = b.position.z;
+
+});
+ renderer.render(scene, camera);
+        }
+
+        function updateWorldList() {
+setTimeout(() => {
+
+    const addButton =
+        document.getElementById("addButton");
+
+    const addMenu =
+        document.getElementById("addMenu");
+
+    const createScriptBtn =
+        document.getElementById("createScriptBtn");
+
+    if (!addButton) return;
+
+    addButton.onclick = (e) => {
+
+        e.stopPropagation();
+
+        addMenu.style.display =
+            addMenu.style.display === "block"
+                ? "none"
+                : "block";
+    };
+
+    createScriptBtn.onclick = () => {
+
+        scripts.push({
+            name: "Script"
+        });
+
+        addMenu.style.display = "none";
+
+        updateWorldList();
+    };
+
+}, 0);
+    const list = document.getElementById('blockList');
+    list.innerHTML = `
+<div class="panel-header" id="myWorldHeader">
+    My World
+    <span id="addButton" style="
+        float:right;
+        cursor:pointer;
+        font-size:18px;
+        font-weight:bold;
+    ">+</span>
+
+    <div id="addMenu" style="
+        display:none;
+        position:absolute;
+        right:10px;
+        top:25px;
+        background:white;
+        border:1px solid #ccc;
+        border-radius:6px;
+        padding:5px;
+        z-index:9999;
+    ">
+        <div id="createScriptBtn" style="
+            cursor:pointer;
+            padding:5px;
+        ">
+            Script
+        </div>
+    </div>
+</div>
+`; // Reset the list
+    
+   // ===== GROUP FOLDERS =====
+
+groups.forEach(group => {
+
+    const folder = document.createElement("div");
+
+    folder.className = "panel-header";
+
+    folder.innerHTML = `
+<span class="groupToggle">
+${group.collapsed ? "▶" : "▼"}
+</span>
+
+<span class="groupName">
+📁 ${group.name}
+</span>
+`;
+folder.onclick = (e) => {
+
+    if (e.target.classList.contains("groupToggle")) {
+
+        group.collapsed = !group.collapsed;
+
+        updateWorldList();
+
+        return;
+    }
+
+    selectedBlocks = [...group.blocks];
+
+    const box = new THREE.Box3();
+
+  
+if (!group.collapsed) {
+
+    group.blocks.forEach(block => {
+
+        box.expandByPoint(block.position);
+
+    });
+
+}
+    const center = new THREE.Vector3();
+
+box.getCenter(center);
+
+center.x = Math.round(center.x - 0.5) + 0.5;
+center.y = Math.round(center.y - 0.5) + 0.5;
+center.z = Math.round(center.z - 0.5) + 0.5;
+
+const pivot = new THREE.Object3D();
+
+    pivot.position.copy(center);
+
+    pivot.userData.group = group;
+
+    pivot.userData.selectedBlocks =
+        group.blocks;
+
+    pivot.userData.lastPosition =
+        pivot.position.clone();
+
+    scene.add(pivot);
+
+    selectedBlock = pivot;
+
+    transformControl.attach(pivot);
+
+
+
+
+    };
+list.appendChild(folder);
+folder.ondblclick = () => {
+
+    const newName =
+        prompt("Rename Group", group.name);
+
+    if (!newName) return;
+
+    group.name = newName;
+
+    updateWorldList();
+};
+
+if (!group.collapsed) {
+
+group.blocks.forEach(block => {
+
+        const item =
+            document.createElement("div");
+
+        item.className = "block-item";
+
+        item.style.paddingLeft = "20px";
+
+        item.innerText =
+            block.userData.name || "Block";
+
+        item.onclick = () => {
+
+            camera.position.set(
+                block.position.x + 5,
+                block.position.y + 5,
+                block.position.z + 5
+            );
+
+            camera.lookAt(block.position);
+
+            setMode("move");
+
+            selectedBlock = block;
+
+            transformControl.attach(block);
+
+            document.getElementById(
+                "emptyMessage"
+            ).style.display = "none";
+
+            document.getElementById(
+                "propertyEditor"
+            ).style.display = "block";
+
+            document.getElementById(
+                "nameInput"
+            ).value =
+                block.userData.name || "";
+
+            document.getElementById(
+                "colorInput"
+            ).value =
+                "#" +
+                block.material.color.getHexString();
+        };
+
+        list.appendChild(item);
+});
+
+}
+
+});
+
+// ===== UNGROUPED BLOCKS =====
+
+blocks.forEach((b,index)=>{
+
+    const inGroup =
+        groups.some(g =>
+            g.blocks.includes(b)
+        );
+
+    if(inGroup) return;
+
+    const item =
+        document.createElement("div");
+
+    item.className = "block-item";
+
+    item.innerText =
+        b.userData.name ||
+        `Block ${index+1}`;
+
+    item.onclick = () => {
+
+        camera.position.set(
+            b.position.x + 5,
+            b.position.y + 5,
+            b.position.z + 5
+        );
+
+        camera.lookAt(b.position);
+
+        setMode("move");
+
+        selectedBlock = b;
+
+        transformControl.attach(b);
+
+        document.getElementById(
+            "emptyMessage"
+        ).style.display = "none";
+
+        document.getElementById(
+            "propertyEditor"
+        ).style.display = "block";
+
+        document.getElementById(
+            "nameInput"
+        ).value =
+            b.userData.name || "";
+
+        document.getElementById(
+            "colorInput"
+        ).value =
+            "#" +
+            b.material.color.getHexString();
+    };
+
+    list.appendChild(item);
+
+});
+scripts.forEach(script => {
+
+    const item =
+        document.createElement("div");
+
+    item.className = "block-item";
+
+    item.innerText = "📜 " + script.name;
+item.onclick = () => {
+
+    if (!scriptEditorOpen) {
+
+        scriptEditorOpen = true;
+        currentScript = script;
+document.getElementById("scriptText").value =
+    script.code || "";
+
+        document.getElementById("scriptEditor").style.display = "block";
+document.getElementById("scriptNameInput").value =
+    script.name;
+
+        document.getElementById("myWorldPanel").style.display = "none";
+        document.getElementById("propertiesPanel").style.display = "none";
+
+    } else {
+
+        scriptEditorOpen = false;
+
+        document.getElementById("scriptEditor").style.display = "none";
+
+        document.getElementById("myWorldPanel").style.display = "flex";
+        document.getElementById("propertiesPanel").style.display = "block";
+    }
+
+};
+
+    list.appendChild(item);
+
+});
+}
+
+let playCreatedBlocks = [];
+function executeWorldScript(scriptText) {
+
+    const lines = scriptText.split("\n");
+
+    let insideForever = false;
+    let foreverLines = [];
+
+    lines.forEach(line => {
+
+        line = line.trim();
+
+        if (!line) return;
+
+        const p = line.split(" ");
+
+        if (p[0].toUpperCase() === "SPAWN") {
+
+    // SPAWN BlockName
+
+   const match = line.match(/SPAWN\s+(.+)/i);
+
+if (!match) return;
+
+const blockName = match[1].replace(/"/g, "").trim();
+
+    let foundBlock = null;
+
+    // Search My World
+   const searchList = isPlaying
+    ? blocks
+    : blocks;
+
+searchList.forEach(block => {
+
+    if (
+        block.userData.name &&
+        block.userData.name.toLowerCase() === blockName.toLowerCase()
+    ) {
+        foundBlock = block;
+    }
+
+});
+
+    let newBlock;
+
+    if (foundBlock) {
+
+        // Clone existing block
+        newBlock = new THREE.Mesh(
+            foundBlock.geometry.clone(),
+            foundBlock.material.clone()
+        );
+
+        newBlock.userData.name =
+            foundBlock.userData.name;
+
+        if (foundBlock.userData.isMegaBlock) {
+            newBlock.userData.isMegaBlock = true;
+        }
+
+    } else {
+
+        // Create normal cube if not found
+        newBlock = new THREE.Mesh(
+            new THREE.BoxGeometry(1,1,1),
+            new THREE.MeshStandardMaterial({
+                color: Math.random() * 0xffffff
+            })
+        );
+
+        newBlock.userData.name = blockName || "Block";
+worldObjects[blockName] = newBlock;
+    }
+
+    // Spawn at spawn point
+    newBlock.position.copy(spawnPad.position);
+
+    worldObjects[blockName] = newBlock;
+scene.add(newBlock);
+if (isPlaying) {
+    playCreatedBlocks.push(newBlock);
+}
+
+    blocks.push(newBlock);
+    objectsToIntersect.push(newBlock);
+
+    document.getElementById("count").innerText =
+        blocks.length;
+
+    updateWorldList();
+}
+
+        else if (p[0].toUpperCase() === "FOREVER") {
+
+            insideForever = true;
+        }
+
+        else if (p[0].toUpperCase() === "END") {
+
+            insideForever = false;
+        }
+
+        else if (insideForever) {
+
+            foreverLines.push(line);
+        }
+else if (p[0].toUpperCase() === "WAIT") {
+
+    runWorldCommand(line);
+}
+
+else if (p[0].toUpperCase() === "MOVE") {
+
+    runWorldCommand(line);
+}
+
+else if (p[0].toUpperCase() === "SET") {
+
+    runWorldCommand(line);
+}
+
+        else {
+
+            runWorldCommand(line);
+        }
+    });
+
+    if (foreverLines.length > 0) {
+
+        runningTasks.push({
+            lines: foreverLines,
+            index: 0,
+            nextTime: 0
+        });
+    }
+}
+
+function runWorldCommand(line) {
+
+    const p = line.split(" ");
+
+    const cmd = p[0].toUpperCase();
+
+   let obj = worldObjects[p[1]];
+
+if (!obj) {
+
+    blocks.forEach(block => {
+
+        if (
+            block.userData.name &&
+            block.userData.name.toLowerCase() ===
+            p[1].replace(/"/g,"").toLowerCase()
+        ) {
+            obj = block;
+        }
+
+    });
+
+}
+
+if (!obj) return;
+
+    if (cmd === "MOVE") {
+
+        const axis = p[2].toLowerCase();
+
+        const value = parseFloat(p[3]);
+
+        obj.position[axis] += value;
+    }
+
+    if (cmd === "ROTATE") {
+
+        const color = p[2].toLowerCase();
+
+        const deg = parseFloat(p[3]);
+
+        const rad = deg * Math.PI / 180;
+
+        if (color === "red") obj.rotation.x += rad;
+        if (color === "green") obj.rotation.y += rad;
+        if (color === "blue") obj.rotation.z += rad;
+    }
+
+    if (cmd === "SET") {
+
+        for(let i=2;i<p.length;i++) {
+
+            if (p[i] === "x" && p[i+1] === "=")
+                obj.position.x = parseFloat(p[i+2]);
+
+            if (p[i] === "y" && p[i+1] === "=")
+                obj.position.y = parseFloat(p[i+2]);
+
+            if (p[i] === "z" && p[i+1] === "=")
+                obj.position.z = parseFloat(p[i+2]);
+        }
+    }
+if (cmd === "WAIT") {
+
+    // coming soon
+}
+}
+
+
+function updateScripts() {
+
+    const now = performance.now();
+
+    runningTasks.forEach(task => {
+
+        if (now < task.nextTime) return;
+
+        const line = task.lines[task.index];
+
+        const p = line.split(" ");
+
+        if (p[0].toUpperCase() === "WAIT") {
+
+           const match = line.match(/WAIT\s*\((.*?)\)/i);
+
+if (match) {
+
+    task.nextTime =
+        now + parseFloat(match[1]) * 1000;
+
+}
+        }
+
+        else {
+
+            runWorldCommand(line);
+
+            task.nextTime = now;
+        }
+
+        task.index++;
+
+        if (task.index >= task.lines.length) {
+
+            task.index = 0;
+        }
+    });
+}
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+const selectionBox = document.createElement("div");
+
+selectionBox.style.position = "absolute";
+selectionBox.style.border = "2px solid #00a8ff";
+selectionBox.style.background = "rgba(0,168,255,0.15)";
+selectionBox.style.pointerEvents = "none";
+selectionBox.style.display = "none";
+selectionBox.style.zIndex = "999";
+
+document.body.appendChild(selectionBox);
+
+        document.getElementById("scriptNameInput").addEventListener("input", () => {
+
+    if (!currentScript) return;
+
+    currentScript.name =
+        document.getElementById("scriptNameInput").value;
+
+    updateWorldList();
+
+});
+document.getElementById("closeScriptEditor").onclick = () => {
+
+    scriptEditorOpen = false;
+
+    document.getElementById("scriptEditor").style.display = "none";
+
+    document.getElementById("myWorldPanel").style.display = "flex";
+
+    document.getElementById("propertiesPanel").style.display = "block";
+
+};
+saveWorldState();
+
+document.addEventListener("click", () => {
+
+    const menu =
+        document.getElementById("addMenu");
+
+    if (menu) {
+        menu.style.display = "none";
+    }
+
+});
+window.addEventListener("keydown", (e) => {
+// CTRL G = GROUP
+if (e.ctrlKey && e.key.toLowerCase() === "g") {
+e.preventDefault();
+
+   console.log(selectedBlocks);
+ if (selectedBlocks.length < 1) return;
+
+    saveWorldState();
+
+    // Remove blocks from old groups first
+selectedBlocks.forEach(block => {
+
+    if (block.userData.group) {
+
+        const oldGroup = block.userData.group;
+
+        oldGroup.blocks =
+            oldGroup.blocks.filter(
+                b => b !== block
+            );
+
+        // Delete empty groups
+        if (oldGroup.blocks.length === 0) {
+
+            groups = groups.filter(
+                g => g !== oldGroup
+            );
+        }
+    }
+});
+const group = {
+
+    id: groupIdCounter++,
+    name: "Group",
+    collapsed: false,
+    blocks: [...selectedBlocks]
+
+};
+
+    groups.push(group);
+
+group.blocks.forEach(block => {
+    block.userData.group = group;
+});
+
+    const box = new THREE.Box3();
+
+    group.blocks.forEach(block => {
+        box.expandByPoint(block.position);
+    });
+
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+center.x = Math.round(center.x - 0.5) + 0.5;
+center.y = Math.round(center.y - 0.5) + 0.5;
+center.z = Math.round(center.z - 0.5) + 0.5;
+
+    const groupPivot = new THREE.Object3D();
+
+    groupPivot.position.copy(center);
+
+    groupPivot.userData.group = group;
+
+    scene.add(groupPivot);
+
+    transformControl.attach(groupPivot);
+
+    groupPivot.userData.lastPosition =
+        groupPivot.position.clone();
+
+    groupPivot.userData.selectedBlocks =
+        group.blocks;
+
+    selectedBlock = groupPivot;
+updateWorldList();
+}
+
+    // Don't delete objects while typing
+if (
+    document.activeElement === document.getElementById("nameInput")
+) {
+    return;
+}
+// DELETE MULTI SELECT
+    if (e.key === "Backspace") {
+if (
+    selectedBlock &&
+    selectedBlock.userData &&
+    selectedBlock.userData.group
+) {
+
+    saveWorldState();
+
+  selectedBlock.userData.group.blocks.forEach(block => {
+
+    // 🦆 NEVER DELETE SPAWN POINT
+    if (block.userData.isSpawn) return;
+
+    if (block.userData.group) {
+
+        const group = block.userData.group;
+
+        group.blocks = group.blocks.filter(
+            b => b !== block
+        );
+
+        if (group.blocks.length === 0) {
+
+            groups = groups.filter(
+                g => g !== group
+            );
+        }
+    }
+
+    scene.remove(block);
+
+    const bIndex = blocks.indexOf(block);
+    if (bIndex !== -1)
+        blocks.splice(bIndex, 1);
+
+    const oIndex = objectsToIntersect.indexOf(block);
+    if (oIndex !== -1)
+        objectsToIntersect.splice(oIndex, 1);
+});
+
+   // 🦆 If spawn is inside group, don't delete group folder
+const containsSpawn =
+    selectedBlock.userData.group.blocks.some(
+        b => b.userData.isSpawn
+    );
+
+if (!containsSpawn) {
+groups = groups.filter(
+    g => g !== selectedBlock.userData.group
+);
+ scene.remove(selectedBlock);
+}
+
+    transformControl.detach();
+
+    updateWorldList();
+
+    return;
+}
+
+        if (selectedBlocks.length > 0) {
+
+            saveWorldState();
+document.getElementById("closeScriptEditor").onclick = () => {
+
+    scriptEditorOpen = false;
+
+    document.getElementById("scriptEditor").style.display = "none";
+
+    document.getElementById("myWorldPanel").style.display = "flex";
+
+    document.getElementById("propertiesPanel").style.display = "block";
+
+};
+
+            selectedBlocks.forEach(block => {
+
+                if (block.userData.isSpawn) return;
+
+                scene.remove(block);
+
+                const bIndex = blocks.indexOf(block);
+                if (bIndex !== -1)
+                    blocks.splice(bIndex, 1);
+
+                const oIndex = objectsToIntersect.indexOf(block);
+                if (oIndex !== -1)
+                    objectsToIntersect.splice(oIndex, 1);
+            });
+
+            selectedBlocks = [];
+
+            transformControl.detach();
+
+            document.getElementById('count').innerText =
+                blocks.length;
+
+            updateWorldList();
+        }
+    }
+
+    // CTRL Z
+    if (e.ctrlKey && e.key.toLowerCase() === "z") {
+
+        e.preventDefault();
+
+        if (undoStack.length > 1) {
+
+            const current = undoStack.pop();
+
+            redoStack.push(current);
+
+            loadWorldState(
+                undoStack[undoStack.length - 1]
+            );
+        }
+    }
+
+    // CTRL Y
+    if (e.ctrlKey && e.key.toLowerCase() === "y") {
+
+        e.preventDefault();
+
+        if (redoStack.length > 0) {
+
+            const next = redoStack.pop();
+
+            undoStack.push(next);
+
+            loadWorldState(next);
+        }
+    }
+});
+const scriptText =
+document.getElementById("scriptText");
+
+const lineNumbers =
+document.getElementById("lineNumbers");
+
+scriptText.addEventListener("input", () => {
+
+    const lines =
+        scriptText.value.split("\n").length;
+
+    let text = "";
+
+    for (let i = 1; i <= lines; i++) {
+
+        text += i + "\n";
+
+    }
+
+    lineNumbers.textContent = text;
+});
+document.getElementById("closeScriptEditor").onclick = () => {
+
+    if (currentScript) {
+
+        currentScript.name =
+            document.getElementById("scriptNameInput").value;
+
+        currentScript.code =
+            document.getElementById("scriptText").value;
+
+    }
+
+    scriptEditorOpen = false;
+
+    document.getElementById("scriptEditor").style.display = "none";
+
+    document.getElementById("myWorldPanel").style.display = "flex";
+
+    document.getElementById("propertiesPanel").style.display = "block";
+
+    updateWorldList();
+
+};
+animate();
+    </script>
+</body>
+</html>
