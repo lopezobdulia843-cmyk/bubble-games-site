@@ -229,7 +229,7 @@ BlockColor:
        <div style="position: absolute; top: 20px; left: 20px; background: rgba(255, 255, 255, 0.85); padding: 10px 20px; border-radius: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); backdrop-filter: blur(5px); z-index: 100;">
     <a href="hub.html" style="text-decoration: none; color: #333; font-weight: bold;">🏠 Hub</a>
     <br><br>
-    <button onclick="document.getElementById('publishModal').style.display='block'" style="background:#00a8ff; color:white; border:none; padding:5px 10px; border-radius:10px; cursor:pointer; font-weight:bold;">Publish Game</button>
+ 
 </div>
 
 <div id="publishModal" onmousedown="event.stopPropagation()" style="display:none; position:absolute; top:120px; left:20px; background:white; padding:20px; border-radius:15px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 200;">
@@ -250,6 +250,7 @@ BlockColor:
 <button id="paintBtn" class="btn">🪣</button>
 <input type="color" id="paintColor" value="#ff0000" style="width:40px; height:40px; border:none; background:none; cursor:pointer;">
         <button id="playBtn" class="btn">Play Test</button>
+        <button id="pubBtn" class="btn" style="background: #ff9f43; color: white; border: 2px solid #d35400;">🚀 Publish</button>
         <div class="counter">Blocks: <span id="count">1</span></div>
     </div>
 
@@ -1016,7 +1017,8 @@ updateWorldList();            }
 // ==========================
 
 // CTRL + D DUPLICATE
-window.addEventListener('keydown', (e) => {
+
+        window.addEventListener('keydown', (e) => {
 
     if (e.ctrlKey && e.key.toLowerCase() === 'd') {
 
@@ -2800,6 +2802,9 @@ document.getElementById("closeScriptEditor").onclick = () => {
 
 };
 animate();
+   document.getElementById('pubBtn').onclick = () => {
+    document.getElementById('publishModal').style.display = 'block';
+};
     </script>
 </body>
 </html>
