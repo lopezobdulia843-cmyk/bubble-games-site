@@ -3,7 +3,7 @@ import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
- apiKey: "KEY_REMOVED_FOR_SECURITY",
+ apiKey: "AIzaSyDydzKsSL-7Sz919MTS2ORWtGt3PgFzFRE",
   authDomain: "bubblegames.firebaseapp.com",
   projectId: "bubblegames",
   storageBucket: "bubblegames.firebasestorage.app",
