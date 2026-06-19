@@ -281,6 +281,11 @@ window.switchTab = (tabName) => {
         const nav = document.getElementById('nav-' + view);
         if (nav) (view === tabName) ? nav.classList.add('active') : nav.classList.remove('active');
     });
+
+    // Refresh data when switching to these tabs
+    if (tabName === 'home') loadGlobalGames();
+    if (tabName === 'create') loadUserGames();
+
     window.closePanel();
 };
 
