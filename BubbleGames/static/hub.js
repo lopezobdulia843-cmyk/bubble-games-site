@@ -87,19 +87,31 @@ async function loadUserGames() {
     const userGrid = document.getElementById('owned-game-grid');
     if (!userGrid) return;
 
-    // Check if we already have the data locally
+    // 1. If we already have the cache, just render it immediately.
+    // This is the fastest way to switch tabs.
     if (window.gameCache.user) {
         renderGames(window.gameCache.user, userGrid, true);
         return;
     }
 
+    // 2. Otherwise, show loading state
     userGrid.innerHTML = `<p class="no-games">Loading... 🚀</p>`;
     
-    // If no cache, fetch once from DB
-    const snap = await getDocs(collection(db, 'games'));
-    window.gameCache.user = snap.docs.filter(d => d.data().authorId === auth.currentUser?.uid);
-    
-    renderGames(window.gameCache.user, userGrid, true);
+    try {
+        // 3. Fetch from DB
+        const snap = await getDocs(collection(db, 'games'));
+        
+        // IMPORTANT: Ensure 'creatorUID' matches exactly what is in your Firestore documents.
+        // If your database uses 'authorId', keep it as 'authorId'. 
+        // Based on your previous code, it looks like you use 'creatorUID'.
+        window.gameCache.user = snap.docs.filter(d => d.data().creatorUID === auth.currentUser?.uid);
+        
+        // 4. Render the results
+        renderGames(window.gameCache.user, userGrid, true);
+    } catch (e) {
+        console.error("Error loading user games:", e);
+        userGrid.innerHTML = `<p class="no-games">Failed to load games 😢</p>`;
+    }
 }
 
 function renderGames(games, container, isOwner) {
