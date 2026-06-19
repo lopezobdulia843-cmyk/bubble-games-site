@@ -50,25 +50,37 @@ window.currentRank = profileSnap.exists()
 async function loadGlobalGames() {
     const globalGrid = document.getElementById('global-game-grid');
     if (!globalGrid) return;
+
+    // Check if we already have the global data in cache
+    if (window.gameCache.global) {
+        renderGlobalGames(window.gameCache.global, globalGrid);
+        return;
+    }
+
     globalGrid.innerHTML = `<p class="no-games">Loading... 🫧</p>`;
 
     try {
         const snap = await getDocs(collection(db, 'games'));
-        const publicGames = snap.docs.filter(d => d.data().isPublic === true);
-
-        if (publicGames.length === 0) {
-            globalGrid.innerHTML = `<p class="no-games">No public games yet! Be the first 🫧</p>`;
-            return;
-        }
-
-        globalGrid.innerHTML = '';
-        publicGames.forEach(docSnap => {
-            globalGrid.appendChild(makeGameCard(docSnap.id, docSnap.data(), false));
-        });
+        // Save to cache once
+        window.gameCache.global = snap.docs.filter(d => d.data().isPublic === true);
+        
+        renderGlobalGames(window.gameCache.global, globalGrid);
     } catch (e) {
         console.error("Error loading global games:", e);
         globalGrid.innerHTML = `<p class="no-games">Failed to load games 😢</p>`;
     }
+}
+
+// Helper to render the global list
+function renderGlobalGames(games, container) {
+    container.innerHTML = '';
+    if (games.length === 0) {
+        container.innerHTML = `<p class="no-games">No public games yet! 🫧</p>`;
+        return;
+    }
+    games.forEach(docSnap => {
+        container.appendChild(makeGameCard(docSnap.id, docSnap.data(), false));
+    });
 }
 
 async function loadUserGames() {
@@ -245,17 +257,31 @@ window.toggleGamePublic = async (gameId, makePublic) => {
         // 4. DATABASE: Save the change to Firestore exactly once
         await updateDoc(doc(db, 'games', gameId), { isPublic: makePublic });
 
-        // 5. LOCAL CACHE: Update your cache so no future reads are needed
-        if (window.gameCache && window.gameCache.user) {
+        // 5. LOCAL CACHE: Update your 'user' cache
+        if (window.gameCache?.user) {
             const gameIndex = window.gameCache.user.findIndex(g => g.id === gameId);
             if (gameIndex !== -1) {
-                // Update the property in the local cache object
-                const gameData = window.gameCache.user[gameIndex].data();
-                gameData.isPublic = makePublic;
+                window.gameCache.user[gameIndex].data().isPublic = makePublic;
             }
         }
+
+        // 6. LOCAL CACHE: Update your 'global' cache
+        if (window.gameCache?.global) {
+            const globalIndex = window.gameCache.global.findIndex(g => g.id === gameId);
+            
+            if (makePublic && globalIndex === -1) {
+                // If made public and not in global cache, we'd need the game data.
+                // NOTE: For simplicity, just clearing global cache forces a refresh 
+                // only if the user actually goes to Home, or you can push the object here.
+                window.gameCache.global = null; 
+            } else if (!makePublic && globalIndex !== -1) {
+                // If made private, remove from global cache
+                window.gameCache.global.splice(globalIndex, 1);
+            }
+        }
+
     } catch (e) {
-        // 6. ERROR HANDLING: Revert UI if the save failed
+        // 7. ERROR HANDLING: Revert UI if the save failed
         console.error("Toggle failed:", e);
         alert("❌ Couldn't update visibility. Reverting...");
         
