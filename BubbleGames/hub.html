@@ -37,12 +37,11 @@
             transition: background 0.3s ease;
         }
 
-        /* LOGO POSITIONED NEAR SIDEBAR */
         .logo-container {
             position: absolute;
             top: 20px;
             left: 110px; 
-            width: 150px; /* ADJUSTED SIZE */
+            width: 150px;
             z-index: 20;
             pointer-events: none;
         }
@@ -53,7 +52,6 @@
             filter: drop-shadow(0 4px 8px var(--shadow));
         }
 
-        /* SIDEBAR */
         .sidebar {
             width: 90px;
             background: var(--sidebar-bg);
@@ -92,7 +90,6 @@
             color: white; 
         }
 
-        /* MAIN CONTENT */
         .main-content {
             flex-grow: 1;
             padding: 50px;
@@ -119,7 +116,6 @@
 
         .hero-search:focus { border-color: #4f46e5; transform: scale(1.01); }
 
-        /* GAME CARDS */
         .game-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -141,17 +137,6 @@
         .market-card:hover { transform: translateY(-10px); border-color: var(--text-main); box-shadow: 0 15px 30px var(--shadow); }
         .market-icon { font-size: 55px; display: block; margin-bottom: 10px; }
 
-        /* NO GAMES MESSAGE */
-        .no-games {
-            grid-column: 1 / -1;
-            text-align: center;
-            color: var(--text-sub);
-            opacity: 0.6;
-            font-style: italic;
-            padding: 40px;
-        }
-
-        /* JUICY NEW GAME BUTTON */
         .new-game-container {
             display: flex;
             flex-direction: column;
@@ -182,11 +167,6 @@
             box-shadow: 0 12px 0 #3730a3, 0 20px 35px var(--bubble-glow);
         }
 
-        .new-game-btn:active {
-            transform: translateY(6px) scale(0.95);
-            box-shadow: 0 2px 0 #3730a3;
-        }
-
         .tagline {
             font-size: 14px;
             font-weight: bold;
@@ -196,7 +176,6 @@
             text-shadow: 0 0 10px var(--bubble-glow);
         }
 
-        /* SLIDE PANEL */
         .slide-panel {
             position: fixed;
             bottom: -100%;
@@ -232,9 +211,6 @@
             letter-spacing: 2px;
         }
 
-        .play-btn:active { transform: translateY(8px); box-shadow: 0 2px 0 #3730a3; }
-
-        /* LOGOUT BUTTON */
         .logout-btn {
             background: var(--card-bg);
             color: #ef4444;
@@ -255,7 +231,6 @@
 
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 
-        /* TOGGLE SWITCH */
         .switch { position: relative; display: inline-block; width: 60px; height: 34px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
@@ -273,7 +248,6 @@
     <div class="sidebar">
         <div id="nav-home" class="side-icon active" onclick="switchTab('home')">🏠</div>
         <div id="nav-create" class="side-icon" onclick="switchTab('create')">🧱</div>
-        <div id="nav-chat" class="side-icon" onclick="switchTab('chat')">💬</div>
         <div id="nav-settings" class="side-icon" onclick="switchTab('settings')">⚙️</div>
     </div>
 
@@ -315,18 +289,6 @@
         </div>
     </div>
 
-    <div id="view-chat" class="main-content" style="display: none;">
-        <h2>Chat Room</h2>
-        <div style="background: var(--card-bg); padding: 20px; border-radius: 30px; border: 5px solid var(--border-color); height: 400px; display: flex; flex-direction: column;">
-            <div id="chat-messages" style="flex-grow: 1; overflow-y: auto; margin-bottom: 10px; color: var(--text-sub);">
-                </div>
-            <div style="display: flex; gap: 10px;">
-                <input type="text" id="chat-input" placeholder="Type a message..." style="flex-grow: 1; padding: 15px; border-radius: 20px; border: 2px solid var(--border-color);">
-                <button onclick="sendMessage()" style="padding: 10px 20px; border-radius: 20px; border: none; background: var(--text-main); color: white; font-weight: bold; cursor: pointer;">Send</button>
-            </div>
-        </div>
-    </div>
-
     <div id="actionPanel" class="slide-panel">
         <div class="panel-content">
             <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -343,6 +305,6 @@
         </div>
     </div>
 
-    <script type="module" src="static/hub.js"></script>
+    <script src="static/hub.js"></script>
 </body>
 </html>
