@@ -96,16 +96,16 @@ window.startChat = async () => {
         renderChat();
     };
 
+    peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+            console.log("ICE CANDIDATE (SEND THIS TOO):", JSON.stringify(event.candidate));
+        }
+    };
+
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
 
     console.log("SEND THIS OFFER:", JSON.stringify(offer));
-
-    peerConnection.onicecandidate = (event) => {
-        if (event.candidate) {
-            console.log("SEND ICE:", JSON.stringify(event.candidate));
-        }
-    };
 };
 
 window.connectToFriend = async (offerString) => {
@@ -120,13 +120,19 @@ window.connectToFriend = async (offerString) => {
         };
     };
 
+    peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+            console.log("ICE BACK:", JSON.stringify(event.candidate));
+        }
+    };
+
     const offer = JSON.parse(offerString);
     await peerConnection.setRemoteDescription(offer);
 
     const answer = await peerConnection.createAnswer();
     await peerConnection.setLocalDescription(answer);
 
-    console.log("SEND ANSWER:", JSON.stringify(answer));
+    console.log("SEND ANSWER BACK:", JSON.stringify(answer));
 };
 
 window.sendMessage = () => {
@@ -153,6 +159,11 @@ function renderChat() {
 
     box.scrollTop = box.scrollHeight;
 }
+
+window.acceptAnswer = async (answerString) => {
+    const answer = JSON.parse(answerString);
+    await peerConnection.setRemoteDescription(answer);
+};
 
 // --- 6. MODERATION TOOLS ---
 
