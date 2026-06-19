@@ -216,7 +216,7 @@ window.closePanel = () => {
 };
 
 window.switchTab = (tabName) => {
-    ['home', 'create', 'creations', 'settings'].forEach(view => {
+    ['home', 'create', 'settings'].forEach(view => {
         const el = document.getElementById('view-' + view);
         if (el) el.style.display = (view === tabName) ? 'flex' : 'none';
         const nav = document.getElementById('nav-' + view);
