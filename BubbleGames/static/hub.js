@@ -87,40 +87,28 @@ async function loadUserGames() {
     const userGrid = document.getElementById('owned-game-grid');
     if (!userGrid) return;
 
-    // 1. Check if we already have the data locally (Client-Side Cache)
+    // Check if we already have the data locally
     if (window.gameCache.user) {
         renderGames(window.gameCache.user, userGrid, true);
         return;
     }
 
-    // 2. If not, show loading and fetch ONCE from the Database
     userGrid.innerHTML = `<p class="no-games">Loading... 🚀</p>`;
     
-    try {
-        const snap = await getDocs(collection(db, 'games'));
-        
-        // Filter and save to the cache
-        window.gameCache.user = snap.docs.filter(d => d.data().creatorUID === auth.currentUser?.uid);
-        
-        // Render the games
-        renderGames(window.gameCache.user, userGrid, true);
-    } catch (e) {
-        console.error("Error loading user games:", e);
-        userGrid.innerHTML = `<p class="no-games">Failed to load 😢</p>`;
-    }
+    // If no cache, fetch once from DB
+    const snap = await getDocs(collection(db, 'games'));
+    window.gameCache.user = snap.docs.filter(d => d.data().authorId === auth.currentUser?.uid);
+    
+    renderGames(window.gameCache.user, userGrid, true);
 }
 
-// Helper function to render the list
 function renderGames(games, container, isOwner) {
     container.innerHTML = '';
-    
     if (games.length === 0) {
-        container.innerHTML = `<p class="no-games">You haven't created any games yet. Start creating! 🚀</p>`;
+        container.innerHTML = `<p class="no-games">No games found! 🫧</p>`;
         return;
     }
-
     games.forEach(docSnap => {
-        // Use makeGameCard to create the UI elements
         container.appendChild(makeGameCard(docSnap.id, docSnap.data(), isOwner));
     });
 }
@@ -270,22 +258,12 @@ window.toggleGamePublic = async (gameId, makePublic) => {
         await updateDoc(doc(db, 'games', gameId), { isPublic: makePublic });
 
         // 5. LOCAL CACHE: Update your 'user' cache
-       // 5. LOCAL CACHE: Update your 'user' cache
-if (window.gameCache?.user) {
-    const gameIndex = window.gameCache.user.findIndex(g => g.id === gameId);
-    if (gameIndex !== -1) {
-        // Create a copy of the data, update it, and re-assign it
-        const currentData = window.gameCache.user[gameIndex].data();
-        currentData.isPublic = makePublic;
-        
-        // This trick works because Firestore snapshots are objects we can manipulate 
-        // if we use a small workaround like this:
-        Object.defineProperty(window.gameCache.user[gameIndex], '_data', {
-            value: currentData,
-            writable: true
-        });
-    }
-}
+        if (window.gameCache?.user) {
+            const gameIndex = window.gameCache.user.findIndex(g => g.id === gameId);
+            if (gameIndex !== -1) {
+                window.gameCache.user[gameIndex].data().isPublic = makePublic;
+            }
+        }
 
         // 6. LOCAL CACHE: Update your 'global' cache
         if (window.gameCache?.global) {
