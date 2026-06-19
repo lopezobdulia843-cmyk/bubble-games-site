@@ -169,16 +169,28 @@ function renderChat() {
 }
 
 window.acceptAnswer = async (answerString) => {
-    const answer = JSON.parse(answerString);
+    try {
+        const answer = JSON.parse(answerString);
 
-    if (!peerConnection) {
-        console.log("No peer connection yet");
-        return;
+        if (!peerConnection) {
+            console.log("No peer connection yet — run startChat or connectToFriend first");
+            return;
+        }
+
+        await peerConnection.setRemoteDescription(answer);
+
+        console.log("CONNECTED SUCCESSFULLY");
+    } catch (err) {
+        console.error("Answer failed:", err);
     }
+};
 
-    await peerConnection.setRemoteDescription(answer);
+window.addIce = async (iceString) => {
+    const candidate = JSON.parse(iceString);
 
-    console.log("CONNECTED!");
+    if (!peerConnection) return;
+
+    await peerConnection.addIceCandidate(candidate);
 };
 
 
