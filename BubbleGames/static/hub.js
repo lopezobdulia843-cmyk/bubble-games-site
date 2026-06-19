@@ -239,11 +239,14 @@ function openGamePanel(id, name, desc, isOwner, isPublic) {
     panel.classList.add('open');
 }
 window.toggleGamePublic = async (gameId, makePublic) => {
+    // 1. Get references to UI elements
     const track = document.getElementById('panel-track-' + gameId);
     const knob = document.getElementById('panel-knob-' + gameId);
+    
+    // 2. Cache the old state for a potential revert
     const previousState = !makePublic;
 
-    // 1. Optimistic UI update
+    // 3. OPTIMISTIC UI: Update the look immediately so it feels instant
     if (track) {
         track.style.background = makePublic ? '#2ed573' : '#ccc';
         track.setAttribute('onclick', `toggleGamePublic('${gameId}', ${!makePublic})`);
@@ -251,37 +254,25 @@ window.toggleGamePublic = async (gameId, makePublic) => {
     if (knob) knob.style.left = makePublic ? '25px' : '3px';
 
     try {
-        // 2. DB Update
+        // 4. DATABASE: Save the change to Firestore exactly once
         await updateDoc(doc(db, 'games', gameId), { isPublic: makePublic });
 
-        // 3. MANDATORY CACHE UPDATE
-        // Update the cached object directly so the next render picks it up
-        if (window.gameCache?.user) {
-            const gameObj = window.gameCache.user.find(g => g.id === gameId);
-            if (gameObj) {
-                // This forces the object in the cache to hold the new value
-                // We overwrite the internal data property
-                Object.defineProperty(gameObj, '_data', {
-                    value: { ...gameObj.data(), isPublic: makePublic },
-                    writable: true
-                });
-            }
-        }
+        // 5. LOCAL CACHE: Update your 'user' cache
+       // 5. LOCAL CACHE: Update your 'user' cache
+if (window.gameCache?.user) {
+    const gameIndex = window.gameCache.user.findIndex(g => g.id === gameId);
+    if (gameIndex !== -1) {
+        // Create a new data object with the updated value
+        const currentData = window.gameCache.user[gameIndex].data();
+        currentData.isPublic = makePublic;
         
-        // 4. If you have a global cache, clear it to force a refresh on the Home tab
-        window.gameCache.global = null;
-
-    } catch (e) {
-        console.error("Toggle failed:", e);
-        alert("❌ Couldn't update visibility.");
-        // Revert UI on failure
-        if (track) {
-            track.style.background = previousState ? '#2ed573' : '#ccc';
-            track.setAttribute('onclick', `toggleGamePublic('${gameId}', ${!previousState})`);
-        }
-        if (knob) knob.style.left = previousState ? '25px' : '3px';
+        // Use this workaround to force the Firestore snapshot object to update its internal data
+        Object.defineProperty(window.gameCache.user[gameIndex], '_data', {
+            value: currentData,
+            writable: true
+        });
     }
-};
+}
 
         // 6. LOCAL CACHE: Update your 'global' cache
         if (window.gameCache?.global) {
