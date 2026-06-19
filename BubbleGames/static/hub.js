@@ -69,7 +69,7 @@ window.closePanel = () => {
 };
 
 window.switchTab = (tabName) => {
-    ['home', 'create', 'settings', 'chat'].forEach(view => {
+    ['home', 'create', 'settings'].forEach(view => {
         document.getElementById('view-' + view).style.display = (view === tabName) ? 'flex' : 'none';
         const nav = document.getElementById('nav-' + view);
         if (nav) (view === tabName) ? nav.classList.add('active') : nav.classList.remove('active');
@@ -80,117 +80,6 @@ window.switchTab = (tabName) => {
 window.toggleDarkMode = () => {
     const isDark = document.body.classList.toggle('dark-theme');
     localStorage.setItem('bubbleTheme', isDark ? 'dark' : 'light');
-};
-
-// --- 5. CHAT ROOM LOGIC ---
-function refreshChat() {}
-let peerConnection;
-let dataChannel;
-let messages = [];
-
-const config = {
-    iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
-};
-
-window.startChat = async () => {
-    peerConnection = new RTCPeerConnection(config);
-
-    dataChannel = peerConnection.createDataChannel("chat");
-
-    dataChannel.onmessage = (event) => {
-        messages.push(event.data);
-        renderChat();
-    };
-
-    peerConnection.onicecandidate = (event) => {
-        if (event.candidate) {
-            console.log("ICE CANDIDATE (SEND THIS TOO):", JSON.stringify(event.candidate));
-        }
-    };
-
-    const offer = await peerConnection.createOffer();
-    await peerConnection.setLocalDescription(offer);
-
-    console.log("SEND THIS OFFER:", JSON.stringify(offer));
-};
-
-window.connectToFriend = async (offerString) => {
-    peerConnection = new RTCPeerConnection(config);
-
-    peerConnection.ondatachannel = (event) => {
-        dataChannel = event.channel;
-
-        dataChannel.onmessage = (e) => {
-            messages.push(e.data);
-            renderChat();
-        };
-    };
-
-    peerConnection.onicecandidate = (event) => {
-        if (event.candidate) {
-            console.log("ICE BACK:", JSON.stringify(event.candidate));
-        }
-    };
-
-    const offer = JSON.parse(offerString);
-    await peerConnection.setRemoteDescription(offer);
-
-    const answer = await peerConnection.createAnswer();
-    await peerConnection.setLocalDescription(answer);
-
-    console.log("SEND ANSWER BACK:", JSON.stringify(answer));
-    return answer;
-};
-
-window.sendMessage = () => {
-    const input = document.getElementById("chat-input");
-    const text = input.value.trim();
-
-    if (!text || !dataChannel) return;
-    if (dataChannel.readyState !== "open") return;
-
-    dataChannel.send(text);
-
-    messages.push("You: " + text);
-    input.value = "";
-
-    renderChat();
-};
-
-function renderChat() {
-    const box = document.getElementById("chat-messages");
-    box.innerHTML = "";
-
-    messages.forEach(msg => {
-        box.innerHTML += `<div>${msg}</div>`;
-    });
-
-    box.scrollTop = box.scrollHeight;
-}
-
-window.acceptAnswer = async (answerString) => {
-    try {
-        const answer = JSON.parse(answerString);
-
-        if (!peerConnection) {
-            console.log("No peer connection yet — run startChat or connectToFriend first");
-            return;
-        }
-
-        await peerConnection.setRemoteDescription(answer);
-
-        console.log("CONNECTED SUCCESSFULLY");
-    } catch (err) {
-        console.error("Answer failed:", err);
-    }
-};
-
-window.addIce = async (iceString) => {
-    const candidate = JSON.parse(iceString);
-
-    if (!peerConnection) return;
-
-    await peerConnection.addIceCandidate(candidate);
 };
 
 
