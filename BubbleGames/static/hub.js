@@ -246,7 +246,7 @@ window.toggleGamePublic = async (gameId, makePublic) => {
     // 2. Cache the old state for a potential revert
     const previousState = !makePublic;
 
-    // 3. OPTIMISTIC UI: Update the look immediately so it feels instant
+    // 3. OPTIMISTIC UI: Update the look immediately
     if (track) {
         track.style.background = makePublic ? '#2ed573' : '#ccc';
         track.setAttribute('onclick', `toggleGamePublic('${gameId}', ${!makePublic})`);
@@ -254,37 +254,33 @@ window.toggleGamePublic = async (gameId, makePublic) => {
     if (knob) knob.style.left = makePublic ? '25px' : '3px';
 
     try {
-        // 4. DATABASE: Save the change to Firestore exactly once
+        // 4. DATABASE: Save the change to Firestore
         await updateDoc(doc(db, 'games', gameId), { isPublic: makePublic });
 
         // 5. LOCAL CACHE: Update your 'user' cache
-       // 5. LOCAL CACHE: Update your 'user' cache
-if (window.gameCache?.user) {
-    const gameIndex = window.gameCache.user.findIndex(g => g.id === gameId);
-    if (gameIndex !== -1) {
-        // Create a new data object with the updated value
-        const currentData = window.gameCache.user[gameIndex].data();
-        currentData.isPublic = makePublic;
-        
-        // Use this workaround to force the Firestore snapshot object to update its internal data
-        Object.defineProperty(window.gameCache.user[gameIndex], '_data', {
-            value: currentData,
-            writable: true
-        });
-    }
-}
+        if (window.gameCache?.user) {
+            const gameObj = window.gameCache.user.find(g => g.id === gameId);
+            if (gameObj) {
+                // Merge current data with the new isPublic status
+                const updatedData = { ...gameObj.data(), isPublic: makePublic };
+                
+                // Force update the internal snapshot data
+                Object.defineProperty(gameObj, '_data', {
+                    value: updatedData,
+                    writable: true
+                });
+            }
+        }
 
         // 6. LOCAL CACHE: Update your 'global' cache
         if (window.gameCache?.global) {
             const globalIndex = window.gameCache.global.findIndex(g => g.id === gameId);
             
             if (makePublic && globalIndex === -1) {
-                // If made public and not in global cache, we'd need the game data.
-                // NOTE: For simplicity, just clearing global cache forces a refresh 
-                // only if the user actually goes to Home, or you can push the object here.
+                // If made public, clear cache to force a fresh pull on next Home visit
                 window.gameCache.global = null; 
             } else if (!makePublic && globalIndex !== -1) {
-                // If made private, remove from global cache
+                // If made private, remove from global list immediately
                 window.gameCache.global.splice(globalIndex, 1);
             }
         }
