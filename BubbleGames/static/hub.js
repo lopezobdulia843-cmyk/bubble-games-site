@@ -99,82 +99,141 @@ async function loadUserGames() {
 
 function makeGameCard(id, g, isOwner) {
     const card = document.createElement('div');
-    card.style.cssText = `
-        background: white;
-        border-radius: 16px;
-        padding: 16px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        width: 220px;
-    `;
-
     const isPublic = g.isPublic === true;
-
     const safeId = id;
     const safeName = (g.name || 'Untitled').replace(/`/g, '');
     const safeDesc = (g.description || 'No description.').replace(/`/g, '');
 
-    card.innerHTML = `
-        <div style="font-weight:bold; font-size:15px;">🎮 ${g.name || 'Untitled'}</div>
-        <div style="font-size:12px; color:#777;">${g.description || 'No description.'}</div>
-        <div style="font-size:11px; color:#aaa;">By ${g.authorName || 'Unknown'}</div>
-
-        ${isOwner ? `
-        <div style="display:flex; align-items:center; gap:8px; margin-top:6px;">
-            <span style="font-size:12px; color:#999;">Private</span>
-
-            <div id="track-${safeId}" onclick="toggleGamePublic('${safeId}', ${!isPublic})" style="
-                position:relative;
-                width:40px; height:22px;
-                background:${isPublic ? '#2ed573' : '#ccc'};
-                border-radius:22px;
-                cursor:pointer;
-                transition:background 0.3s;
-            ">
-                <div id="knob-${safeId}" style="
-                    position:absolute;
-                    width:16px; height:16px;
-                    background:white;
-                    border-radius:50%;
-                    top:3px;
-                    left:${isPublic ? '21px' : '3px'};
-                    transition:left 0.3s;
-                "></div>
-            </div>
-
-            <span style="font-size:12px; color:#999;">Public</span>
-        </div>
-
-        <button onclick="editGameInfo('${safeId}', \`${safeName}\`, \`${safeDesc}\`)" style="
-            margin-top:4px;
-            background:#00a8ff;
-            color:white;
-            border:none;
-            padding:6px 10px;
-            border-radius:8px;
-            cursor:pointer;
-            font-size:12px;
-            font-weight:bold;
-        ">✏️ Edit Info</button>
-        ` : ''}
+    card.style.cssText = `
+        background: var(--card-bg);
+        border-radius: 35px;
+        padding: 30px;
+        border: 6px solid var(--border-color);
+        text-align: center;
+        cursor: pointer;
+        color: var(--text-sub);
+        font-family: 'Arial Rounded MT Bold', sans-serif;
+        font-size: 22px;
+        font-weight: 900;
+        min-height: 120px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        box-shadow: 0 4px 15px var(--shadow);
     `;
+
+    card.innerHTML = `🎮 ${g.name || 'Untitled'}`;
+
+    card.onmouseover = () => {
+        card.style.transform = 'translateY(-10px)';
+        card.style.borderColor = 'var(--text-main)';
+        card.style.boxShadow = '0 15px 30px var(--shadow)';
+    };
+    card.onmouseout = () => {
+        card.style.transform = '';
+        card.style.borderColor = 'var(--border-color)';
+        card.style.boxShadow = '0 4px 15px var(--shadow)';
+    };
+
+    card.onclick = () => openGamePanel(safeId, safeName, safeDesc, isOwner, isPublic);
 
     return card;
 }
 
+function openGamePanel(id, name, desc, isOwner, isPublic) {
+    const panel = document.getElementById('actionPanel');
+
+    panel.innerHTML = `
+        <div style="display:flex; flex-direction:column; height:100%; justify-content:space-between;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div>
+                    <div style="font-size:13px; opacity:0.5; margin-bottom:4px; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">Now Playing</div>
+                    <h2 style="margin:0; font-size:32px; color:var(--text-main);">🎮 ${name}</h2>
+                </div>
+                <button onclick="closePanel()" style="cursor:pointer; background:none; border:none; font-size:32px; color:var(--text-sub); margin-top:-8px;">✕</button>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                <div style="max-width:60%;">
+                    <p style="margin:0; font-size:15px; opacity:0.7; color:var(--text-sub);">${desc}</p>
+                    ${isOwner ? `
+                    <div style="display:flex; align-items:center; gap:10px; margin-top:16px;">
+                        <span style="font-size:13px; color:var(--text-sub); opacity:0.7;">Private</span>
+                        <div id="panel-track-${id}" onclick="toggleGamePublic('${id}', ${!isPublic})" style="
+                            position:relative;
+                            width:48px; height:26px;
+                            background:${isPublic ? '#2ed573' : '#ccc'};
+                            border-radius:26px;
+                            cursor:pointer;
+                            transition:background 0.3s;
+                        ">
+                            <div id="panel-knob-${id}" style="
+                                position:absolute;
+                                width:20px; height:20px;
+                                background:white;
+                                border-radius:50%;
+                                top:3px;
+                                left:${isPublic ? '25px' : '3px'};
+                                transition:left 0.3s;
+                                box-shadow:0 1px 4px rgba(0,0,0,0.2);
+                            "></div>
+                        </div>
+                        <span style="font-size:13px; color:var(--text-sub); opacity:0.7;">Public</span>
+                        <button onclick="editGameInfo('${id}', \`${name}\`, \`${desc}\`)" style="
+                            margin-left:10px;
+                            background:var(--border-color);
+                            color:var(--text-main);
+                            border:none;
+                            padding:6px 14px;
+                            border-radius:20px;
+                            cursor:pointer;
+                            font-size:12px;
+                            font-weight:bold;
+                        ">✏️ Edit</button>
+                    </div>
+                    ` : ''}
+                </div>
+
+                <button onclick="alert('Play coming soon!')" style="
+                    background: linear-gradient(135deg, #4f46e5, #ec4899);
+                    color: white;
+                    padding: 20px 50px;
+                    border-radius: 60px;
+                    border: none;
+                    font-size: 24px;
+                    font-weight: 900;
+                    cursor: pointer;
+                    box-shadow: 0 10px 0 #3730a3, 0 15px 30px rgba(236, 72, 153, 0.4);
+                    transition: 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                    text-transform: uppercase;
+                    letter-spacing: 2px;
+                    font-family: 'Arial Rounded MT Bold', sans-serif;
+                    animation: float 3s ease-in-out infinite;
+                "
+                onmouseover="this.style.transform='scale(1.08) translateY(-4px)'"
+                onmouseout="this.style.transform=''"
+                onmousedown="this.style.transform='translateY(6px) scale(0.95)'; this.style.boxShadow='0 2px 0 #3730a3'"
+                onmouseup="this.style.transform=''; this.style.boxShadow='0 10px 0 #3730a3, 0 15px 30px rgba(236, 72, 153, 0.4)'"
+                >🎮 Play Now</button>
+            </div>
+        </div>
+    `;
+
+    panel.classList.add('open');
+}
 window.toggleGamePublic = async (gameId, makePublic) => {
     try {
         await updateDoc(doc(db, 'games', gameId), { isPublic: makePublic });
 
-        const track = document.getElementById('track-' + gameId);
-        const knob = document.getElementById('knob-' + gameId);
-        if (track) track.style.background = makePublic ? '#2ed573' : '#ccc';
-        if (knob) knob.style.left = makePublic ? '21px' : '3px';
-
-        // Update onclick so next tap flips it the other way
-        if (track) track.setAttribute('onclick', `toggleGamePublic('${gameId}', ${!makePublic})`);
+      // Update panel toggle
+const track = document.getElementById('panel-track-' + gameId);
+const knob = document.getElementById('panel-knob-' + gameId);
+if (track) {
+    track.style.background = makePublic ? '#2ed573' : '#ccc';
+    track.setAttribute('onclick', `toggleGamePublic('${gameId}', ${!makePublic})`);
+}
+if (knob) knob.style.left = makePublic ? '25px' : '3px';
 
         loadGlobalGames();
     } catch (e) {
