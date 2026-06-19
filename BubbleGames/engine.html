@@ -1360,7 +1360,8 @@ transformControl.attach(hits[0].object);
             }
         });
 
-   async function saveGameData() {
+   window.saveGameData = async function saveGameData() {
+        async function saveGameData() {
     if (window.isSaving) return;
     
     const gameName = document.getElementById('pubName').value.trim();
@@ -1417,7 +1418,7 @@ isPublic: false,
         window.isSaving = false;
         saveBtn.innerText = originalText;
     }
-}
+};
 
  function saveWorldState() {
 
