@@ -63,6 +63,11 @@ window.handleLogout = async () => {
 };
 
 // --- 4. TABS & PANELS ---
+window.closePanel = () => {
+    const panel = document.getElementById('actionPanel');
+    if (panel) panel.classList.remove('open');
+};
+
 window.switchTab = (tabName) => {
     ['home', 'create', 'settings', 'chat'].forEach(view => {
         document.getElementById('view-' + view).style.display = (view === tabName) ? 'flex' : 'none';
