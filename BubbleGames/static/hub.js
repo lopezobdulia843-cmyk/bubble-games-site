@@ -133,6 +133,7 @@ window.connectToFriend = async (offerString) => {
     await peerConnection.setLocalDescription(answer);
 
     console.log("SEND ANSWER BACK:", JSON.stringify(answer));
+    return answer;
 };
 
 window.sendMessage = () => {
@@ -159,6 +160,19 @@ function renderChat() {
 
     box.scrollTop = box.scrollHeight;
 }
+
+window.acceptAnswer = async (answerString) => {
+    const answer = JSON.parse(answerString);
+
+    if (!peerConnection) {
+        console.log("No peer connection yet");
+        return;
+    }
+
+    await peerConnection.setRemoteDescription(answer);
+
+    console.log("CONNECTED!");
+};
 
 window.acceptAnswer = async (answerString) => {
     const answer = JSON.parse(answerString);
