@@ -359,6 +359,7 @@ font-size:14px;
 
     <script type="module">
         import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"; "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import * as THREE from 'three';
         import { TransformControls } from 'three/addons/controls/TransformControls.js';
@@ -373,6 +374,7 @@ import * as THREE from 'three';
 };
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
+        const auth = getAuth(firebaseApp);
  const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x87ceeb);
         scene.fog = new THREE.Fog(0x87ceeb, 20, 100);
@@ -1381,6 +1383,9 @@ transformControl.attach(hits[0].object);
         name: gameName,
         description: gameDescription || "No description provided.", // Optional field
         createdAt: new Date().toISOString(),
+        authorId: auth ? auth.currentUser?.uid || null : null,
+authorName: auth ? auth.currentUser?.email?.split('@')[0] || "Unknown" : "Unknown",
+isPublic: false,
         blocks: blocks.map(b => ({
             position: { x: b.position.x, y: b.position.y, z: b.position.z },
             color: b.material.color.getHex(),
