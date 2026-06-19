@@ -1367,12 +1367,10 @@ transformControl.attach(hits[0].object);
     const gameDescription = document.getElementById('pubDesc').value.trim();
     
     // Split by spaces and filter out empty strings to get an accurate word count
-    const wordCount = gameName.split(/\s+/).filter(word => word.length > 0).length;
-
-    if (wordCount < 3) {
-        alert("Please enter a game name with at least 3 words!");
-        return;
-    }
+   if (!gameName) {
+    alert("Please enter a game name!");
+    return;
+}
 
     window.isSaving = true;
     const saveBtn = document.getElementById('saveGameBtn');
