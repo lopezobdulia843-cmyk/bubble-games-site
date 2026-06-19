@@ -1361,7 +1361,7 @@ transformControl.attach(hits[0].object);
         });
 
    window.saveGameData = async function saveGameData() {
-        async function saveGameData() {
+        window.saveGameData = async function() {
     if (window.isSaving) return;
     
     const gameName = document.getElementById('pubName').value.trim();
@@ -2781,26 +2781,12 @@ document.getElementById("closeScriptEditor").onclick = () => {
         }
     }
 });
-const scriptText =
-document.getElementById("scriptText");
-
-const lineNumbers =
-document.getElementById("lineNumbers");
-
+const scriptText = document.getElementById("scriptText");
 scriptText.addEventListener("input", () => {
-
-    const lines =
-        scriptText.value.split("\n").length;
-
-    let text = "";
-
-    for (let i = 1; i <= lines; i++) {
-
-        text += i + "\n";
-
+    if (currentScript) {
+        currentScript.code = scriptText.value;
     }
-
-    lineNumbers.textContent = text;
+});
 });
 document.getElementById("closeScriptEditor").onclick = () => {
 
