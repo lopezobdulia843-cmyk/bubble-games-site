@@ -359,7 +359,7 @@ font-size:14px;
 
     <script type="module">
         import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"; "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import * as THREE from 'three';
         import { TransformControls } from 'three/addons/controls/TransformControls.js';
@@ -1360,8 +1360,7 @@ transformControl.attach(hits[0].object);
             }
         });
 
-   window.saveGameData = async function saveGameData() {
-        window.saveGameData = async function() {
+   window.saveGameData = async function() {
     if (window.isSaving) return;
     
     const gameName = document.getElementById('pubName').value.trim();
