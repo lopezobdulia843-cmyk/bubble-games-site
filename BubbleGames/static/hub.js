@@ -1,3 +1,4 @@
+window.gameCache = { global: null, user: null };
 import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { doc, getDoc, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, limitToLast, getDocs, deleteDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -73,27 +74,30 @@ async function loadGlobalGames() {
 async function loadUserGames() {
     const userGrid = document.getElementById('owned-game-grid');
     if (!userGrid) return;
-    userGrid.innerHTML = `<p class="no-games">Loading your games... 🚀</p>`;
 
-    onAuthStateChanged(auth, async (user) => {
-        if (!user) return;
-        try {
-            const snap = await getDocs(collection(db, 'games'));
-            const myGames = snap.docs.filter(d => d.data().authorId === user.uid);
+    // Check if we already have the data locally
+    if (window.gameCache.user) {
+        renderGames(window.gameCache.user, userGrid, true);
+        return;
+    }
 
-            if (myGames.length === 0) {
-                userGrid.innerHTML = `<p class="no-games">You haven't created any games yet. Start creating! 🚀</p>`;
-                return;
-            }
+    userGrid.innerHTML = `<p class="no-games">Loading... 🚀</p>`;
+    
+    // If no cache, fetch once from DB
+    const snap = await getDocs(collection(db, 'games'));
+    window.gameCache.user = snap.docs.filter(d => d.data().authorId === auth.currentUser?.uid);
+    
+    renderGames(window.gameCache.user, userGrid, true);
+}
 
-            userGrid.innerHTML = '';
-            myGames.forEach(docSnap => {
-                userGrid.appendChild(makeGameCard(docSnap.id, docSnap.data(), true));
-            });
-        } catch (e) {
-            console.error("Error loading user games:", e);
-            userGrid.innerHTML = `<p class="no-games">Failed to load 😢</p>`;
-        }
+function renderGames(games, container, isOwner) {
+    container.innerHTML = '';
+    if (games.length === 0) {
+        container.innerHTML = `<p class="no-games">No games found! 🫧</p>`;
+        return;
+    }
+    games.forEach(docSnap => {
+        container.appendChild(makeGameCard(docSnap.id, docSnap.data(), isOwner));
     });
 }
 
@@ -223,22 +227,43 @@ function openGamePanel(id, name, desc, isOwner, isPublic) {
     panel.classList.add('open');
 }
 window.toggleGamePublic = async (gameId, makePublic) => {
+    // 1. Get references to UI elements
+    const track = document.getElementById('panel-track-' + gameId);
+    const knob = document.getElementById('panel-knob-' + gameId);
+    
+    // 2. Cache the old state for a potential revert
+    const previousState = !makePublic;
+
+    // 3. OPTIMISTIC UI: Update the look immediately so it feels instant
+    if (track) {
+        track.style.background = makePublic ? '#2ed573' : '#ccc';
+        track.setAttribute('onclick', `toggleGamePublic('${gameId}', ${!makePublic})`);
+    }
+    if (knob) knob.style.left = makePublic ? '25px' : '3px';
+
     try {
+        // 4. DATABASE: Save the change to Firestore exactly once
         await updateDoc(doc(db, 'games', gameId), { isPublic: makePublic });
 
-      // Update panel toggle
-const track = document.getElementById('panel-track-' + gameId);
-const knob = document.getElementById('panel-knob-' + gameId);
-if (track) {
-    track.style.background = makePublic ? '#2ed573' : '#ccc';
-    track.setAttribute('onclick', `toggleGamePublic('${gameId}', ${!makePublic})`);
-}
-if (knob) knob.style.left = makePublic ? '25px' : '3px';
-
-        loadGlobalGames();
+        // 5. LOCAL CACHE: Update your cache so no future reads are needed
+        if (window.gameCache && window.gameCache.user) {
+            const gameIndex = window.gameCache.user.findIndex(g => g.id === gameId);
+            if (gameIndex !== -1) {
+                // Update the property in the local cache object
+                const gameData = window.gameCache.user[gameIndex].data();
+                gameData.isPublic = makePublic;
+            }
+        }
     } catch (e) {
+        // 6. ERROR HANDLING: Revert UI if the save failed
         console.error("Toggle failed:", e);
-        alert("❌ Couldn't update visibility. Try again!");
+        alert("❌ Couldn't update visibility. Reverting...");
+        
+        if (track) {
+            track.style.background = previousState ? '#2ed573' : '#ccc';
+            track.setAttribute('onclick', `toggleGamePublic('${gameId}', ${!previousState})`);
+        }
+        if (knob) knob.style.left = previousState ? '25px' : '3px';
     }
 };
 
