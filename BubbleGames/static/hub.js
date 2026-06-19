@@ -258,12 +258,21 @@ window.toggleGamePublic = async (gameId, makePublic) => {
         await updateDoc(doc(db, 'games', gameId), { isPublic: makePublic });
 
         // 5. LOCAL CACHE: Update your 'user' cache
-        if (window.gameCache?.user) {
-            const gameIndex = window.gameCache.user.findIndex(g => g.id === gameId);
-            if (gameIndex !== -1) {
-                window.gameCache.user[gameIndex].data().isPublic = makePublic;
-            }
-        }
+       // 5. LOCAL CACHE: Update your 'user' cache
+if (window.gameCache?.user) {
+    const gameIndex = window.gameCache.user.findIndex(g => g.id === gameId);
+    if (gameIndex !== -1) {
+        // Create a new data object with the updated value
+        const currentData = window.gameCache.user[gameIndex].data();
+        currentData.isPublic = makePublic;
+        
+        // Use this workaround to force the Firestore snapshot object to update its internal data
+        Object.defineProperty(window.gameCache.user[gameIndex], '_data', {
+            value: currentData,
+            writable: true
+        });
+    }
+}
 
         // 6. LOCAL CACHE: Update your 'global' cache
         if (window.gameCache?.global) {
