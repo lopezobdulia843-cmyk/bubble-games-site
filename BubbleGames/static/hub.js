@@ -125,17 +125,6 @@ function renderGames(games, container, isOwner) {
     });
 }
 
-function renderGames(games, container, isOwner) {
-    container.innerHTML = '';
-    if (games.length === 0) {
-        container.innerHTML = `<p class="no-games">No games found! 🫧</p>`;
-        return;
-    }
-    games.forEach(docSnap => {
-        container.appendChild(makeGameCard(docSnap.id, docSnap.data(), isOwner));
-    });
-}
-
 function makeGameCard(id, g, isOwner) {
     const card = document.createElement('div');
     const isPublic = g.isPublic === true;
@@ -281,12 +270,22 @@ window.toggleGamePublic = async (gameId, makePublic) => {
         await updateDoc(doc(db, 'games', gameId), { isPublic: makePublic });
 
         // 5. LOCAL CACHE: Update your 'user' cache
-        if (window.gameCache?.user) {
-            const gameIndex = window.gameCache.user.findIndex(g => g.id === gameId);
-            if (gameIndex !== -1) {
-                window.gameCache.user[gameIndex].data().isPublic = makePublic;
-            }
-        }
+       // 5. LOCAL CACHE: Update your 'user' cache
+if (window.gameCache?.user) {
+    const gameIndex = window.gameCache.user.findIndex(g => g.id === gameId);
+    if (gameIndex !== -1) {
+        // Create a copy of the data, update it, and re-assign it
+        const currentData = window.gameCache.user[gameIndex].data();
+        currentData.isPublic = makePublic;
+        
+        // This trick works because Firestore snapshots are objects we can manipulate 
+        // if we use a small workaround like this:
+        Object.defineProperty(window.gameCache.user[gameIndex], '_data', {
+            value: currentData,
+            writable: true
+        });
+    }
+}
 
         // 6. LOCAL CACHE: Update your 'global' cache
         if (window.gameCache?.global) {
