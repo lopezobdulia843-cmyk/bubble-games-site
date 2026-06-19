@@ -41,7 +41,7 @@ window.currentRank = profileSnap.exists()
         
         loadGlobalGames();
         loadUserGames(); 
-        refreshChat();
+        
     }
 });
 
@@ -78,6 +78,7 @@ window.toggleDarkMode = () => {
 };
 
 // --- 5. CHAT ROOM LOGIC ---
+function refreshChat() {}
 let peerConnection;
 let dataChannel;
 let messages = [];
@@ -141,6 +142,7 @@ window.sendMessage = () => {
     const text = input.value.trim();
 
     if (!text || !dataChannel) return;
+    if (dataChannel.readyState !== "open") return;
 
     dataChannel.send(text);
 
@@ -174,10 +176,6 @@ window.acceptAnswer = async (answerString) => {
     console.log("CONNECTED!");
 };
 
-window.acceptAnswer = async (answerString) => {
-    const answer = JSON.parse(answerString);
-    await peerConnection.setRemoteDescription(answer);
-};
 
 // --- 6. MODERATION TOOLS ---
 
