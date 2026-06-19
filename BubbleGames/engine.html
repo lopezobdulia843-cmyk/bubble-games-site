@@ -228,6 +228,12 @@ BlockColor:
 
       <div style="position: absolute; top: 20px; left: 20px; background: rgba(255, 255, 255, 0.85); padding: 10px 20px; border-radius: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); backdrop-filter: blur(5px); z-index: 100; display: flex; gap: 15px; align-items: center;">
     <a href="hub.html" style="text-decoration: none; color: #333; font-weight: bold;">🏠 Hub</a>
+<a href="https://docs.google.com/document/d/19iEktLJzT0kE6szLL3ohZ-O9kjlTK3-ZJlMbFN5TaTs/edit?tab=t.0" 
+   target="_blank" 
+   rel="noopener noreferrer" 
+   style="text-decoration: none; color: #333; font-weight: bold; margin-left: 15px;">
+   📖 Tutorial
+</a>
     
     <button id="pubBtn" style="background: #ff9f43; color: white; border: 2px solid #d35400; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-weight: bold;">🚀 Publish</button>
 </div>
@@ -235,9 +241,15 @@ BlockColor:
 <div id="publishModal" onmousedown="event.stopPropagation()" style="display:none; position:absolute; top:120px; left:20px; background:white; padding:20px; border-radius:15px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 200;">
     <h3>Publish Game</h3>
     Name: <br><input type="text" id="pubName"><br><br>
-    Description: <br><textarea id="pubDesc"></textarea><br><br>
-    Thumbnail (1 Emoji Only!): <br><input type="text" id="pubThumb" maxlength="1"><br><br>
-    <button onclick="document.getElementById('publishModal').style.display='none'">Close</button>
+    Description (Max 100 chars): <br>
+    <textarea id="pubDesc" maxlength="100" style="width: 200px; height: 60px;"></textarea><br><br>
+   <button id="saveGameBtn" onclick="saveGameData()" style="background: #00a8ff; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-weight: bold;">
+    💾 Save Game
+</button>
+    
+    <button onclick="document.getElementById('publishModal').style.display='none'" style="padding: 8px 16px; border-radius: 5px; cursor: pointer;">
+        Close
+    </button>
 </div>
 </div>
     <div id="ui">        
@@ -346,10 +358,22 @@ font-size:14px;
     </div>
 
     <script type="module">
-        import * as THREE from 'three';
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import * as THREE from 'three';
         import { TransformControls } from 'three/addons/controls/TransformControls.js';
 
-        const scene = new THREE.Scene();
+       const firebaseConfig = {
+    apiKey: "AIzaSyDydzKsSL-7Sz919MTS2ORWtGt3PgFzFRE",
+    authDomain: "bubblegames.firebaseapp.com",
+    projectId: "bubblegames",
+    storageBucket: "bubblegames.firebasestorage.app",
+    messagingSenderId: "689476233597",
+    appId: "1:689476233597:web:aef6bfdbc6b52ff77f0414"
+};
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
+ const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x87ceeb);
         scene.fog = new THREE.Fog(0x87ceeb, 20, 100);
         
@@ -1011,12 +1035,26 @@ updateWorldList();            }
 // CTRL + D DUPLICATE
 
 window.addEventListener('keydown', (e) => {
+    // 1. DELETE PROTECTION
+    if (e.key === 'Backspace' || e.key === 'Delete') {
+        if (selectedBlock) {
+            const isGroup = selectedBlock.userData && selectedBlock.userData.group;
+            const isMulti = selectedBlock.userData && selectedBlock.userData.isMulti;
+
+            if (isGroup || isMulti) {
+                console.log("Deletion of groups/multiselects is disabled.");
+                return; // Blocks the deletion
+            }
+        }
+    }
+
+    // 2. CTRL + D DUPLICATE LOGIC
     if (e.ctrlKey && e.key.toLowerCase() === 'd') {
         e.preventDefault();
 
-        // 1. Group Duplication Logic
+        // Group Duplication Logic
         if (selectedBlock && selectedBlock.userData && selectedBlock.userData.group) {
-            saveWorldState();
+            // ... (keep your existing duplication code here)
             const newBlocks = [];
             selectedBlock.userData.group.blocks.forEach(oldBlock => {
                 const copy = new THREE.Mesh(
@@ -1050,14 +1088,12 @@ window.addEventListener('keydown', (e) => {
             return;
         }
 
-        // 2. Single Block Duplication Logic
+        // Single Block Duplication Logic
         if (!selectedBlock || selectedBlock.userData.isSpawn) return;
 
-        saveWorldState();
         const original = selectedBlock;
         let newBlock;
 
-        // MEGA BLOCK COPY
         if (original.userData.isMegaBlock) {
             newBlock = new THREE.Mesh(
                 new THREE.BoxGeometry(
@@ -1071,7 +1107,6 @@ window.addEventListener('keydown', (e) => {
             );
             newBlock.userData.isMegaBlock = true;
         } else {
-            // NORMAL BLOCK COPY
             newBlock = new THREE.Mesh(
                 new THREE.BoxGeometry(1, 1, 1),
                 new THREE.MeshStandardMaterial({
@@ -1080,7 +1115,6 @@ window.addEventListener('keydown', (e) => {
             );
         }
 
-        // Finish the job
         newBlock.position.copy(original.position);
         newBlock.position.x += 1;
         newBlock.userData.name = original.userData.name || "";
@@ -1096,8 +1130,7 @@ window.addEventListener('keydown', (e) => {
         setMode('move');
         transformControl.attach(newBlock);
     }
-});
-        
+});    
         document.getElementById('paintColor').addEventListener('input', (e) => {
     paintColor = e.target.value;
 });
@@ -1140,6 +1173,7 @@ if (isBoxSelecting && mode === "move") {
         }, { passive: true });
 
         window.addEventListener('mousedown', (e) => {
+
             if (e.button === 2) isRightDragging = true;
             
             if (isPlaying && isFirstPerson && document.pointerLockElement !== renderer.domElement) {
@@ -1324,7 +1358,63 @@ transformControl.attach(hits[0].object);
             }
         });
 
-       function saveWorldState() {
+   async function saveGameData() {
+    if (window.isSaving) return;
+    
+    const gameName = document.getElementById('pubName').value.trim();
+    const gameDescription = document.getElementById('pubDesc').value.trim();
+    
+    // Split by spaces and filter out empty strings to get an accurate word count
+    const wordCount = gameName.split(/\s+/).filter(word => word.length > 0).length;
+
+    if (wordCount < 3) {
+        alert("Please enter a game name with at least 3 words!");
+        return;
+    }
+
+    window.isSaving = true;
+    const saveBtn = document.getElementById('saveGameBtn');
+    const originalText = saveBtn.innerText;
+    saveBtn.innerText = "Saving...";
+
+    const gameData = {
+        name: gameName,
+        description: gameDescription || "No description provided.", // Optional field
+        createdAt: new Date().toISOString(),
+        blocks: blocks.map(b => ({
+            position: { x: b.position.x, y: b.position.y, z: b.position.z },
+            color: b.material.color.getHex(),
+            name: b.userData.name || "",
+            isSpawn: !!b.userData.isSpawn,
+            isMegaBlock: !!b.userData.isMegaBlock,
+            size: b.userData.isMegaBlock ? {
+                w: b.geometry.parameters.width,
+                h: b.geometry.parameters.height,
+                d: b.geometry.parameters.depth
+            } : null
+        })),
+        groups: groups.map(g => ({
+            name: g.name,
+            blockIndices: g.blocks.map(b => blocks.indexOf(b))
+        })),
+        scripts: scripts.map(s => ({
+            name: s.name || "Unnamed Script",
+            code: s.code || ""
+        }))
+    };
+
+    try {
+        await addDoc(collection(db, 'games'), gameData);
+        window.location.href = "https://bubblegames.onrender.com/hub.html";
+    } catch (e) {
+        console.error("Error saving game:", e);
+        alert("❌ Failed to save. Check console for details.");
+        window.isSaving = false;
+        saveBtn.innerText = originalText;
+    }
+}
+
+ function saveWorldState() {
 
     const state = [];
 
@@ -2551,7 +2641,7 @@ if (
     return;
 }
 // DELETE MULTI SELECT
-    if (e.key === "Backspace") {
+if (false && e.key === "Backspace") {
 if (
     selectedBlock &&
     selectedBlock.userData &&
