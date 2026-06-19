@@ -87,19 +87,42 @@ async function loadUserGames() {
     const userGrid = document.getElementById('owned-game-grid');
     if (!userGrid) return;
 
-    // Check if we already have the data locally
+    // 1. Check if we already have the data locally (Client-Side Cache)
     if (window.gameCache.user) {
         renderGames(window.gameCache.user, userGrid, true);
         return;
     }
 
+    // 2. If not, show loading and fetch ONCE from the Database
     userGrid.innerHTML = `<p class="no-games">Loading... 🚀</p>`;
     
-    // If no cache, fetch once from DB
-    const snap = await getDocs(collection(db, 'games'));
-    window.gameCache.user = snap.docs.filter(d => d.data().authorId === auth.currentUser?.uid);
+    try {
+        const snap = await getDocs(collection(db, 'games'));
+        
+        // Filter and save to the cache
+        window.gameCache.user = snap.docs.filter(d => d.data().creatorUID === auth.currentUser?.uid);
+        
+        // Render the games
+        renderGames(window.gameCache.user, userGrid, true);
+    } catch (e) {
+        console.error("Error loading user games:", e);
+        userGrid.innerHTML = `<p class="no-games">Failed to load 😢</p>`;
+    }
+}
+
+// Helper function to render the list
+function renderGames(games, container, isOwner) {
+    container.innerHTML = '';
     
-    renderGames(window.gameCache.user, userGrid, true);
+    if (games.length === 0) {
+        container.innerHTML = `<p class="no-games">You haven't created any games yet. Start creating! 🚀</p>`;
+        return;
+    }
+
+    games.forEach(docSnap => {
+        // Use makeGameCard to create the UI elements
+        container.appendChild(makeGameCard(docSnap.id, docSnap.data(), isOwner));
+    });
 }
 
 function renderGames(games, container, isOwner) {
