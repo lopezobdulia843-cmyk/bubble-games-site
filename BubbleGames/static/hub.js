@@ -78,74 +78,81 @@ window.toggleDarkMode = () => {
 };
 
 // --- 5. CHAT ROOM LOGIC ---
-const chatCollection = collection(db, "global-chat");
+let peerConnection;
+let dataChannel;
+let messages = [];
 
-async function refreshChat() {
-    const chatBox = document.getElementById('chat-messages');
-    if (!chatBox) return;
-    // Get oldest to newest correctly
-    const q = query(chatCollection, orderBy("createdAt", "asc"), limitToLast(20));
-    const snapshot = await getDocs(q);
-    chatBox.innerHTML = ""; 
-    snapshot.forEach((messageDoc) => {
-    const data = messageDoc.data();
-       const canModerate =
-    window.currentRank === "Owner" ||
-    window.currentRank === "Moderator";
+const config = {
+    iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+};
 
-chatBox.innerHTML += `
-<div>
-    <strong>${data.username}:</strong> 
-    <span id="msg-${messageDoc.id}">${String(data.text).replace(/</g, "&lt;").replace(/>/g, "&gt;")}</span>
+window.startChat = async () => {
+    peerConnection = new RTCPeerConnection(config);
 
-    ${
-        canModerate
-        ? `
-        <button onclick="editMessage('${messageDoc.id}')">✏️</button>
-        <button onclick="deleteMessageNow('${messageDoc.id}')">🗑️</button>
-        `
-        : ""
-    }
-</div>
-`;
-    });
-    chatBox.scrollTop = chatBox.scrollHeight;
-}
+    dataChannel = peerConnection.createDataChannel("chat");
 
-// Listen to trigger
-onSnapshot(doc(db, "chat-metadata", "status"), () => { refreshChat(); });
+    dataChannel.onmessage = (event) => {
+        messages.push(event.data);
+        renderChat();
+    };
 
-window.sendMessage = async () => {
-    const input = document.getElementById('chat-input');
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
+
+    console.log("SEND THIS OFFER:", JSON.stringify(offer));
+
+    peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+            console.log("SEND ICE:", JSON.stringify(event.candidate));
+        }
+    };
+};
+
+window.connectToFriend = async (offerString) => {
+    peerConnection = new RTCPeerConnection(config);
+
+    peerConnection.ondatachannel = (event) => {
+        dataChannel = event.channel;
+
+        dataChannel.onmessage = (e) => {
+            messages.push(e.data);
+            renderChat();
+        };
+    };
+
+    const offer = JSON.parse(offerString);
+    await peerConnection.setRemoteDescription(offer);
+
+    const answer = await peerConnection.createAnswer();
+    await peerConnection.setLocalDescription(answer);
+
+    console.log("SEND ANSWER:", JSON.stringify(answer));
+};
+
+window.sendMessage = () => {
+    const input = document.getElementById("chat-input");
     const text = input.value.trim();
-    if (text === "" || text.length > 100) return;
 
-    await addDoc(chatCollection, { 
-    text, 
-    username: window.currentUsername || "Player",
-    uid: auth.currentUser.uid,
-    rank: window.currentRank || "user",
-    createdAt: serverTimestamp()
-});
+    if (!text || !dataChannel) return;
+
+    dataChannel.send(text);
+
+    messages.push("You: " + text);
     input.value = "";
 
-    const snapshot = await getDocs(query(chatCollection, orderBy("createdAt", "asc")));
-    if (snapshot.size > 20) await deleteDoc(snapshot.docs[0].ref);
-    
-    await setDoc(doc(db, "chat-metadata", "status"), { lastUpdated: serverTimestamp() });
+    renderChat();
 };
 
-window.openPanel = (n, i, d) => {
-    document.getElementById('panelTitle').innerText = n;
-    document.getElementById('panelIcon').innerText = i;
-    document.getElementById('panelDesc').innerText = d;
-    document.getElementById('actionPanel').classList.add('open');
-};
+function renderChat() {
+    const box = document.getElementById("chat-messages");
+    box.innerHTML = "";
 
-window.closePanel = () => {
-    const panel = document.getElementById('actionPanel');
-    if (panel) panel.classList.remove('open');
-};
+    messages.forEach(msg => {
+        box.innerHTML += `<div>${msg}</div>`;
+    });
+
+    box.scrollTop = box.scrollHeight;
+}
 
 // --- 6. MODERATION TOOLS ---
 
