@@ -257,18 +257,16 @@ window.toggleGamePublic = async (gameId, makePublic) => {
         // 4. DATABASE: Save the change to Firestore
         await updateDoc(doc(db, 'games', gameId), { isPublic: makePublic });
 
-        // 5. LOCAL CACHE: Update your 'user' cache
+     // 5. LOCAL CACHE: Update your 'user' cache
         if (window.gameCache?.user) {
-            const gameObj = window.gameCache.user.find(g => g.id === gameId);
-            if (gameObj) {
+            const idx = window.gameCache.user.findIndex(g => g.id === gameId);
+            if (idx !== -1) {
                 // Merge current data with the new isPublic status
-                const updatedData = { ...gameObj.data(), isPublic: makePublic };
-                
-                // Force update the internal snapshot data
-                Object.defineProperty(gameObj, '_data', {
-                    value: updatedData,
-                    writable: true
-                });
+                const updatedData = { ...window.gameCache.user[idx].data(), isPublic: makePublic };
+
+                // Swap in a plain object with the same id/data() shape
+                // instead of trying to mutate the (immutable) Firestore snapshot
+                window.gameCache.user[idx] = { id: gameId, data: () => updatedData };
             }
         }
 
