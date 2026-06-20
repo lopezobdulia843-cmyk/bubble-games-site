@@ -209,6 +209,17 @@ function openGamePanel(id, name, desc, isOwner, isPublic, author) {
                             font-size:12px;
                             font-weight:bold;
                         ">✏️ Edit</button>
+                        <button onclick="deleteGameNow('${id}')" style="
+                            margin-left:6px;
+                            background:#ff4757;
+                            color:white;
+                            border:none;
+                            padding:6px 14px;
+                            border-radius:20px;
+                            cursor:pointer;
+                            font-size:12px;
+                            font-weight:bold;
+                        ">🗑️ Delete</button>
                     </div>
                     ` : ''}
                 </div>
@@ -295,6 +306,30 @@ window.toggleGamePublic = async (gameId, makePublic) => {
             track.setAttribute('onclick', `toggleGamePublic('${gameId}', ${!previousState})`);
         }
         if (knob) knob.style.left = previousState ? '25px' : '3px';
+    }
+};
+
+window.deleteGameNow = async (gameId) => {
+    const sure = confirm("Are you sure you would like to delete? This is permanent.");
+    if (!sure) return;
+
+    try {
+        await deleteDoc(doc(db, 'games', gameId));
+
+        // Remove from local caches so it disappears instantly
+        if (window.gameCache?.user) {
+            window.gameCache.user = window.gameCache.user.filter(g => g.id !== gameId);
+        }
+        if (window.gameCache?.global) {
+            window.gameCache.global = window.gameCache.global.filter(g => g.id !== gameId);
+        }
+
+        closePanel();
+        loadUserGames();
+        loadGlobalGames();
+    } catch (e) {
+        console.error("Delete failed:", e);
+        alert("❌ Couldn't delete game.");
     }
 };
 
