@@ -358,7 +358,7 @@ font-size:14px;
     </div>
 
     <script type="module">
-        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+      import { getFirestore, collection, addDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import * as THREE from 'three';
@@ -1406,12 +1406,27 @@ transformControl.attach(hits[0].object);
     // Final single-string blob: blocks ## groups ## scripts
     const worldData = [blocksStr, groupsStr, scriptsStr].join("##");
 
-    const gameData = {
+let realUsername = "Unknown";
+    try {
+        if (auth.currentUser) {
+            const profileSnap = await getDoc(doc(db, "profiles", auth.currentUser.uid));
+            if (profileSnap.exists() && profileSnap.data().username) {
+                realUsername = profileSnap.data().username;
+            } else {
+                realUsername = auth.currentUser.email?.split('@')[0] || "Unknown";
+            }
+        }
+    } catch (err) {
+        console.error("Username lookup failed:", err);
+        realUsername = auth.currentUser?.email?.split('@')[0] || "Unknown";
+    }
+       
+       const gameData = {
         name: gameName,
         description: gameDescription || "No description provided.", // Optional field
         createdAt: new Date().toISOString(),
         authorId: auth ? auth.currentUser?.uid || null : null,
-authorName: auth ? auth.currentUser?.email?.split('@')[0] || "Unknown" : "Unknown",
+authorName: realUsername,
 isPublic: false,
         worldData: worldData
     };
