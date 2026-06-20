@@ -226,7 +226,7 @@ BlockColor:
 </div><body>
 
 
-      <div style="position: absolute; top: 20px; left: 20px; background: rgba(255, 255, 255, 0.85); padding: 10px 20px; border-radius: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); backdrop-filter: blur(5px); z-index: 100; display: flex; gap: 15px; align-items: center;">
+      <div id="top-left-ui" style="position: absolute; top: 20px; left: 20px; background: rgba(255, 255, 255, 0.85); padding: 10px 20px; border-radius: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); backdrop-filter: blur(5px); z-index: 100; display: flex; gap: 15px; align-items: center;">
     <a href="hub.html" style="text-decoration: none; color: #333; font-weight: bold;">🏠 Hub</a>
 <a href="https://docs.google.com/document/d/19iEktLJzT0kE6szLL3ohZ-O9kjlTK3-ZJlMbFN5TaTs/edit?tab=t.0" 
    target="_blank" 
@@ -817,7 +817,8 @@ updateWorldList();
             document.getElementById('ui').classList.toggle('minimized', isPlaying);
             
             // ADD THIS LINE BELOW:
-            document.getElementById('myWorldPanel').style.display = isPlaying ? 'none' : 'flex';
+          document.getElementById('top-left-ui').style.display = isPlaying ? 'none' : 'flex';
+     document.getElementById('myWorldPanel').style.display = isPlaying ? 'none' : 'flex';
 
 // Add this line to hide the properties panel too!
 document.getElementById('propertiesPanel').style.display = isPlaying ? 'none' : 'flex';
