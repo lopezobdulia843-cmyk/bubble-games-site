@@ -75,7 +75,7 @@ async function loadGlobalGames() {
 function renderGlobalGames(games, container) {
     container.innerHTML = '';
     if (games.length === 0) {
-        container.innerHTML = `<p class="no-games">No public games yet! 🫧</p>`;
+        container.innerHTML = `<p class="no-games">No public games yet, be the first! 🫧</p>`;
         return;
     }
     games.forEach(docSnap => {
@@ -105,7 +105,7 @@ async function loadUserGames() {
 function renderGames(games, container, isOwner) {
     container.innerHTML = '';
     if (games.length === 0) {
-        container.innerHTML = `<p class="no-games">No games found! 🫧</p>`;
+        container.innerHTML = `<p class="no-games">No games found! Start creating? 🫧</p>`;
         return;
     }
     games.forEach(docSnap => {
