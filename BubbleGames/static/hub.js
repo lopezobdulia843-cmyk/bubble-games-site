@@ -119,6 +119,7 @@ function makeGameCard(id, g, isOwner) {
     const safeId = id;
     const safeName = (g.name || 'Untitled').replace(/`/g, '');
     const safeDesc = (g.description || 'No description.').replace(/`/g, '');
+    const safeAuthor = (g.authorName || 'Unknown').replace(/`/g, '');
 
     card.style.cssText = `
         background: var(--card-bg);
@@ -152,12 +153,12 @@ function makeGameCard(id, g, isOwner) {
         card.style.boxShadow = '0 4px 15px var(--shadow)';
     };
 
-    card.onclick = () => openGamePanel(safeId, safeName, safeDesc, isOwner, isPublic);
+    card.onclick = () => openGamePanel(safeId, safeName, safeDesc, isOwner, isPublic, safeAuthor);
 
     return card;
 }
 
-function openGamePanel(id, name, desc, isOwner, isPublic) {
+function openGamePanel(id, name, desc, isOwner, isPublic, author) {
     const panel = document.getElementById('actionPanel');
 
     panel.innerHTML = `
@@ -166,6 +167,7 @@ function openGamePanel(id, name, desc, isOwner, isPublic) {
                 <div>
                     <div style="font-size:13px; opacity:0.5; margin-bottom:4px; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">Now Playing</div>
                     <h2 style="margin:0; font-size:32px; color:var(--text-main);">🎮 ${name}</h2>
+                    <div style="font-size:13px; opacity:0.6; color:var(--text-sub); margin-top:4px;">Made by: ${author}</div>
                 </div>
                 <button onclick="closePanel()" style="cursor:pointer; background:none; border:none; font-size:32px; color:var(--text-sub); margin-top:-8px;">✕</button>
             </div>
