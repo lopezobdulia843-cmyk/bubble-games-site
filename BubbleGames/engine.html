@@ -1377,6 +1377,35 @@ transformControl.attach(hits[0].object);
     const originalText = saveBtn.innerText;
     saveBtn.innerText = "Saving...";
 
+  // Pack every block/group/script into one compact string instead of
+    // nested arrays of objects (Firestore charges storage for the field
+    // names "position","x","y","z","color","isSpawn", etc. EVERY time
+    // they repeat per block — this removes all of that repeated overhead).
+
+    const blocksStr = blocks.map(b => {
+        const flags = (b.userData.isSpawn ? 1 : 0) + (b.userData.isMegaBlock ? 2 : 0);
+        const w = b.userData.isMegaBlock ? b.geometry.parameters.width : 1;
+        const h = b.userData.isMegaBlock ? b.geometry.parameters.height : 1;
+        const d = b.userData.isMegaBlock ? b.geometry.parameters.depth : 1;
+        return [
+            b.position.x, b.position.y, b.position.z,
+            b.material.color.getHex(),
+            encodeURIComponent(b.userData.name || ""),
+            flags, w, h, d
+        ].join(",");
+    }).join(";");
+
+    const groupsStr = groups.map(g =>
+        encodeURIComponent(g.name) + ":" + g.blocks.map(b => blocks.indexOf(b)).join(",")
+    ).join(";");
+
+    const scriptsStr = scripts.map(s =>
+        encodeURIComponent(s.name || "Unnamed Script") + ":" + encodeURIComponent(s.code || "")
+    ).join(";");
+
+    // Final single-string blob: blocks ## groups ## scripts
+    const worldData = [blocksStr, groupsStr, scriptsStr].join("##");
+
     const gameData = {
         name: gameName,
         description: gameDescription || "No description provided.", // Optional field
@@ -1384,26 +1413,7 @@ transformControl.attach(hits[0].object);
         authorId: auth ? auth.currentUser?.uid || null : null,
 authorName: auth ? auth.currentUser?.email?.split('@')[0] || "Unknown" : "Unknown",
 isPublic: false,
-        blocks: blocks.map(b => ({
-            position: { x: b.position.x, y: b.position.y, z: b.position.z },
-            color: b.material.color.getHex(),
-            name: b.userData.name || "",
-            isSpawn: !!b.userData.isSpawn,
-            isMegaBlock: !!b.userData.isMegaBlock,
-            size: b.userData.isMegaBlock ? {
-                w: b.geometry.parameters.width,
-                h: b.geometry.parameters.height,
-                d: b.geometry.parameters.depth
-            } : null
-        })),
-        groups: groups.map(g => ({
-            name: g.name,
-            blockIndices: g.blocks.map(b => blocks.indexOf(b))
-        })),
-        scripts: scripts.map(s => ({
-            name: s.name || "Unnamed Script",
-            code: s.code || ""
-        }))
+        worldData: worldData
     };
 
     try {
