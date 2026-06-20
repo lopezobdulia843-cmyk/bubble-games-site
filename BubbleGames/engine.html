@@ -462,6 +462,8 @@ scene.add(b);
         scene.add(spawnPad);
 
         let mode = 'build', isPlaying = false;
+        const urlParams = new URLSearchParams(window.location.search);
+const isPlayMode = urlParams.get('mode') === 'play';
 let paintColor = "#ff0000";
 // --- THE NAME BRAIN ---
 let selectedBlock = null;
@@ -777,8 +779,8 @@ paint: document.getElementById('paintBtn'),
         }
 
        
- btns.play.onclick = (e) => {
-            e.target.blur();
+ function togglePlayMode(e) {
+            if (e) e.target.blur();
             isPlaying = !isPlaying;
 if (!isPlaying) {
 
@@ -820,9 +822,8 @@ updateWorldList();
 // Add this line to hide the properties panel too!
 document.getElementById('propertiesPanel').style.display = isPlaying ? 'none' : 'flex';
             
-            document.getElementById('play-hint').style.display = isPlaying ? 'block' : 'none';
-            // ... (rest of the code)
-            document.getElementById('play-hint').style.display = isPlaying ? 'block' : 'none';
+           document.getElementById('play-hint').style.display = (isPlaying && !isPlayMode) ? 'block' : 'none';
+            document.getElementById('play-leave-ui').style.display = (isPlaying && isPlayMode) ? 'block' : 'none';
             btns.play.innerText = isPlaying ? "Stop Test" : "Play Test";
             ghostBlock.visible = false; 
             playerGroup.visible = isPlaying;
@@ -989,8 +990,10 @@ camera.quaternion.setFromEuler(new THREE.Euler(rotX, rotY, 0, 'YXZ'));
 camera.updateMatrixWorld();
 
 setMode('build');
-            }
-        };
+       }
+        }
+
+        btns.play.onclick = togglePlayMode;
 
         btns.build.onclick = () => setMode('build');
         btns.move.onclick = () => setMode('move');
@@ -1647,7 +1650,7 @@ window.addEventListener('contextmenu', (e) => {
 
     keys[e.key.toLowerCase()] = true;
 
-    if (e.key.toLowerCase() === 'p' && isPlaying) {
+    if (e.key.toLowerCase() === 'p' && isPlaying && !isPlayMode) {
         btns.play.click();
     }
 });
@@ -2853,6 +2856,13 @@ document.getElementById("closeScriptEditor").onclick = () => {
 
 };
 animate();
+        document.getElementById('leaveBtn').onclick = () => {
+    window.location.href = "https://bubblegames.onrender.com/hub.html";
+};
+
+if (isPlayMode) {
+    togglePlayMode();
+}
    document.getElementById('pubBtn').onclick = () => {
     document.getElementById('publishModal').style.display = 'block';
 };
