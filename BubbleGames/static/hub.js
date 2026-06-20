@@ -211,9 +211,27 @@ function openGamePanel(id, name, desc, isOwner, isPublic) {
                     ` : ''}
                 </div>
 
-                <button class="play-button" onclick="alert('Play coming soon!')">
-                    🎮 Play Now
-                </button>
+                <button onclick="alert('Play coming soon!')" style="
+                    background: linear-gradient(135deg, #4f46e5, #ec4899);
+                    color: white;
+                    padding: 20px 50px;
+                    border-radius: 60px;
+                    border: none;
+                    font-size: 24px;
+                    font-weight: 900;
+                    cursor: pointer;
+                    box-shadow: 0 10px 0 #3730a3, 0 15px 30px rgba(236, 72, 153, 0.4);
+                    transition: 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                    text-transform: uppercase;
+                    letter-spacing: 2px;
+                    font-family: 'Arial Rounded MT Bold', sans-serif;
+                    animation: float 3s ease-in-out infinite;
+                "
+                onmouseover="this.style.transform='scale(1.08) translateY(-4px)'"
+                onmouseout="this.style.transform=''"
+                onmousedown="this.style.transform='translateY(6px) scale(0.95)'; this.style.boxShadow='0 2px 0 #3730a3'"
+                onmouseup="this.style.transform=''; this.style.boxShadow='0 10px 0 #3730a3, 0 15px 30px rgba(236, 72, 153, 0.4)'"
+                >🎮 Play Now</button>
             </div>
         </div>
     `;
