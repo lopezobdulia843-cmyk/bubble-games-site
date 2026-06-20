@@ -351,7 +351,27 @@ font-size:14px;
 </div>
 
 </div>
-<div id="play-hint">
+
+    <div id="play-leave-ui" style="
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        display: none;
+        z-index: 100;
+    ">
+        <button id="leaveBtn" style="
+            background: #ff4757;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        ">⬅ Leave</button>
+    </div>
+        <div id="play-hint">
         <strong>Play Mode Active</strong><br>
         WASD to Move | Space to Jump | Mouse Scroll to Zoom<br>
         Press <strong>P</strong> or Click 'Stop Test' to return to editor.
