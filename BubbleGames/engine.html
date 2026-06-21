@@ -192,7 +192,7 @@
     overflow-y: auto; /* This lets your list scroll inside the box! */
 }.panel-header { font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #ccc; }
 .block-item { cursor: pointer; padding: 5px; border-bottom: 1px solid #eee; font-size: 12px; }
-.block-item:hover { background: #f0f0f0; }    
+.block-item:hover { background: #f0f0f0; }   
         canvas { touch-action: none; }
 </style>
 
@@ -2222,7 +2222,7 @@ updateScripts();
                 let horizontalMovement = new THREE.Vector3();
                 const camYawDir = new THREE.Vector3(0, 0, -1).applyEuler(new THREE.Euler(0, rotY, 0)).normalize();
                 
-              let inputDir = new THREE.Vector3();
+                let inputDir = new THREE.Vector3();
                 if (keys.w) inputDir.z -= 1;
                 if (keys.s) inputDir.z += 1;
                 if (keys.a) inputDir.x -= 1;
