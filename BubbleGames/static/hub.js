@@ -224,7 +224,7 @@ function openGamePanel(id, name, desc, isOwner, isPublic, author) {
                     ` : ''}
                 </div>
 
-                <button onclick="alert('Play coming soon!')" style="
+                <button onclick="window.location.href='https://bubblegames.onrender.com/engine.html?id=${id}&mode=play'" style="
                     background: linear-gradient(135deg, #4f46e5, #ec4899);
                     color: white;
                     padding: 20px 50px;
