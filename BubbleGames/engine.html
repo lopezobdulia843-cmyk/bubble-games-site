@@ -199,7 +199,8 @@
         {
             "imports": {
                 "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+                "nipplejs": "https://cdn.jsdelivr.net/npm/nipplejs@0.10.1/dist/nipplejs.min.js"
             }
         }
     </script>
@@ -529,6 +530,30 @@ const worldObjects = {};
 const runningTasks = [];
 const sandboxState = [];
 let groupIdCounter = 0;
+        
+        // --- MOBILE JOYSTICK ---
+import nipplejs from 'nipplejs';
+let moveJoystick = null;
+let joyDir = new THREE.Vector2();
+
+function initJoystick() {
+    moveJoystick = nipplejs.create({
+        zone: document.body,
+        mode: 'dynamic',
+        color: 'white',
+        size: 100
+    });
+
+    moveJoystick.on('move', (e, data) => {
+        if (!data.vector) return;
+        joyDir.set(data.vector.x, data.vector.y);
+    });
+
+    moveJoystick.on('end', () => {
+        joyDir.set(0, 0);
+    });
+}
+initJoystick();
         // --- MULTIPLAYER STATE ---
 let myUsername = "Player";
 let multiplayerActive = false;
@@ -575,6 +600,20 @@ let editorState = [];
         const playerRadius = 0.35; // tighter box like Roblox
         
         const playerSpeed16 = 0.030; 
+        // Variable to store view rotation from touch
+let touchRotX = 0;
+let touchRotY = 0;
+
+// Add touch-to-look listener for the rest of the screen
+document.addEventListener('touchmove', (e) => {
+    if (isPlaying && e.touches.length === 1) {
+        // Only look if NOT touching the joystick area
+        if (e.target.id !== 'nipplejs_0') {
+            touchRotY -= e.changedTouches[0].movementX * 0.002;
+            touchRotX -= e.changedTouches[0].movementY * 0.002;
+        }
+    }
+}, { passive: false });
         const robloxGravity = 0.0020; 
         const robloxJumpPower = 0.09; 
         
