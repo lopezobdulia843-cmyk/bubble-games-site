@@ -371,7 +371,32 @@ font-size:14px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         ">⬅ Leave</button>
     </div>
-        <div id="play-hint">
+       <div id="leaderboard-ui" style="
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        width: 220px;
+        max-height: 280px;
+        background: rgba(0, 0, 0, 0.65);
+        border-radius: 15px;
+        padding: 12px;
+        display: none;
+        flex-direction: column;
+        z-index: 100;
+        backdrop-filter: blur(5px);
+    ">
+        <div style="color:white; font-weight:bold; font-size:14px; margin-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.3); padding-bottom:6px;">
+            🫧 Players (<span id="leaderboard-count">0</span>)
+        </div>
+        <div id="leaderboard-list" style="
+            overflow-y: auto;
+            max-height: 220px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        "></div>
+    </div>
+    <div id="play-hint">
         <strong>Play Mode Active</strong><br>
         WASD to Move | Space to Jump | Mouse Scroll to Zoom<br>
         Press <strong>P</strong> or Click 'Stop Test' to return to editor.
@@ -379,6 +404,7 @@ font-size:14px;
 
     <script type="module">
       import { getFirestore, collection, addDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getDatabase, ref, set, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import * as THREE from 'three';
@@ -388,12 +414,13 @@ import * as THREE from 'three';
     apiKey: "AIzaSyDydzKsSL-7Sz919MTS2ORWtGt3PgFzFRE",
     authDomain: "bubblegames.firebaseapp.com",
     projectId: "bubblegames",
-    storageBucket: "bubblegames.firebasestorage.app",
+    databaseURL: "https://bubblegames-default-rtdb.firebaseio.com/",
     messagingSenderId: "689476233597",
     appId: "1:689476233597:web:aef6bfdbc6b52ff77f0414"
 };
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
+        const rtdb = getDatabase(firebaseApp);
         const auth = getAuth(firebaseApp);
  const scene = new THREE.Scene();
 function createBubbleUI() {
@@ -502,6 +529,13 @@ const worldObjects = {};
 const runningTasks = [];
 const sandboxState = [];
 let groupIdCounter = 0;
+        // --- MULTIPLAYER STATE ---
+let myUsername = "Player";
+let multiplayerActive = false;
+let myPlayerRef = null;
+let multiplayerUnsubscribe = null;
+let lastMultiplayerSync = 0;
+const otherPlayers = {};
 
 
 document.getElementById('nameInput').oninput = (e) => {
@@ -857,6 +891,9 @@ document.getElementById('propertiesPanel').style.display = isPlaying ? 'none' : 
                 savedEditorPos.copy(camera.position);
                 savedEditorRotX = rotX;
                 savedEditorRotY = rotY;
+                if (isPlayMode && gameIdParam) {
+                    initMultiplayer(gameIdParam);
+                }
 
 editorState = [];
 
@@ -1211,6 +1248,7 @@ if (isBoxSelecting && mode === "move") {
 
         window.addEventListener('wheel', (e) => {
             if (!isPlaying) return;
+            if (e.target.closest('#leaderboard-ui')) return;
             cameraZoomDistance += e.deltaY * 0.01;
             cameraZoomDistance = Math.max(0, Math.min(12, cameraZoomDistance));
             
@@ -1689,6 +1727,115 @@ function loadWorldDataString(worldData) {
     updateWorldList();
     saveWorldState();
 }
+       function createRemotePlayerVisual(uid, name) {
+    const group = new THREE.Group();
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x00a8ff, roughness: 0.9 });
+    const headMat = new THREE.MeshStandardMaterial({ color: 0xffdbac, roughness: 0.9 });
+
+    const torso = new THREE.Mesh(new THREE.SphereGeometry(0.38, 12, 12), bodyMat);
+    torso.scale.set(1, 1.1, 0.8);
+    torso.position.y = 1.1;
+
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.32, 12, 12), headMat);
+    head.position.y = 1.62;
+
+    group.add(torso, head);
+    scene.add(group);
+
+    const labelDiv = document.createElement('div');
+    labelDiv.innerText = name;
+    labelDiv.style.cssText = `
+        position: absolute;
+        color: white;
+        font-weight: bold;
+        font-size: 13px;
+        text-shadow: 0 0 4px rgba(0,0,0,0.9), 0 0 4px rgba(0,0,0,0.9);
+        pointer-events: none;
+        transform: translate(-50%, -100%);
+        z-index: 50;
+        white-space: nowrap;
+    `;
+    document.body.appendChild(labelDiv);
+
+    return { group, labelDiv };
+}
+
+async function initMultiplayer(gameId) {
+    if (!auth.currentUser) return;
+    multiplayerActive = true;
+
+    try {
+        const profileSnap = await getDoc(doc(db, "profiles", auth.currentUser.uid));
+        myUsername = (profileSnap.exists() && profileSnap.data().username)
+            ? profileSnap.data().username
+            : (auth.currentUser.email?.split('@')[0] || "Player");
+    } catch (err) {
+        myUsername = auth.currentUser.email?.split('@')[0] || "Player";
+    }
+
+    myPlayerRef = ref(rtdb, 'multiplayer/' + gameId + '/' + auth.currentUser.uid);
+    onDisconnect(myPlayerRef).remove();
+
+    const roomRef = ref(rtdb, 'multiplayer/' + gameId);
+    multiplayerUnsubscribe = onValue(roomRef, (snapshot) => {
+        const playersData = snapshot.val() || {};
+        updateMultiplayerVisuals(playersData);
+    });
+
+    document.getElementById('leaderboard-ui').style.display = 'flex';
+}
+
+function leaveMultiplayer() {
+    if (myPlayerRef) {
+        remove(myPlayerRef);
+        myPlayerRef = null;
+    }
+    if (multiplayerUnsubscribe) {
+        multiplayerUnsubscribe();
+        multiplayerUnsubscribe = null;
+    }
+    Object.values(otherPlayers).forEach(p => {
+        scene.remove(p.group);
+        p.labelDiv.remove();
+    });
+    for (const uid in otherPlayers) delete otherPlayers[uid];
+    multiplayerActive = false;
+    document.getElementById('leaderboard-ui').style.display = 'none';
+}
+
+function updateMultiplayerVisuals(playersData) {
+    const myUid = auth.currentUser?.uid;
+
+    for (const uid in playersData) {
+        if (uid === myUid) continue;
+        const pdata = playersData[uid];
+        if (!otherPlayers[uid]) {
+            otherPlayers[uid] = createRemotePlayerVisual(uid, pdata.name || "Player");
+        }
+        const entry = otherPlayers[uid];
+        entry.group.position.set(pdata.x, pdata.y - playerHeight, pdata.z);
+        if (typeof pdata.ry === 'number') entry.group.rotation.y = pdata.ry;
+        entry.labelDiv.innerText = pdata.name || "Player";
+    }
+
+    for (const uid in otherPlayers) {
+        if (!playersData[uid]) {
+            scene.remove(otherPlayers[uid].group);
+            otherPlayers[uid].labelDiv.remove();
+            delete otherPlayers[uid];
+        }
+    }
+
+    const names = Object.keys(playersData).map(uid => playersData[uid].name || "Player");
+    const listEl = document.getElementById('leaderboard-list');
+    const countEl = document.getElementById('leaderboard-count');
+    if (listEl && countEl) {
+        countEl.innerText = names.length;
+        listEl.innerHTML = names.map(n => `
+            <div style="color:white; font-size:13px; padding:4px 6px; background:rgba(255,255,255,0.1); border-radius:8px;">🎮 ${n}</div>
+        `).join('');
+    }
+}
         window.addEventListener('mouseup', (e) => {
 
 if (isBoxSelecting && mode === "move") {
@@ -2020,6 +2167,16 @@ playerTarget.z += movingZ;
                 }
 
                 updateCameraAndPlayerTransform();
+                if (multiplayerActive && myPlayerRef && (time * 1000 - lastMultiplayerSync) > 150) {
+                    lastMultiplayerSync = time * 1000;
+                    set(myPlayerRef, {
+                        name: myUsername,
+                        x: playerTarget.x,
+                        y: playerTarget.y,
+                        z: playerTarget.z,
+                        ry: characterYaw
+                    });
+                }
 
             } else {
                 camera.quaternion.setFromEuler(new THREE.Euler(rotX, rotY, 0, 'YXZ'));
@@ -2115,7 +2272,20 @@ ghostBlock.rotation.set(0, 0, 0);
     b.userData.lastZ = b.position.z;
 
 });
- renderer.render(scene, camera);
+ for (const uid in otherPlayers) {
+                const entry = otherPlayers[uid];
+                const headPos = entry.group.position.clone();
+                headPos.y += 1.9;
+                const screenPos = headPos.clone().project(camera);
+                if (screenPos.z > 1) {
+                    entry.labelDiv.style.display = 'none';
+                } else {
+                    entry.labelDiv.style.display = 'block';
+                    entry.labelDiv.style.left = ((screenPos.x * 0.5 + 0.5) * window.innerWidth) + 'px';
+                    entry.labelDiv.style.top = ((-screenPos.y * 0.5 + 0.5) * window.innerHeight) + 'px';
+                }
+            }
+            renderer.render(scene, camera);
         }
 
         function updateWorldList() {
@@ -2975,6 +3145,7 @@ document.getElementById("closeScriptEditor").onclick = () => {
 };
 animate();
         document.getElementById('leaveBtn').onclick = () => {
+    leaveMultiplayer();
     window.location.href = "https://bubblegames.onrender.com/hub.html";
 };
 
