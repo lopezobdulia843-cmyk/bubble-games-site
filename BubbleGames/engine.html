@@ -396,6 +396,20 @@ const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
         const auth = getAuth(firebaseApp);
  const scene = new THREE.Scene();
+function createBubbleUI() {
+    const container = document.getElementById('bubbles-container');
+    for(let i=0; i<15; i++) {
+        const bubble = document.createElement('div');
+        const color = Math.random() > 0.5 ? '#00a8ff' : '#ff4757';
+        bubble.style.cssText = `position:absolute; bottom:-50px; left:${Math.random()*100}%; width:50px; height:50px; border:4px solid ${color}; border-radius:50%; animation: rise ${Math.random()*3+2}s linear infinite;`;
+        container.appendChild(bubble);
+    }
+    const style = document.createElement('style');
+    style.innerHTML = `@keyframes rise { from { transform: translateY(0); } to { transform: translateY(-110vh); } }`;
+    document.head.appendChild(style);
+}
+createBubbleUI();
+        
         scene.background = new THREE.Color(0x87ceeb);
         scene.fog = new THREE.Fog(0x87ceeb, 20, 100);
         
@@ -464,6 +478,7 @@ scene.add(b);
         let mode = 'build', isPlaying = false;
         const urlParams = new URLSearchParams(window.location.search);
 const isPlayMode = urlParams.get('mode') === 'play';
+        if (isPlayMode) { document.getElementById('loading-overlay').style.display = 'flex'; setTimeout(() => { document.getElementById('loading-overlay').style.display = 'none'; togglePlayMode(); }, 2000); }
         const gameIdParam = urlParams.get('id');
 let paintColor = "#ff0000";
 // --- THE NAME BRAIN ---
@@ -2969,5 +2984,9 @@ if (gameIdParam) {
 };
     </script>
 
+<div id="loading-overlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#87ceeb; z-index:9999; display:none; justify-content:center; align-items:center; flex-direction:column;">
+    <h1 style="color:white; font-family:sans-serif; font-size:48px;">Loading!</h1>
+    <div id="bubbles-container" style="position:absolute; width:100%; height:100%; pointer-events:none;"></div>
+</div>
 </body>
 </html>
