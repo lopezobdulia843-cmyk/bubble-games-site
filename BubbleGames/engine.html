@@ -478,7 +478,19 @@ scene.add(b);
         let mode = 'build', isPlaying = false;
         const urlParams = new URLSearchParams(window.location.search);
 const isPlayMode = urlParams.get('mode') === 'play';
-        if (isPlayMode) { document.getElementById('loading-overlay').style.display = 'flex'; setTimeout(() => { document.getElementById('loading-overlay').style.display = 'none'; togglePlayMode(); }, 2000); }
+
+if (isPlayMode) {
+    document.getElementById('loading-overlay').style.display = 'flex';
+    // Hide UI elements immediately so they aren't visible behind the loading screen
+    document.getElementById('ui').style.display = 'none';
+    document.getElementById('myWorldPanel').style.display = 'none';
+    document.getElementById('propertiesPanel').style.display = 'none';
+    
+    setTimeout(() => {
+        document.getElementById('loading-overlay').style.display = 'none';
+        togglePlayMode();
+    }, 2000);
+}
         const gameIdParam = urlParams.get('id');
 let paintColor = "#ff0000";
 // --- THE NAME BRAIN ---
