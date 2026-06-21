@@ -464,6 +464,7 @@ scene.add(b);
         let mode = 'build', isPlaying = false;
         const urlParams = new URLSearchParams(window.location.search);
 const isPlayMode = urlParams.get('mode') === 'play';
+        const gameIdParam = urlParams.get('id');
 let paintColor = "#ff0000";
 // --- THE NAME BRAIN ---
 let selectedBlock = null;
@@ -1572,7 +1573,100 @@ groups = [];
     selectedBlocks = [];
 }
  selectedBlocks = [];
-window.addEventListener('mouseup', (e) => {
+async function loadGameFromFirestore(gameId) {
+    try {
+        const gameSnap = await getDoc(doc(db, 'games', gameId));
+        if (!gameSnap.exists()) return;
+        const data = gameSnap.data();
+        if (data.worldData) {
+            loadWorldDataString(data.worldData);
+        }
+    } catch (err) {
+        console.error("Failed to load game:", err);
+    }
+}
+
+function loadWorldDataString(worldData) {
+    const parts = worldData.split("##");
+    const blocksStr = parts[0] || "";
+    const groupsStr = parts[1] || "";
+    const scriptsStr = parts[2] || "";
+
+    // Wipe out the default editor blocks (keep the spawn mesh, just reposition it)
+    blocks.slice().forEach(block => {
+        if (block === spawnPad) return;
+        scene.remove(block);
+    });
+    blocks.length = 0;
+    objectsToIntersect.length = 0;
+    objectsToIntersect.push(floor);
+    groups = [];
+    scripts = [];
+
+    if (blocksStr) {
+        blocksStr.split(";").forEach(entry => {
+            if (!entry) return;
+            const p = entry.split(",");
+            const x = parseFloat(p[0]);
+            const y = parseFloat(p[1]);
+            const z = parseFloat(p[2]);
+            const color = parseInt(p[3]);
+            const name = decodeURIComponent(p[4]);
+            const flags = parseInt(p[5]);
+            const w = parseFloat(p[6]);
+            const h = parseFloat(p[7]);
+            const d = parseFloat(p[8]);
+            const isSpawn = (flags & 1) === 1;
+            const isMega = (flags & 2) === 2;
+
+            let block;
+            if (isSpawn) {
+                block = spawnPad;
+                block.position.set(x, y, z);
+            } else {
+                block = new THREE.Mesh(
+                    new THREE.BoxGeometry(w, h, d),
+                    new THREE.MeshStandardMaterial({ color: color })
+                );
+                block.position.set(x, y, z);
+                if (isMega) block.userData.isMegaBlock = true;
+                scene.add(block);
+            }
+            block.userData.name = name;
+            blocks.push(block);
+            objectsToIntersect.push(block);
+        });
+    }
+
+    if (groupsStr) {
+        groupsStr.split(";").forEach(entry => {
+            if (!entry) return;
+            const splitAt = entry.indexOf(":");
+            const groupName = decodeURIComponent(entry.substring(0, splitAt));
+            const indicesPart = entry.substring(splitAt + 1);
+            const indices = indicesPart ? indicesPart.split(",").map(n => parseInt(n)) : [];
+            const groupBlocks = indices.map(i => blocks[i]).filter(b => b);
+            const group = { id: groupIdCounter++, name: groupName, collapsed: false, blocks: groupBlocks };
+            groupBlocks.forEach(b => b.userData.group = group);
+            groups.push(group);
+        });
+    }
+
+    if (scriptsStr) {
+        scriptsStr.split(";").forEach(entry => {
+            if (!entry) return;
+            const splitAt = entry.indexOf(":");
+            const scriptName = decodeURIComponent(entry.substring(0, splitAt));
+            const scriptCode = decodeURIComponent(entry.substring(splitAt + 1));
+            scripts.push({ name: scriptName, code: scriptCode });
+        });
+    }
+
+    document.getElementById('count').innerText = blocks.length;
+    updateWorldList();
+    saveWorldState();
+}
+        window.addEventListener('mouseup', (e) => {
 
 if (isBoxSelecting && mode === "move") {
 
@@ -2861,7 +2955,15 @@ animate();
     window.location.href = "https://bubblegames.onrender.com/hub.html";
 };
 
-if (isPlayMode) {
+if (gameIdParam) {
+    loadGameFromFirestore(gameIdParam).then(() => {
+        if (isPlayMode) {
+            togglePlayMode();
+        }
+    });
+} else if (isPlayMode) {
+    togglePlayMode();
+}
     togglePlayMode();
 }
    document.getElementById('pubBtn').onclick = () => {
