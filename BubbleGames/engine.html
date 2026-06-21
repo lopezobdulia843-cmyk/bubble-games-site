@@ -486,11 +486,7 @@ if (isPlayMode) {
     document.getElementById('myWorldPanel').style.display = 'none';
     document.getElementById('propertiesPanel').style.display = 'none';
     
-    setTimeout(() => {
-        document.getElementById('loading-overlay').style.display = 'none';
-        togglePlayMode();
-    }, 2000);
-}
+  }
         const gameIdParam = urlParams.get('id');
 let paintColor = "#ff0000";
 // --- THE NAME BRAIN ---
@@ -2985,10 +2981,12 @@ animate();
 if (gameIdParam) {
     loadGameFromFirestore(gameIdParam).then(() => {
         if (isPlayMode) {
+            document.getElementById('loading-overlay').style.display = 'none';
             togglePlayMode();
         }
     });
 } else if (isPlayMode) {
+    document.getElementById('loading-overlay').style.display = 'none';
     togglePlayMode();
 }
    document.getElementById('pubBtn').onclick = () => {
