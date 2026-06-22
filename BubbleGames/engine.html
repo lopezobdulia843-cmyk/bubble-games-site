@@ -452,10 +452,9 @@ font-size:14px;
         Press <strong>P</strong> or Click 'Stop Test' to return to editor.
     </div>
 
-    <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
     <script type="module">
-      import { getFirestore, collection, addDoc, doc, getDoc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        
+      import { getFirestore, collection, addDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getDatabase, ref, set, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import * as THREE from 'three';
@@ -471,7 +470,7 @@ import * as THREE from 'three';
 };
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
-        
+        const rtdb = getDatabase(firebaseApp);
         const auth = getAuth(firebaseApp);
  const scene = new THREE.Scene();
 function createBubbleUI() {
@@ -580,18 +579,14 @@ const worldObjects = {};
 const runningTasks = [];
 const sandboxState = [];
 let groupIdCounter = 0;
-       // --- MULTIPLAYER STATE ---
+        // --- MULTIPLAYER STATE ---
 let myUsername = "Player";
 let multiplayerActive = false;
-let myPeer = null;
-let myRoomRef = null;
-let roomListener = null;
-let lastSeenInterval = null;
-let myLastMoveTime = Date.now();
+let myPlayerRef = null;
+let multiplayerUnsubscribe = null;
 let lastMultiplayerSync = 0;
-const peerConnections = {};
-const lastMoveTimes = {};
 const otherPlayers = {};
+
 
 document.getElementById('nameInput').oninput = (e) => {
     if (selectedBlock) {
@@ -1843,10 +1838,9 @@ function loadWorldDataString(worldData) {
 async function initMultiplayer(gameId) {
     if (!auth.currentUser) return;
     multiplayerActive = true;
-    const uid = auth.currentUser.uid;
 
     try {
-        const profileSnap = await getDoc(doc(db, "profiles", uid));
+        const profileSnap = await getDoc(doc(db, "profiles", auth.currentUser.uid));
         myUsername = (profileSnap.exists() && profileSnap.data().username)
             ? profileSnap.data().username
             : (auth.currentUser.email?.split('@')[0] || "Player");
@@ -1854,146 +1848,16 @@ async function initMultiplayer(gameId) {
         myUsername = auth.currentUser.email?.split('@')[0] || "Player";
     }
 
-    // Create PeerJS peer — uses free peerjs.com broker for handshake only,
-    // then all data flows peer-to-peer with no server involved
-    myPeer = new Peer(uid.substring(0, 30));
+    myPlayerRef = ref(rtdb, 'multiplayer/' + gameId + '/' + auth.currentUser.uid);
+    onDisconnect(myPlayerRef).remove();
 
-    myPeer.on('open', async (peerId) => {
-        myRoomRef = doc(db, 'games', gameId, 'room', uid);
-        await setDoc(myRoomRef, { name: myUsername, peerId, lastSeen: Date.now() });
-
-        const roomRef = collection(db, 'games', gameId, 'room');
-        roomListener = onSnapshot(roomRef, (snap) => {
-            snap.forEach(d => {
-                if (d.id === uid) return;
-                const data = d.data();
-                if (Date.now() - data.lastSeen > 10 * 60 * 1000) return;
-                if (!peerConnections[d.id]) {
-                    const conn = myPeer.connect(data.peerId, { reliable: false });
-                    peerConnections[d.id] = conn;
-                    conn.on('open', () => {});
-                    conn.on('data', (d) => handlePeerData(d));
-                    conn.on('close', () => cleanupPlayer(d.id));
-                    conn.on('error', () => cleanupPlayer(d.id));
-                }
-            });
-        });
+    const roomRef = ref(rtdb, 'multiplayer/' + gameId);
+    multiplayerUnsubscribe = onValue(roomRef, (snapshot) => {
+        const playersData = snapshot.val() || {};
+        updateMultiplayerVisuals(playersData);
     });
-
-    // Handle connections initiated by others
-    myPeer.on('connection', (conn) => {
-        conn.on('data', (data) => {
-            if (!data || !data.uid) return;
-            if (!peerConnections[data.uid]) {
-                peerConnections[data.uid] = conn;
-                conn.on('close', () => cleanupPlayer(data.uid));
-                conn.on('error', () => cleanupPlayer(data.uid));
-            }
-            handlePeerData(data);
-        });
-    });
-
-    myPeer.on('error', (err) => console.warn('PeerJS:', err.type));
-
-    // Update Firestore presence once/minute + idle checks
-    lastSeenInterval = setInterval(async () => {
-        if (!multiplayerActive) return;
-        if (myRoomRef) await setDoc(myRoomRef, { lastSeen: Date.now() }, { merge: true });
-        // Disconnect self if idle 10+ minutes with no movement input
-        if (Date.now() - myLastMoveTime > 10 * 60 * 1000) { leaveMultiplayer(); return; }
-        // Clean up remote players idle 10+ minutes
-        const now = Date.now();
-        for (const pid in lastMoveTimes) {
-            if (now - lastMoveTimes[pid] > 10 * 60 * 1000) cleanupPlayer(pid);
-        }
-    }, 60000);
 
     document.getElementById('leaderboard-ui').style.display = 'flex';
-    updateLeaderboard();
-}
-
-function handlePeerData(data) {
-    if (!data || !data.uid) return;
-    const remoteUid = data.uid;
-    lastMoveTimes[remoteUid] = Date.now();
-
-    const isNew = !otherPlayers[remoteUid];
-    if (isNew) {
-        otherPlayers[remoteUid] = createRemotePlayerVisual(remoteUid, data.name || 'Player');
-        updateLeaderboard();
-    }
-
-    const entry = otherPlayers[remoteUid];
-    entry.targetPos.set(data.x, data.y - playerHeight, data.z);
-    if (typeof data.ry === 'number') entry.targetRotY = data.ry;
-
-    // Snap on first sighting so they don't fly in from origin
-    if (isNew) {
-        entry.group.position.copy(entry.targetPos);
-        entry.group.rotation.y = entry.targetRotY;
-        entry.lastX = entry.targetPos.x;
-        entry.lastZ = entry.targetPos.z;
-    }
-    entry.labelDiv.innerText = data.name || 'Player';
-}
-
-function cleanupPlayer(remoteUid) {
-    if (otherPlayers[remoteUid]) {
-        scene.remove(otherPlayers[remoteUid].group);
-        otherPlayers[remoteUid].labelDiv.remove();
-        delete otherPlayers[remoteUid];
-        updateLeaderboard();
-    }
-    if (peerConnections[remoteUid]) {
-        try { peerConnections[remoteUid].close(); } catch (e) {}
-        delete peerConnections[remoteUid];
-    }
-    delete lastMoveTimes[remoteUid];
-}
-
-function broadcastPosition() {
-    if (!myPeer) return;
-    const data = {
-        uid: auth.currentUser?.uid,
-        name: myUsername,
-        x: playerTarget.x,
-        y: playerTarget.y,
-        z: playerTarget.z,
-        ry: characterYaw
-    };
-    for (const uid in peerConnections) {
-        const conn = peerConnections[uid];
-        if (conn && conn.open) { try { conn.send(data); } catch (e) {} }
-    }
-}
-
-function updateLeaderboard() {
-    const allNames = [myUsername, ...Object.values(otherPlayers).map(p => p.labelDiv.innerText)];
-    const listEl = document.getElementById('leaderboard-list');
-    const countEl = document.getElementById('leaderboard-count');
-    if (listEl && countEl) {
-        countEl.innerText = allNames.length;
-        listEl.innerHTML = allNames.map(n => `
-            <div style="color:white; font-size:13px; padding:4px 6px; background:rgba(255,255,255,0.1); border-radius:8px;">🎮 ${n}</div>
-        `).join('');
-    }
-}
-
-function leaveMultiplayer() {
-    if (!multiplayerActive) return;
-    multiplayerActive = false;
-    if (myRoomRef) { deleteDoc(myRoomRef).catch(() => {}); myRoomRef = null; }
-    if (roomListener) { roomListener(); roomListener = null; }
-    if (lastSeenInterval) { clearInterval(lastSeenInterval); lastSeenInterval = null; }
-    for (const uid in peerConnections) {
-        try { peerConnections[uid].close(); } catch (e) {}
-        delete peerConnections[uid];
-    }
-    if (myPeer) { myPeer.destroy(); myPeer = null; }
-    Object.values(otherPlayers).forEach(p => { scene.remove(p.group); p.labelDiv.remove(); });
-    for (const uid in otherPlayers) delete otherPlayers[uid];
-    for (const uid in lastMoveTimes) delete lastMoveTimes[uid];
-    document.getElementById('leaderboard-ui').style.display = 'none';
 }
 
 function leaveMultiplayer() {
@@ -2495,10 +2359,15 @@ playerTarget.z += movingZ;
                 }
 
                 updateCameraAndPlayerTransform();
-               if (multiplayerActive && (time * 1000 - lastMultiplayerSync) > 150) {
+                if (multiplayerActive && myPlayerRef && (time * 1000 - lastMultiplayerSync) > 150) {
                     lastMultiplayerSync = time * 1000;
-                    if (isMoving) myLastMoveTime = Date.now();
-                    broadcastPosition();
+                    set(myPlayerRef, {
+                        name: myUsername,
+                        x: playerTarget.x,
+                        y: playerTarget.y,
+                        z: playerTarget.z,
+                        ry: characterYaw
+                    });
                 }
 
             } else {
@@ -3497,7 +3366,6 @@ document.getElementById("closeScriptEditor").onclick = () => {
 
 };
 animate();
-       window.addEventListener('beforeunload', () => { leaveMultiplayer(); });
         document.getElementById('leaveBtn').onclick = () => {
     leaveMultiplayer();
     window.location.href = "https://bubblegames.onrender.com/hub.html";
