@@ -192,7 +192,8 @@
     overflow-y: auto; /* This lets your list scroll inside the box! */
 }.panel-header { font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #ccc; }
 .block-item { cursor: pointer; padding: 5px; border-bottom: 1px solid #eee; font-size: 12px; }
-.block-item:hover { background: #f0f0f0; }    
+.block-item:hover { background: #f0f0f0; }   
+        canvas { touch-action: none; }
 </style>
 
     <script type="importmap">
@@ -396,6 +397,55 @@ font-size:14px;
             gap: 4px;
         "></div>
     </div>
+   <div id="mobile-joystick-zone" style="
+        position: absolute;
+        bottom: 30px;
+        left: 30px;
+        width: 130px;
+        height: 130px;
+        display: none;
+        z-index: 110;
+        touch-action: none;
+    ">
+        <div id="joystick-outer" style="
+            position: absolute;
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.25);
+            border: 3px solid rgba(255,255,255,0.5);
+        "></div>
+        <div id="joystick-knob" style="
+            position: absolute;
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.7);
+            left: 37.5px;
+            top: 37.5px;
+        "></div>
+    </div>
+
+    <div id="mobile-jump-btn" style="
+        position: absolute;
+        bottom: 40px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.35);
+        border: 3px solid rgba(255,255,255,0.6);
+        color: white;
+        font-weight: bold;
+        font-size: 13px;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 110;
+        touch-action: none;
+        user-select: none;
+    ">JUMP</div>
     <div id="play-hint">
         <strong>Play Mode Active</strong><br>
         WASD to Move | Space to Jump | Mouse Scroll to Zoom<br>
@@ -883,6 +933,10 @@ document.getElementById('propertiesPanel').style.display = isPlaying ? 'none' : 
             
            document.getElementById('play-hint').style.display = (isPlaying && !isPlayMode) ? 'block' : 'none';
             document.getElementById('play-leave-ui').style.display = (isPlaying && isPlayMode) ? 'block' : 'none';
+     if (isTouchDevice) {
+                document.getElementById('mobile-joystick-zone').style.display = isPlaying ? 'block' : 'none';
+                document.getElementById('mobile-jump-btn').style.display = isPlaying ? 'flex' : 'none';
+            }
             btns.play.innerText = isPlaying ? "Stop Test" : "Play Test";
             ghostBlock.visible = false; 
             playerGroup.visible = isPlaying;
@@ -1909,6 +1963,106 @@ window.addEventListener('contextmenu', (e) => {
         });
         
         const keys = {};
+        // --- MOBILE TOUCH CONTROLS ---
+        const isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+        let joystickTouchId = null;
+        let joystickVector = { x: 0, z: 0 };
+        let lookTouchId = null;
+        let lastLookX = 0, lastLookY = 0;
+        const joystickZone = document.getElementById('mobile-joystick-zone');
+        const joystickKnob = document.getElementById('joystick-knob');
+        const jumpBtn = document.getElementById('mobile-jump-btn');
+        const JOYSTICK_RADIUS = 65;
+
+        function updateJoystick(touch) {
+            const rect = joystickZone.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            let dx = touch.clientX - centerX;
+            let dy = touch.clientY - centerY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist > JOYSTICK_RADIUS) {
+                dx = (dx / dist) * JOYSTICK_RADIUS;
+                dy = (dy / dist) * JOYSTICK_RADIUS;
+            }
+            joystickKnob.style.left = (37.5 + dx) + 'px';
+            joystickKnob.style.top = (37.5 + dy) + 'px';
+            joystickVector.x = dx / JOYSTICK_RADIUS;
+            joystickVector.z = dy / JOYSTICK_RADIUS;
+        }
+
+        function endJoystickTouch(e) {
+            for (const touch of e.changedTouches) {
+                if (touch.identifier === joystickTouchId) {
+                    joystickTouchId = null;
+                    joystickVector.x = 0;
+                    joystickVector.z = 0;
+                    joystickKnob.style.left = '37.5px';
+                    joystickKnob.style.top = '37.5px';
+                }
+            }
+        }
+
+        joystickZone.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (joystickTouchId !== null) return;
+            const touch = e.changedTouches[0];
+            joystickTouchId = touch.identifier;
+            updateJoystick(touch);
+        }, { passive: false });
+
+        joystickZone.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            for (const touch of e.changedTouches) {
+                if (touch.identifier === joystickTouchId) updateJoystick(touch);
+            }
+        }, { passive: false });
+
+        joystickZone.addEventListener('touchend', endJoystickTouch);
+        joystickZone.addEventListener('touchcancel', endJoystickTouch);
+
+        jumpBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (isPlaying && canJump) {
+                velocityY = robloxJumpPower;
+                canJump = false;
+            }
+        }, { passive: false });
+
+        // Touching/dragging anywhere else on screen (not the joystick) looks around
+        renderer.domElement.addEventListener('touchstart', (e) => {
+            if (!isPlaying) return;
+            for (const touch of e.changedTouches) {
+                if (lookTouchId === null) {
+                    lookTouchId = touch.identifier;
+                    lastLookX = touch.clientX;
+                    lastLookY = touch.clientY;
+                }
+            }
+        }, { passive: true });
+
+        renderer.domElement.addEventListener('touchmove', (e) => {
+            if (!isPlaying) return;
+            for (const touch of e.changedTouches) {
+                if (touch.identifier === lookTouchId) {
+                    const dx = touch.clientX - lastLookX;
+                    const dy = touch.clientY - lastLookY;
+                    lastLookX = touch.clientX;
+                    lastLookY = touch.clientY;
+                    rotY -= dx * 0.0045;
+                    rotX -= dy * 0.0045;
+                    rotX = Math.max(-Math.PI/2 + 0.1, Math.min(Math.PI/2 - 0.1, rotX));
+                }
+            }
+        }, { passive: true });
+
+        function endLookTouch(e) {
+            for (const touch of e.changedTouches) {
+                if (touch.identifier === lookTouchId) lookTouchId = null;
+            }
+        }
+        renderer.domElement.addEventListener('touchend', endLookTouch);
+        renderer.domElement.addEventListener('touchcancel', endLookTouch);
         window.addEventListener('keydown', (e) => {
 
     if (scriptEditorOpen) return;
@@ -2004,7 +2158,14 @@ updateScripts();
                 if (keys.a) inputDir.x -= 1;
                 if (keys.d) inputDir.x += 1;
 
-                let isMoving = inputDir.lengthSq() > 0;
+                let joystickMagnitude = 0;
+                if (joystickTouchId !== null) {
+                    inputDir.x += joystickVector.x;
+                    inputDir.z += joystickVector.z;
+                    joystickMagnitude = Math.min(1, Math.sqrt(joystickVector.x * joystickVector.x + joystickVector.z * joystickVector.z));
+                }
+
+                let isMoving = inputDir.lengthSq() > 0.0001;
 
                 if (isFirstPerson) {
                     characterYaw = rotY;
@@ -2015,7 +2176,7 @@ updateScripts();
                     horizontalMovement.copy(camYawDir).multiplyScalar(-inputDir.z); 
                     const camRight = new THREE.Vector3(-camYawDir.z, 0, camYawDir.x);
                     horizontalMovement.addScaledVector(camRight, inputDir.x);
-                    horizontalMovement.normalize().multiplyScalar(playerSpeed16);
+                    horizontalMovement.normalize().multiplyScalar(playerSpeed16 * (joystickTouchId !== null ? Math.max(0.15, joystickMagnitude) : 1));
 
                     if (!isFirstPerson) {
     const targetYaw = Math.atan2(-horizontalMovement.x, -horizontalMovement.z);
