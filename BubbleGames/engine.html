@@ -1781,10 +1781,12 @@ function loadWorldDataString(worldData) {
     updateWorldList();
     saveWorldState();
 }
-       function createRemotePlayerVisual(uid, name) {
+      function createRemotePlayerVisual(uid, name) {
     const group = new THREE.Group();
     const bodyMat = new THREE.MeshStandardMaterial({ color: 0x00a8ff, roughness: 0.9 });
     const headMat = new THREE.MeshStandardMaterial({ color: 0xffdbac, roughness: 0.9 });
+    const armMat = new THREE.MeshStandardMaterial({ color: 0xffdbac, roughness: 0.9 });
+    const legMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.9 });
 
     const torso = new THREE.Mesh(new THREE.SphereGeometry(0.38, 12, 12), bodyMat);
     torso.scale.set(1, 1.1, 0.8);
@@ -1793,7 +1795,19 @@ function loadWorldDataString(worldData) {
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.32, 12, 12), headMat);
     head.position.y = 1.62;
 
-    group.add(torso, head);
+    const leftArm = createPlushieLimb(0.11, 0.35, armMat);
+    leftArm.position.set(0.42, 1.35, 0);
+
+    const rightArm = createPlushieLimb(0.11, 0.35, armMat);
+    rightArm.position.set(-0.42, 1.35, 0);
+
+    const leftLeg = createPlushieLimb(0.13, 0.32, legMat);
+    leftLeg.position.set(0.18, 0.75, 0);
+
+    const rightLeg = createPlushieLimb(0.13, 0.32, legMat);
+    rightLeg.position.set(-0.18, 0.75, 0);
+
+    group.add(torso, head, leftArm, rightArm, leftLeg, rightLeg);
     scene.add(group);
 
     const labelDiv = document.createElement('div');
@@ -1811,7 +1825,14 @@ function loadWorldDataString(worldData) {
     `;
     document.body.appendChild(labelDiv);
 
-    return { group, labelDiv };
+    return {
+        group, labelDiv, leftArm, rightArm, leftLeg, rightLeg,
+        targetPos: new THREE.Vector3(),
+        targetRotY: 0,
+        lastX: 0,
+        lastZ: 0,
+        walkTime: 0
+    };
 }
 
 async function initMultiplayer(gameId) {
@@ -1863,12 +1884,22 @@ function updateMultiplayerVisuals(playersData) {
     for (const uid in playersData) {
         if (uid === myUid) continue;
         const pdata = playersData[uid];
-        if (!otherPlayers[uid]) {
+        const isNew = !otherPlayers[uid];
+        if (isNew) {
             otherPlayers[uid] = createRemotePlayerVisual(uid, pdata.name || "Player");
         }
         const entry = otherPlayers[uid];
-        entry.group.position.set(pdata.x, pdata.y - playerHeight, pdata.z);
-        if (typeof pdata.ry === 'number') entry.group.rotation.y = pdata.ry;
+        entry.targetPos.set(pdata.x, pdata.y - playerHeight, pdata.z);
+        if (typeof pdata.ry === 'number') entry.targetRotY = pdata.ry;
+
+        // Snap instantly on first sighting so they don't fly in from the origin
+        if (isNew) {
+            entry.group.position.copy(entry.targetPos);
+            entry.group.rotation.y = entry.targetRotY;
+            entry.lastX = entry.targetPos.x;
+            entry.lastZ = entry.targetPos.z;
+        }
+
         entry.labelDiv.innerText = pdata.name || "Player";
     }
 
@@ -2435,6 +2466,36 @@ ghostBlock.rotation.set(0, 0, 0);
 });
  for (const uid in otherPlayers) {
                 const entry = otherPlayers[uid];
+
+                // Smoothly glide toward the latest network position/rotation
+                entry.group.position.lerp(entry.targetPos, 0.2);
+
+                let yawDiff = entry.targetRotY - entry.group.rotation.y;
+                while (yawDiff > Math.PI) yawDiff -= Math.PI * 2;
+                while (yawDiff < -Math.PI) yawDiff += Math.PI * 2;
+                entry.group.rotation.y += yawDiff * 0.2;
+
+                // Detect movement so we know whether to play the walk cycle
+                const dx = entry.group.position.x - entry.lastX;
+                const dz = entry.group.position.z - entry.lastZ;
+                const moving = (dx * dx + dz * dz) > 0.00002;
+                entry.lastX = entry.group.position.x;
+                entry.lastZ = entry.group.position.z;
+
+                if (moving) {
+                    entry.walkTime += 0.25;
+                    const swing = Math.sin(entry.walkTime) * 0.45;
+                    entry.leftLeg.rotation.x = swing;
+                    entry.rightLeg.rotation.x = -swing;
+                    entry.leftArm.rotation.x = -swing;
+                    entry.rightArm.rotation.x = swing;
+                } else {
+                    entry.leftLeg.rotation.x = 0;
+                    entry.rightLeg.rotation.x = 0;
+                    entry.leftArm.rotation.x = 0;
+                    entry.rightArm.rotation.x = 0;
+                }
+
                 const headPos = entry.group.position.clone();
                 headPos.y += 1.9;
                 const screenPos = headPos.clone().project(camera);
