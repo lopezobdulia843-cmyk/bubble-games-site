@@ -413,3 +413,5 @@ window.searchGames = (query) => {
 
     renderGlobalGames(filtered, globalGrid);
 };
+// Add this at the very end of hub.js to expose the function to the HTML
+window.searchGames = searchGames;
