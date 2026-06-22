@@ -2207,7 +2207,7 @@ updateScripts();
                     horizontalMovement.copy(camYawDir).multiplyScalar(-inputDir.z); 
                     const camRight = new THREE.Vector3(-camYawDir.z, 0, camYawDir.x);
                     horizontalMovement.addScaledVector(camRight, inputDir.x);
-                    horizontalMovement.normalize().multiplyScalar(playerSpeed16 * (joystickTouchId !== null ? Math.max(0.15, joystickMagnitude) : 1));
+                  horizontalMovement.normalize().multiplyScalar(playerSpeed16);
 
                     if (!isFirstPerson) {
     const targetYaw = Math.atan2(-horizontalMovement.x, -horizontalMovement.z);
