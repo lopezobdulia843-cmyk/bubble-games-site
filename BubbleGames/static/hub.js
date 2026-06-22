@@ -198,7 +198,7 @@ function openGamePanel(id, name, desc, isOwner, isPublic, author) {
                             "></div>
                         </div>
                         <span style="font-size:13px; color:var(--text-sub); opacity:0.7;">Public</span>
-                      <button onclick="editGameInfo('${id}', \`${name}\`, \`${desc}\`)" style="
+                        <button onclick="editGameInfo('${id}', \`${name}\`, \`${desc}\`)" style="
                             margin-left:10px;
                             background:var(--border-color);
                             color:var(--text-main);
@@ -209,8 +209,7 @@ function openGamePanel(id, name, desc, isOwner, isPublic, author) {
                             font-size:12px;
                             font-weight:bold;
                         ">✏️ Edit</button>
-                        
-                        <button onclick="window.location.href='engine.html?id=${id}&mode=edit'" style="
+                        <button onclick="<button onclick="window.location.href='engine.html?id=${id}&mode=edit'" style="" style="
                             margin-left:6px;
                             background:#f1c40f;
                             color:white;
@@ -221,7 +220,6 @@ function openGamePanel(id, name, desc, isOwner, isPublic, author) {
                             font-size:12px;
                             font-weight:bold;
                         ">🛠️ Open Editor</button>
-                        
                         <button onclick="deleteGameNow('${id}')" style="
                             margin-left:6px;
                             background:#ff4757;
