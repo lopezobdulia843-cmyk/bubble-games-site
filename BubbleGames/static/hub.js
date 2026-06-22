@@ -209,6 +209,17 @@ function openGamePanel(id, name, desc, isOwner, isPublic, author) {
                             font-size:12px;
                             font-weight:bold;
                         ">✏️ Edit</button>
+                        <button onclick="<button onclick="window.location.href='engine.html?id=${id}&mode=edit'" style="" style="
+                            margin-left:6px;
+                            background:#f1c40f;
+                            color:white;
+                            border:none;
+                            padding:6px 14px;
+                            border-radius:20px;
+                            cursor:pointer;
+                            font-size:12px;
+                            font-weight:bold;
+                        ">🛠️ Open Editor</button>
                         <button onclick="deleteGameNow('${id}')" style="
                             margin-left:6px;
                             background:#ff4757;
