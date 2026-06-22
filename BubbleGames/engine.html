@@ -494,6 +494,23 @@ createBubbleUI();
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
+        const clock = new THREE.Clock();
+        const fpsLimit = 60;
+        const frameInterval = 1 / fpsLimit;
+        let deltaAccumulator = 0;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            deltaAccumulator += clock.getDelta();
+
+            if (deltaAccumulator > frameInterval) {
+                // Main update logic
+                update(); 
+                renderer.render(scene, camera);
+                deltaAccumulator %= frameInterval;
+            }
+        }
+        animate();
         document.body.appendChild(renderer.domElement);
 
         const light = new THREE.DirectionalLight(0xffffff, 1.2);
@@ -625,7 +642,6 @@ let editorState = [];
         const playerRadius = 0.35; // tighter box like Roblox
         
         const playerSpeed16 = 0.030; 
-        let clock = new THREE.Clock();
         const robloxGravity = 0.0020; 
         const robloxJumpPower = 0.09; 
         
