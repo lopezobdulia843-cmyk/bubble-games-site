@@ -399,3 +399,17 @@ window.editMessage = async (messageId) => {
     await updateDoc(doc(db, "global-chat", messageId), { text: newText.trim() });
     await setDoc(doc(db, "chat-metadata", "status"), { lastUpdated: serverTimestamp() });
 };
+
+window.searchGames = (query) => {
+    const searchTerm = query.toLowerCase();
+    const globalGrid = document.getElementById('global-game-grid');
+    
+    // Filter the cached games
+    const filtered = window.gameCache.global.filter(doc => {
+        const data = doc.data();
+        return data.name?.toLowerCase().includes(searchTerm) || 
+               data.description?.toLowerCase().includes(searchTerm);
+    });
+
+    renderGlobalGames(filtered, globalGrid);
+};
