@@ -3078,30 +3078,7 @@ function updateScripts() {
 }
 
 
-function updateScripts() {
-    const now = performance.now();
 
-    runningTasks.forEach(task => {
-        if (now < task.nextTime) return;
-
-        // Keep running lines until we hit a WAIT
-        while (task.index < task.lines.length) {
-            const line = task.lines[task.index];
-            task.index++;
-
-            if (task.index >= task.lines.length) task.index = 0;
-
-            const upper = line.trim().toUpperCase().split(" ")[0];
-            if (upper === "WAIT") {
-                const m = line.match(/WAIT\s*\(\s*([\d.]+)\s*\)/i);
-                task.nextTime = now + (m ? parseFloat(m[1]) * 1000 : 1000);
-                break; // Pause here, resume next frame after delay
-            } else {
-                runWorldCommand(line);
-            }
-        }
-    });
-}
 
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
