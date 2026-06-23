@@ -2830,127 +2830,251 @@ document.getElementById("scriptNameInput").value =
 }
 
 let playCreatedBlocks = [];
-function executeWorldScript(scriptText) {
-    const lines = scriptText.split("\n").map(l => l.trim()).filter(l => l.length > 0);
-    const expanded = [];
 
-    // --- PASS 1: Expand REPEAT blocks into flat arrays ---
-    const repeatStack = [];
-    let foreverBlock = null;
-    let foreverLines = [];
+function executeWorldScript(code) {
+    // Parse into a flat instruction list where REPEAT becomes loop markers
+    const rawLines = code.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+    
+    // Build a structured list for FOREVER block only
+    let foreverActive = false;
+    const foreverLines = [];
+    const immediateLines = [];
 
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        const upper = line.toUpperCase().split(" ")[0];
-
-        if (upper === "FOREVER") {
-            foreverBlock = true;
-            foreverLines = [];
-        } else if (upper === "REPEAT") {
-            const m = line.match(/REPEAT\s*\(\s*(\d+)\s*\)/i);
-            const count = m ? parseInt(m[1]) : 1;
-            repeatStack.push({ count, lines: [], capturing: true });
-        } else if (upper === "END") {
-            if (foreverBlock && repeatStack.length === 0) {
-                // End of FOREVER
-                foreverBlock = false;
-                runningTasks.push({ lines: [...foreverLines], index: 0, nextTime: 0 });
-            } else if (repeatStack.length > 0) {
-                const loop = repeatStack.pop();
-                const expanded_loop = [];
-                for (let r = 0; r < loop.count; r++) {
-                    expanded_loop.push(...loop.lines);
-                }
-                if (repeatStack.length > 0) {
-                    repeatStack[repeatStack.length - 1].lines.push(...expanded_loop);
-                } else if (foreverBlock) {
-                    foreverLines.push(...expanded_loop);
-                } else {
-                    expanded.push(...expanded_loop);
-                }
-            }
+    for (const line of rawLines) {
+        const kw = line.split(/[\s(]/)[0].toUpperCase();
+        if (kw === "FOREVER") {
+            foreverActive = true;
+            continue;
+        }
+        if (kw === "END" && foreverActive) {
+            // Check if this END closes an inner REPEAT or the FOREVER itself
+            // We track depth to know
+        }
+        if (foreverActive) {
+            foreverLines.push(line);
         } else {
-            // Normal line — push into the right bucket
-            if (repeatStack.length > 0) {
-                repeatStack[repeatStack.length - 1].lines.push(line);
-            } else if (foreverBlock) {
+            immediateLines.push(line);
+        }
+    }
+
+    // Find where the FOREVER's own END is by tracking depth
+    // Reset and do it properly
+    foreverLines.length = 0;
+    immediateLines.length = 0;
+    foreverActive = false;
+    let foreverDepth = 0;
+
+    for (const line of rawLines) {
+        const kw = line.split(/[\s(]/)[0].toUpperCase();
+
+        if (!foreverActive) {
+            if (kw === "FOREVER") {
+                foreverActive = true;
+                foreverDepth = 0;
+                continue;
+            }
+            immediateLines.push(line);
+        } else {
+            if (kw === "REPEAT") {
+                foreverDepth++;
                 foreverLines.push(line);
+            } else if (kw === "END") {
+                if (foreverDepth === 0) {
+                    // This END closes the FOREVER
+                    foreverActive = false;
+                    runningTasks.push({ lines: [...foreverLines], index: 0, nextTime: 0, repeatStack: [] });
+                } else {
+                    foreverDepth--;
+                    foreverLines.push(line);
+                }
             } else {
-                expanded.push(line);
+                foreverLines.push(line);
             }
         }
     }
 
-    // --- PASS 2: Run expanded non-forever lines ---
-    expanded.forEach(line => runWorldCommand(line));
+    // Run immediate lines once (outside FOREVER)
+    runImmediateLines(immediateLines);
+}
+
+function runImmediateLines(lines) {
+    // Expand REPEATs and run them all at once
+    const stack = [];
+    const output = [];
+
+    for (const line of lines) {
+        const kw = line.split(/[\s(]/)[0].toUpperCase();
+        if (kw === "REPEAT") {
+            const m = line.match(/REPEAT\s*\(\s*(\d+)\s*\)/i);
+            stack.push({ count: m ? parseInt(m[1]) : 1, lines: [] });
+        } else if (kw === "END") {
+            if (stack.length > 0) {
+                const loop = stack.pop();
+                const unrolled = [];
+                for (let r = 0; r < loop.count; r++) unrolled.push(...loop.lines);
+                if (stack.length > 0) stack[stack.length-1].lines.push(...unrolled);
+                else output.push(...unrolled);
+            }
+        } else {
+            if (stack.length > 0) stack[stack.length-1].lines.push(line);
+            else output.push(line);
+        }
+    }
+    for (const line of output) runWorldCommand(line);
+}
+
+function resolveObject(rawName) {
+    const name = rawName.replace(/"/g, "").trim().toLowerCase();
+    if (worldObjects[name]) return worldObjects[name];
+    for (const block of blocks) {
+        if (block.userData.name && block.userData.name.toLowerCase() === name) return block;
+    }
+    return null;
+}
+
+function tokenise(line) {
+    const tokens = [];
+    const re = /"([^"]*?)"|(\S+)/g;
+    let m;
+    while ((m = re.exec(line)) !== null) tokens.push(m[1] !== undefined ? m[1] : m[2]);
+    return tokens;
 }
 
 function runWorldCommand(line) {
+    const tokens = tokenise(line);
+    if (!tokens.length) return;
+    const cmd = tokens[0].toUpperCase();
 
-    const p = line.split(" ");
-
-    const cmd = p[0].toUpperCase();
-
-   let obj = worldObjects[p[1]];
-
-if (!obj) {
-
-    blocks.forEach(block => {
-
-        if (
-            block.userData.name &&
-            block.userData.name.toLowerCase() ===
-            p[1].replace(/"/g,"").toLowerCase()
-        ) {
-            obj = block;
+    if (cmd === "SPAWN") {
+        const blockName = (tokens[1] || "").replace(/"/g, "").trim();
+        if (!blockName) return;
+        let template = null;
+        for (const block of blocks) {
+            if (block.userData.name && block.userData.name.toLowerCase() === blockName.toLowerCase()) { template = block; break; }
         }
-
-    });
-
-}
-
-if (!obj) return;
-
-    if (cmd === "MOVE") {
-
-        const axis = p[2].toLowerCase();
-
-        const value = parseFloat(p[3]);
-
-        obj.position[axis] += value;
+        let newBlock;
+        if (template) {
+            newBlock = new THREE.Mesh(template.geometry.clone(), template.material.clone());
+            newBlock.userData.isMegaBlock = template.userData.isMegaBlock || false;
+        } else {
+            newBlock = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff }));
+        }
+        newBlock.userData.name = blockName;
+        newBlock.userData._playSpawned = true;
+        newBlock.position.copy(spawnPad.position);
+        scene.add(newBlock);
+        blocks.push(newBlock);
+        objectsToIntersect.push(newBlock);
+        worldObjects[blockName.toLowerCase()] = newBlock;
+        playCreatedBlocks.push(newBlock);
+        document.getElementById("count").innerText = blocks.length;
+        updateWorldList();
+        return;
     }
 
-    if (cmd === "ROTATE") {
-
-        const color = p[2].toLowerCase();
-
-        const deg = parseFloat(p[3]);
-
-        const rad = deg * Math.PI / 180;
-
-        if (color === "red") obj.rotation.x += rad;
-        if (color === "green") obj.rotation.y += rad;
-        if (color === "blue") obj.rotation.z += rad;
+    if (cmd === "MOVE") {
+        const obj = resolveObject(tokens[1] || "");
+        if (!obj) return;
+        const axis = (tokens[2] || "y").toLowerCase();
+        const value = parseFloat(tokens[3]) || 0;
+        if (axis === "x" || axis === "y" || axis === "z") obj.position[axis] += value;
+        return;
     }
 
     if (cmd === "SET") {
+        const obj = resolveObject(tokens[1] || "");
+        if (!obj) return;
+        for (let i = 2; i < tokens.length - 2; i++) {
+            const axis = tokens[i].toLowerCase();
+            if ((axis === "x" || axis === "y" || axis === "z") && tokens[i+1] === "=") {
+                obj.position[axis] = parseFloat(tokens[i+2]) || 0;
+                i += 2;
+            }
+        }
+        return;
+    }
 
-        for(let i=2;i<p.length;i++) {
+    if (cmd === "ROTATE") {
+        const obj = resolveObject(tokens[1] || "");
+        if (!obj) return;
+        const axis = (tokens[2] || "y").toLowerCase();
+        const deg = parseFloat(tokens[3]) || 0;
+        const rad = deg * Math.PI / 180;
+        if (axis === "x") obj.rotation.x += rad;
+        if (axis === "y") obj.rotation.y += rad;
+        if (axis === "z") obj.rotation.z += rad;
+        return;
+    }
 
-            if (p[i] === "x" && p[i+1] === "=")
-                obj.position.x = parseFloat(p[i+2]);
+    if (cmd === "COLOR") {
+        const obj = resolveObject(tokens[1] || "");
+        if (!obj || !obj.material) return;
+        try { obj.material.color.set(tokens[2] || "#ffffff"); } catch(e) {}
+        return;
+    }
 
-            if (p[i] === "y" && p[i+1] === "=")
-                obj.position.y = parseFloat(p[i+2]);
+    if (cmd === "SCALE") {
+        const obj = resolveObject(tokens[1] || "");
+        if (!obj) return;
+        obj.scale.setScalar(parseFloat(tokens[2]) || 1);
+        return;
+    }
 
-            if (p[i] === "z" && p[i+1] === "=")
-                obj.position.z = parseFloat(p[i+2]);
+    // WAIT and REPEAT/END are handled by updateScripts, not here
+}
+
+function updateScripts() {
+    const now = performance.now();
+
+    for (const task of runningTasks) {
+        if (now < task.nextTime) continue;
+
+        let safety = 0;
+        while (safety++ < 10000) {
+            if (task.index >= task.lines.length) task.index = 0;
+
+            const line = task.lines[task.index];
+            const kw = line.split(/[\s(]/)[0].toUpperCase();
+
+            // Handle REPEAT at runtime
+            if (kw === "REPEAT") {
+                const m = line.match(/REPEAT\s*\(\s*(\d+)\s*\)/i);
+                const count = m ? parseInt(m[1]) : 1;
+                // Find matching END, collect body lines
+                let depth = 0;
+                let bodyStart = task.index + 1;
+                let endIndex = -1;
+                for (let j = bodyStart; j < task.lines.length; j++) {
+                    const jkw = task.lines[j].split(/[\s(]/)[0].toUpperCase();
+                    if (jkw === "REPEAT") depth++;
+                    else if (jkw === "END") {
+                        if (depth === 0) { endIndex = j; break; }
+                        depth--;
+                    }
+                }
+                if (endIndex === -1) { task.index++; continue; }
+
+                const body = task.lines.slice(bodyStart, endIndex);
+                // Unroll body into task.lines in place, replacing REPEAT...END
+                const unrolled = [];
+                for (let r = 0; r < count; r++) unrolled.push(...body);
+                task.lines.splice(task.index, endIndex - task.index + 1, ...unrolled);
+                // Don't advance index — now task.lines[task.index] is first body line
+                continue;
+            }
+
+            if (kw === "WAIT") {
+                const m = line.match(/WAIT\s*\(\s*([\d.]+)\s*\)/i);
+                task.nextTime = now + (m ? parseFloat(m[1]) * 1000 : 1000);
+                task.index++;
+                break;
+            }
+
+            // Normal command
+            runWorldCommand(line);
+            task.index++;
         }
     }
-if (cmd === "WAIT") {
-
-    // coming soon
-}
 }
 
 
