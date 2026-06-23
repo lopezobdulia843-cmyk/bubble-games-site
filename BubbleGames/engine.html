@@ -2831,193 +2831,58 @@ document.getElementById("scriptNameInput").value =
 
 let playCreatedBlocks = [];
 function executeWorldScript(scriptText) {
+    const lines = scriptText.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+    const expanded = [];
 
-    const lines = scriptText.split("\n");
-
-   let repeatLines = [];
-let insideRepeat = false;
-    let insideForever = false;
+    // --- PASS 1: Expand REPEAT blocks into flat arrays ---
+    const repeatStack = [];
+    let foreverBlock = null;
     let foreverLines = [];
-    let repeatStack = [];
 
-    lines.forEach(line => {
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const upper = line.toUpperCase().split(" ")[0];
 
-        line = line.trim();
-
-        if (!line) return;
-
-        const p = line.split(" ");
-
-        if (p[0].toUpperCase() === "SPAWN") {
-
-    // SPAWN BlockName
-
-   const match = line.match(/SPAWN\s+(.+)/i);
-
-if (!match) return;
-
-const blockName = match[1].replace(/"/g, "").trim();
-
-    let foundBlock = null;
-
-    // Search My World
-   const searchList = isPlaying
-    ? blocks
-    : blocks;
-
-searchList.forEach(block => {
-
-    if (
-        block.userData.name &&
-        block.userData.name.toLowerCase() === blockName.toLowerCase()
-    ) {
-        foundBlock = block;
+        if (upper === "FOREVER") {
+            foreverBlock = true;
+            foreverLines = [];
+        } else if (upper === "REPEAT") {
+            const m = line.match(/REPEAT\s*\(\s*(\d+)\s*\)/i);
+            const count = m ? parseInt(m[1]) : 1;
+            repeatStack.push({ count, lines: [], capturing: true });
+        } else if (upper === "END") {
+            if (foreverBlock && repeatStack.length === 0) {
+                // End of FOREVER
+                foreverBlock = false;
+                runningTasks.push({ lines: [...foreverLines], index: 0, nextTime: 0 });
+            } else if (repeatStack.length > 0) {
+                const loop = repeatStack.pop();
+                const expanded_loop = [];
+                for (let r = 0; r < loop.count; r++) {
+                    expanded_loop.push(...loop.lines);
+                }
+                if (repeatStack.length > 0) {
+                    repeatStack[repeatStack.length - 1].lines.push(...expanded_loop);
+                } else if (foreverBlock) {
+                    foreverLines.push(...expanded_loop);
+                } else {
+                    expanded.push(...expanded_loop);
+                }
+            }
+        } else {
+            // Normal line — push into the right bucket
+            if (repeatStack.length > 0) {
+                repeatStack[repeatStack.length - 1].lines.push(line);
+            } else if (foreverBlock) {
+                foreverLines.push(line);
+            } else {
+                expanded.push(line);
+            }
+        }
     }
 
-});
-
-    let newBlock;
-
-    if (foundBlock) {
-
-        // Clone existing block
-        newBlock = new THREE.Mesh(
-            foundBlock.geometry.clone(),
-            foundBlock.material.clone()
-        );
-
-        newBlock.userData.name =
-            foundBlock.userData.name;
-
-        if (foundBlock.userData.isMegaBlock) {
-            newBlock.userData.isMegaBlock = true;
-        }
-
-    } else {
-
-        // Create normal cube if not found
-        newBlock = new THREE.Mesh(
-            new THREE.BoxGeometry(1,1,1),
-            new THREE.MeshStandardMaterial({
-                color: Math.random() * 0xffffff
-            })
-        );
-
-        newBlock.userData.name = blockName || "Block";
-worldObjects[blockName] = newBlock;
-    }
-
-    // Spawn at spawn point
-    newBlock.position.copy(spawnPad.position);
-
-    worldObjects[blockName] = newBlock;
-scene.add(newBlock);
-if (isPlaying) {
-    playCreatedBlocks.push(newBlock);
-}
-
-    blocks.push(newBlock);
-    objectsToIntersect.push(newBlock);
-
-    document.getElementById("count").innerText =
-        blocks.length;
-
-    updateWorldList();
-}
-
-       else if (p[0].toUpperCase() === "REPEAT") {
-
-    const repeatMatch =
-        line.match(/REPEAT\s*\((.*?)\)/i);
-
-    if (!repeatMatch) return;
-
-    const amount =
-        parseInt(repeatMatch[1]);
-
-    repeatStack.push({
-        count: amount,
-        start: insideForever
-            ? foreverLines.length
-            : repeatLines.length
-    });
-
-    insideRepeat = true;
-}
-        else if (p[0].toUpperCase() === "FOREVER") {
-
-            insideForever = true;
-        }
-
-     else if (p[0].toUpperCase() === "END") {
-
-    if (repeatStack.length > 0) {
-
-        const loop = repeatStack.pop();
-
-        const targetArray =
-            insideForever
-                ? foreverLines
-                : repeatLines;
-
-        const loopLines =
-            targetArray.slice(loop.start);
-
-        for (let i = 0; i < loop.count - 1; i++) {
-
-            targetArray.push(...loopLines);
-
-        }
-
-        insideRepeat = false;
-
-    } else {
-
-        insideForever = false;
-
-    }
-}
-
-       else if (insideForever) {
-
-    foreverLines.push(line);
-}
-else if (insideRepeat) {
-
-    repeatLines.push(line);
-}
-else if (p[0].toUpperCase() === "WAIT") {
-
-    runWorldCommand(line);
-}
-
-else if (p[0].toUpperCase() === "MOVE") {
-
-    runWorldCommand(line);
-}
-
-else if (p[0].toUpperCase() === "SET") {
-
-    runWorldCommand(line);
-}
-
-        else {
-
-            runWorldCommand(line);
-        }
-    });
-
-  repeatLines.forEach(line => {
-    runWorldCommand(line);
-});
-    if (foreverLines.length > 0) {
-
-        runningTasks.push({
-            lines: foreverLines,
-            index: 0,
-            nextTime: 0
-        });
-    }
+    // --- PASS 2: Run expanded non-forever lines ---
+    expanded.forEach(line => runWorldCommand(line));
 }
 
 function runWorldCommand(line) {
@@ -3090,41 +2955,26 @@ if (cmd === "WAIT") {
 
 
 function updateScripts() {
-
     const now = performance.now();
 
     runningTasks.forEach(task => {
-
         if (now < task.nextTime) return;
 
-        const line = task.lines[task.index];
+        // Keep running lines until we hit a WAIT
+        while (task.index < task.lines.length) {
+            const line = task.lines[task.index];
+            task.index++;
 
-        const p = line.split(" ");
+            if (task.index >= task.lines.length) task.index = 0;
 
-        if (p[0].toUpperCase() === "WAIT") {
-
-           const match = line.match(/WAIT\s*\((.*?)\)/i);
-
-if (match) {
-
-    task.nextTime =
-        now + parseFloat(match[1]) * 1000;
-
-}
-        }
-
-        else {
-
-            runWorldCommand(line);
-
-            task.nextTime = now;
-        }
-
-        task.index++;
-
-        if (task.index >= task.lines.length) {
-
-            task.index = 0;
+            const upper = line.trim().toUpperCase().split(" ")[0];
+            if (upper === "WAIT") {
+                const m = line.match(/WAIT\s*\(\s*([\d.]+)\s*\)/i);
+                task.nextTime = now + (m ? parseFloat(m[1]) * 1000 : 1000);
+                break; // Pause here, resume next frame after delay
+            } else {
+                runWorldCommand(line);
+            }
         }
     });
 }
