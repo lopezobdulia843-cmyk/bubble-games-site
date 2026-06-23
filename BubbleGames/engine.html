@@ -2898,29 +2898,9 @@ function executeWorldScript(code) {
 }
 
 function runImmediateLines(lines) {
-    // Expand REPEATs and run them all at once
-    const stack = [];
-    const output = [];
-
-    for (const line of lines) {
-        const kw = line.split(/[\s(]/)[0].toUpperCase();
-        if (kw === "REPEAT") {
-            const m = line.match(/REPEAT\s*\(\s*(\d+)\s*\)/i);
-            stack.push({ count: m ? parseInt(m[1]) : 1, lines: [] });
-        } else if (kw === "END") {
-            if (stack.length > 0) {
-                const loop = stack.pop();
-                const unrolled = [];
-                for (let r = 0; r < loop.count; r++) unrolled.push(...loop.lines);
-                if (stack.length > 0) stack[stack.length-1].lines.push(...unrolled);
-                else output.push(...unrolled);
-            }
-        } else {
-            if (stack.length > 0) stack[stack.length-1].lines.push(line);
-            else output.push(line);
-        }
-    }
-    for (const line of output) runWorldCommand(line);
+    // Run as a one-shot task so WAIT works properly
+    // Lines outside FOREVER run once and stop (no looping)
+    runningTasks.push({ lines: [...lines], index: 0, nextTime: 0, oneShot: true });
 }
 
 function resolveObject(rawName) {
@@ -3026,21 +3006,29 @@ function runWorldCommand(line) {
 function updateScripts() {
     const now = performance.now();
 
-    for (const task of runningTasks) {
+    for (let t = runningTasks.length - 1; t >= 0; t--) {
+        const task = runningTasks[t];
         if (now < task.nextTime) continue;
+
+        // One-shot tasks stop when they reach the end
+        if (task.oneShot && task.index >= task.lines.length) {
+            runningTasks.splice(t, 1);
+            continue;
+        }
 
         let safety = 0;
         while (safety++ < 10000) {
-            if (task.index >= task.lines.length) task.index = 0;
+            if (task.index >= task.lines.length) {
+                if (task.oneShot) { runningTasks.splice(t, 1); break; }
+                task.index = 0;
+            }
 
             const line = task.lines[task.index];
             const kw = line.split(/[\s(]/)[0].toUpperCase();
 
-            // Handle REPEAT at runtime
             if (kw === "REPEAT") {
                 const m = line.match(/REPEAT\s*\(\s*(\d+)\s*\)/i);
                 const count = m ? parseInt(m[1]) : 1;
-                // Find matching END, collect body lines
                 let depth = 0;
                 let bodyStart = task.index + 1;
                 let endIndex = -1;
@@ -3053,13 +3041,10 @@ function updateScripts() {
                     }
                 }
                 if (endIndex === -1) { task.index++; continue; }
-
                 const body = task.lines.slice(bodyStart, endIndex);
-                // Unroll body into task.lines in place, replacing REPEAT...END
                 const unrolled = [];
                 for (let r = 0; r < count; r++) unrolled.push(...body);
                 task.lines.splice(task.index, endIndex - task.index + 1, ...unrolled);
-                // Don't advance index — now task.lines[task.index] is first body line
                 continue;
             }
 
@@ -3070,7 +3055,6 @@ function updateScripts() {
                 break;
             }
 
-            // Normal command
             runWorldCommand(line);
             task.index++;
         }
