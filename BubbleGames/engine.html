@@ -2825,6 +2825,8 @@ function executeWorldScript(scriptText) {
 
     const lines = scriptText.split("\n");
 
+   let repeatLines = [];
+let insideRepeat = false;
     let insideForever = false;
     let foreverLines = [];
     let repeatStack = [];
@@ -2914,35 +2916,51 @@ if (isPlaying) {
     updateWorldList();
 }
 
-        else if (p[0].toUpperCase() === "REPEAT") {
+       else if (p[0].toUpperCase() === "REPEAT") {
 
-    const amount = parseInt(p[1]);
+    const repeatMatch =
+        line.match(/REPEAT\s*\((.*?)\)/i);
+
+    if (!repeatMatch) return;
+
+    const amount =
+        parseInt(repeatMatch[1]);
 
     repeatStack.push({
         count: amount,
-        start: foreverLines.length
+        start: insideForever
+            ? foreverLines.length
+            : repeatLines.length
     });
 
+    insideRepeat = true;
 }
         else if (p[0].toUpperCase() === "FOREVER") {
 
             insideForever = true;
         }
 
-      else if (p[0].toUpperCase() === "END") {
+     else if (p[0].toUpperCase() === "END") {
 
     if (repeatStack.length > 0) {
 
         const loop = repeatStack.pop();
 
+        const targetArray =
+            insideForever
+                ? foreverLines
+                : repeatLines;
+
         const loopLines =
-            foreverLines.slice(loop.start);
+            targetArray.slice(loop.start);
 
         for (let i = 0; i < loop.count - 1; i++) {
 
-            foreverLines.push(...loopLines);
+            targetArray.push(...loopLines);
 
         }
+
+        insideRepeat = false;
 
     } else {
 
@@ -2951,10 +2969,14 @@ if (isPlaying) {
     }
 }
 
-        else if (insideForever) {
+       else if (insideForever) {
 
-            foreverLines.push(line);
-        }
+    foreverLines.push(line);
+}
+else if (insideRepeat) {
+
+    repeatLines.push(line);
+}
 else if (p[0].toUpperCase() === "WAIT") {
 
     runWorldCommand(line);
@@ -2976,6 +2998,9 @@ else if (p[0].toUpperCase() === "SET") {
         }
     });
 
+  repeatLines.forEach(line => {
+    runWorldCommand(line);
+});
     if (foreverLines.length > 0) {
 
         runningTasks.push({
