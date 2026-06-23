@@ -2830,219 +2830,154 @@ document.getElementById("scriptNameInput").value =
 }
 
 let playCreatedBlocks = [];
+function executeWorldScript(scriptText) {
+    const lines = scriptText.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+    const expanded = [];
 
-// ============================================================
-//  SCRIPTING ENGINE — full rewrite
-// ============================================================
+    // --- PASS 1: Expand REPEAT blocks into flat arrays ---
+    const repeatStack = [];
+    let foreverBlock = null;
+    let foreverLines = [];
 
-function executeWorldScript(code) {
-    const lines = code.split("\n").map(l => l.trim()).filter(l => l.length > 0);
-    const immediateLines = [];   // lines that run once at start
-    const repeatStack    = [];   // stack of { count, lines[] }
-    let foreverActive    = false;
-    const foreverLines   = [];   // lines inside FOREVER…END
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const upper = line.toUpperCase().split(" ")[0];
 
-    for (const line of lines) {
-        const keyword = line.split(/[\s(]/)[0].toUpperCase();
-
-        // ── FOREVER ──────────────────────────────────────────
-        if (keyword === "FOREVER") {
-            foreverActive = true;
-            continue;
-        }
-
-        // ── REPEAT(n) ────────────────────────────────────────
-        if (keyword === "REPEAT") {
+        if (upper === "FOREVER") {
+            foreverBlock = true;
+            foreverLines = [];
+        } else if (upper === "REPEAT") {
             const m = line.match(/REPEAT\s*\(\s*(\d+)\s*\)/i);
-            repeatStack.push({ count: m ? parseInt(m[1]) : 1, lines: [] });
-            continue;
-        }
-
-        // ── END ──────────────────────────────────────────────
-        if (keyword === "END") {
-            if (repeatStack.length > 0) {
-                // finish the innermost REPEAT
-                const loop = repeatStack.pop();
-                const unrolled = [];
-                for (let r = 0; r < loop.count; r++) unrolled.push(...loop.lines);
-
-                if (repeatStack.length > 0) {
-                    // nested inside another REPEAT
-                    repeatStack[repeatStack.length - 1].lines.push(...unrolled);
-                } else if (foreverActive) {
-                    // nested REPEAT inside FOREVER
-                    foreverLines.push(...unrolled);
-                } else {
-                    immediateLines.push(...unrolled);
-                }
-            } else if (foreverActive) {
-                // close the FOREVER block → register as a running task
-                foreverActive = false;
+            const count = m ? parseInt(m[1]) : 1;
+            repeatStack.push({ count, lines: [], capturing: true });
+        } else if (upper === "END") {
+            if (foreverBlock && repeatStack.length === 0) {
+                // End of FOREVER
+                foreverBlock = false;
                 runningTasks.push({ lines: [...foreverLines], index: 0, nextTime: 0 });
-                foreverLines.length = 0;
+            } else if (repeatStack.length > 0) {
+                const loop = repeatStack.pop();
+                const expanded_loop = [];
+                for (let r = 0; r < loop.count; r++) {
+                    expanded_loop.push(...loop.lines);
+                }
+                if (repeatStack.length > 0) {
+                    repeatStack[repeatStack.length - 1].lines.push(...expanded_loop);
+                } else if (foreverBlock) {
+                    foreverLines.push(...expanded_loop);
+                } else {
+                    expanded.push(...expanded_loop);
+                }
             }
-            continue;
-        }
-
-        // ── normal line → put it in the right bucket ─────────
-        if (repeatStack.length > 0) {
-            repeatStack[repeatStack.length - 1].lines.push(line);
-        } else if (foreverActive) {
-            foreverLines.push(line);
         } else {
-            immediateLines.push(line);
+            // Normal line — push into the right bucket
+            if (repeatStack.length > 0) {
+                repeatStack[repeatStack.length - 1].lines.push(line);
+            } else if (foreverBlock) {
+                foreverLines.push(line);
+            } else {
+                expanded.push(line);
+            }
         }
     }
 
-    // run all non-forever lines immediately
-    for (const line of immediateLines) runWorldCommand(line);
+    // --- PASS 2: Run expanded non-forever lines ---
+    expanded.forEach(line => runWorldCommand(line));
 }
 
-// ── resolve a name to a scene object ──────────────────────────
-function resolveObject(rawName) {
-    // strip quotes
-    const name = rawName.replace(/"/g, "").trim().toLowerCase();
-    if (worldObjects[name]) return worldObjects[name];
-    for (const block of blocks) {
-        if (block.userData.name && block.userData.name.toLowerCase() === name) return block;
-    }
-    return null;
-}
-
-// ── tokenise a line properly (respects "quoted names") ────────
-function tokenise(line) {
-    const tokens = [];
-    const re = /"([^"]*?)"|(\S+)/g;
-    let m;
-    while ((m = re.exec(line)) !== null) tokens.push(m[1] !== undefined ? m[1] : m[2]);
-    return tokens;
-}
-
-// ── execute one command ────────────────────────────────────────
 function runWorldCommand(line) {
-    const tokens = tokenise(line);
-    if (!tokens.length) return;
-    const cmd = tokens[0].toUpperCase();
 
-    // SPAWN "BlockName"
-    if (cmd === "SPAWN") {
-        const blockName = (tokens[1] || "").replace(/"/g, "").trim();
-        if (!blockName) return;
+    const p = line.split(" ");
 
-        // look for an existing block with that name to clone
-        let template = null;
-        for (const block of blocks) {
-            if (block.userData.name && block.userData.name.toLowerCase() === blockName.toLowerCase()) {
-                template = block; break;
-            }
+    const cmd = p[0].toUpperCase();
+
+   let obj = worldObjects[p[1]];
+
+if (!obj) {
+
+    blocks.forEach(block => {
+
+        if (
+            block.userData.name &&
+            block.userData.name.toLowerCase() ===
+            p[1].replace(/"/g,"").toLowerCase()
+        ) {
+            obj = block;
         }
 
-        let newBlock;
-        if (template) {
-            newBlock = new THREE.Mesh(template.geometry.clone(), template.material.clone());
-            newBlock.userData.isMegaBlock = template.userData.isMegaBlock || false;
-        } else {
-            newBlock = new THREE.Mesh(
-                new THREE.BoxGeometry(1, 1, 1),
-                new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff })
-            );
-        }
-        newBlock.userData.name = blockName;
-        newBlock.userData._playSpawned = true;
-        newBlock.position.copy(spawnPad.position);
+    });
 
-        scene.add(newBlock);
-        blocks.push(newBlock);
-        objectsToIntersect.push(newBlock);
-        worldObjects[blockName.toLowerCase()] = newBlock;
-        playCreatedBlocks.push(newBlock);
-
-        document.getElementById("count").innerText = blocks.length;
-        updateWorldList();
-        return;
-    }
-
-    // MOVE "BlockName" x 3
-    if (cmd === "MOVE") {
-        const obj = resolveObject(tokens[1] || "");
-        if (!obj) return;
-        const axis  = (tokens[2] || "y").toLowerCase();
-        const value = parseFloat(tokens[3]) || 0;
-        if (axis === "x" || axis === "y" || axis === "z") obj.position[axis] += value;
-        return;
-    }
-
-    // SET "BlockName" x = 5  (or  y = 10  etc.)
-    if (cmd === "SET") {
-        const obj = resolveObject(tokens[1] || "");
-        if (!obj) return;
-        // scan remaining tokens for  axis = value
-        for (let i = 2; i < tokens.length - 2; i++) {
-            const axis = tokens[i].toLowerCase();
-            if ((axis === "x" || axis === "y" || axis === "z") && tokens[i + 1] === "=") {
-                obj.position[axis] = parseFloat(tokens[i + 2]) || 0;
-                i += 2;
-            }
-        }
-        return;
-    }
-
-    // ROTATE "BlockName" x 90   (axis: x / y / z)
-    if (cmd === "ROTATE") {
-        const obj = resolveObject(tokens[1] || "");
-        if (!obj) return;
-        const axis = (tokens[2] || "y").toLowerCase();
-        const deg  = parseFloat(tokens[3]) || 0;
-        const rad  = deg * Math.PI / 180;
-        if (axis === "x") obj.rotation.x += rad;
-        if (axis === "y") obj.rotation.y += rad;
-        if (axis === "z") obj.rotation.z += rad;
-        return;
-    }
-
-    // COLOR "BlockName" #ff0000
-    if (cmd === "COLOR") {
-        const obj = resolveObject(tokens[1] || "");
-        if (!obj || !obj.material) return;
-        try { obj.material.color.set(tokens[2] || "#ffffff"); } catch(e) {}
-        return;
-    }
-
-    // SCALE "BlockName" 2
-    if (cmd === "SCALE") {
-        const obj = resolveObject(tokens[1] || "");
-        if (!obj) return;
-        const s = parseFloat(tokens[2]) || 1;
-        obj.scale.setScalar(s);
-        return;
-    }
-
-    // WAIT(seconds) — handled by updateScripts, nothing to do here
-    if (cmd === "WAIT") return;
 }
 
-// ── tick: advance all FOREVER tasks each frame ─────────────────
+if (!obj) return;
+
+    if (cmd === "MOVE") {
+
+        const axis = p[2].toLowerCase();
+
+        const value = parseFloat(p[3]);
+
+        obj.position[axis] += value;
+    }
+
+    if (cmd === "ROTATE") {
+
+        const color = p[2].toLowerCase();
+
+        const deg = parseFloat(p[3]);
+
+        const rad = deg * Math.PI / 180;
+
+        if (color === "red") obj.rotation.x += rad;
+        if (color === "green") obj.rotation.y += rad;
+        if (color === "blue") obj.rotation.z += rad;
+    }
+
+    if (cmd === "SET") {
+
+        for(let i=2;i<p.length;i++) {
+
+            if (p[i] === "x" && p[i+1] === "=")
+                obj.position.x = parseFloat(p[i+2]);
+
+            if (p[i] === "y" && p[i+1] === "=")
+                obj.position.y = parseFloat(p[i+2]);
+
+            if (p[i] === "z" && p[i+1] === "=")
+                obj.position.z = parseFloat(p[i+2]);
+        }
+    }
+if (cmd === "WAIT") {
+
+    // coming soon
+}
+}
+
+
 function updateScripts() {
     const now = performance.now();
-    for (const task of runningTasks) {
-        if (now < task.nextTime) continue;
-        // run lines until we hit a WAIT
-        let safety = 0;
-        while (safety++ < 10000) {
+
+    runningTasks.forEach(task => {
+        if (now < task.nextTime) return;
+
+        // Keep running lines until we hit a WAIT
+        while (task.index < task.lines.length) {
+            const line = task.lines[task.index];
+            task.index++;
+
             if (task.index >= task.lines.length) task.index = 0;
-            const line = task.lines[task.index++];
-            const keyword = line.split(/[\s(]/)[0].toUpperCase();
-            if (keyword === "WAIT") {
+
+            const upper = line.trim().toUpperCase().split(" ")[0];
+            if (upper === "WAIT") {
                 const m = line.match(/WAIT\s*\(\s*([\d.]+)\s*\)/i);
                 task.nextTime = now + (m ? parseFloat(m[1]) * 1000 : 1000);
-                break;
+                break; // Pause here, resume next frame after delay
+            } else {
+                runWorldCommand(line);
             }
-            runWorldCommand(line);
         }
-    }
+    });
 }
-
-    
 
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
