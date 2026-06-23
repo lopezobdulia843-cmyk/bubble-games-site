@@ -2827,6 +2827,7 @@ function executeWorldScript(scriptText) {
 
     let insideForever = false;
     let foreverLines = [];
+    let repeatStack = [];
 
     lines.forEach(line => {
 
@@ -2913,15 +2914,42 @@ if (isPlaying) {
     updateWorldList();
 }
 
+        else if (p[0].toUpperCase() === "REPEAT") {
+
+    const amount = parseInt(p[1]);
+
+    repeatStack.push({
+        count: amount,
+        start: foreverLines.length
+    });
+
+}
         else if (p[0].toUpperCase() === "FOREVER") {
 
             insideForever = true;
         }
 
-        else if (p[0].toUpperCase() === "END") {
+      else if (p[0].toUpperCase() === "END") {
 
-            insideForever = false;
+    if (repeatStack.length > 0) {
+
+        const loop = repeatStack.pop();
+
+        const loopLines =
+            foreverLines.slice(loop.start);
+
+        for (let i = 0; i < loop.count - 1; i++) {
+
+            foreverLines.push(...loopLines);
+
         }
+
+    } else {
+
+        insideForever = false;
+
+    }
+}
 
         else if (insideForever) {
 
