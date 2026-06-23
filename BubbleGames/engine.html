@@ -2457,11 +2457,13 @@ ghostBlock.rotation.set(0, 0, 0);
                 }
             }
 
-           blocks.forEach(b => {
+         blocks.forEach(b => {
 
-    b.userData.lastX = b.position.x;
-    b.userData.lastY = b.position.y;
-    b.userData.lastZ = b.position.z;
+    if (b.userData.lastX === undefined) {
+        b.userData.lastX = b.position.x;
+        b.userData.lastY = b.position.y;
+        b.userData.lastZ = b.position.z;
+    }
 
 });
  for (const uid in otherPlayers) {
@@ -2507,6 +2509,13 @@ ghostBlock.rotation.set(0, 0, 0);
                     entry.labelDiv.style.top = ((-screenPos.y * 0.5 + 0.5) * window.innerHeight) + 'px';
                 }
             }
+           blocks.forEach(b => {
+
+    b.userData.lastX = b.position.x;
+    b.userData.lastY = b.position.y;
+    b.userData.lastZ = b.position.z;
+
+});
             renderer.render(scene, camera);
         }
 
