@@ -65,12 +65,12 @@ async function loadGlobalGames() {
         window.gameCache.global = snap.docs.filter(docSnap => {
     const data = docSnap.data();
 
-    return (
-        data.isPublic === true ||
-        data.public === true ||
-        data.visibility === "public" ||
-        data.n
-    );
+ return (
+    data.isPublic === true ||
+    data.public === true ||
+    data.visibility === "public" ||
+    data.p === 1
+);
 });
         
         renderGlobalGames(window.gameCache.global, globalGrid);
