@@ -2828,83 +2828,78 @@ document.getElementById("scriptNameInput").value =
 
 let playCreatedBlocks = [];
 
+// ============================================================
+//  BUBBLE SCRIPT ENGINE  –  clean rebuild
+// ============================================================
+
 function executeWorldScript(code) {
-    // Parse into a flat instruction list where REPEAT becomes loop markers
-    const rawLines = code.split("\n").map(l => l.trim()).filter(l => l.length > 0);
-    
-    // Build a structured list for FOREVER block only
-    let foreverActive = false;
-    const foreverLines = [];
+    const rawLines = code.split("\n")
+        .map(l => l.trim())
+        .filter(l => l.length > 0);
+
+    // Separate lines before FOREVER from lines inside it
     const immediateLines = [];
-
-    for (const line of rawLines) {
-        const kw = line.split(/[\s(]/)[0].toUpperCase();
-        if (kw === "FOREVER") {
-            foreverActive = true;
-            continue;
-        }
-        if (kw === "END" && foreverActive) {
-            // Check if this END closes an inner REPEAT or the FOREVER itself
-            // We track depth to know
-        }
-        if (foreverActive) {
-            foreverLines.push(line);
-        } else {
-            immediateLines.push(line);
-        }
-    }
-
-    // Find where the FOREVER's own END is by tracking depth
-    // Reset and do it properly
-    foreverLines.length = 0;
-    immediateLines.length = 0;
-    foreverActive = false;
-    let foreverDepth = 0;
+    const foreverLines   = [];
+    let inForever  = false;
+    let depth      = 0;          // tracks nested REPEATs inside FOREVER
 
     for (const line of rawLines) {
         const kw = line.split(/[\s(]/)[0].toUpperCase();
 
-        if (!foreverActive) {
+        if (!inForever) {
             if (kw === "FOREVER") {
-                foreverActive = true;
-                foreverDepth = 0;
-                continue;
-            }
-            immediateLines.push(line);
-        } else {
-            if (kw === "REPEAT") {
-                foreverDepth++;
-                foreverLines.push(line);
-            } else if (kw === "END") {
-                if (foreverDepth === 0) {
-                    // This END closes the FOREVER
-                    foreverActive = false;
-                    runningTasks.push({ lines: [...foreverLines], index: 0, nextTime: 0, repeatStack: [] });
-                } else {
-                    foreverDepth--;
-                    foreverLines.push(line);
-                }
+                inForever = true;
+                depth = 0;
             } else {
-                foreverLines.push(line);
+                immediateLines.push(line);
             }
+        } else {
+            // We are inside FOREVER
+            if (kw === "REPEAT")      depth++;
+            else if (kw === "END") {
+                if (depth === 0) {
+                    // This END closes the FOREVER itself — stop collecting
+                    inForever = false;
+                    continue;          // don't push this END into foreverLines
+                }
+                depth--;
+            }
+            foreverLines.push(line);
         }
     }
 
-    // Run immediate lines once (outside FOREVER)
-    runImmediateLines(immediateLines);
+    // Run one-shot lines immediately (WAIT still works inside them)
+    if (immediateLines.length > 0) {
+        runningTasks.push({
+            lines:       immediateLines,
+            index:       0,
+            nextTime:    0,
+            oneShot:     true,
+            repeatStack: []
+        });
+    }
+
+    // Queue the forever loop
+    if (foreverLines.length > 0) {
+        runningTasks.push({
+            lines:       foreverLines,
+            index:       0,
+            nextTime:    0,
+            oneShot:     false,
+            repeatStack: []          // { remaining, bodyStart, bodyEnd }
+        });
+    }
 }
 
-function runImmediateLines(lines) {
-    // Run as a one-shot task so WAIT works properly
-    // Lines outside FOREVER run once and stop (no looping)
-    runningTasks.push({ lines: [...lines], index: 0, nextTime: 0, oneShot: true });
-}
+// ── helpers ────────────────────────────────────────────────
 
 function resolveObject(rawName) {
-    const name = rawName.replace(/"/g, "").trim().toLowerCase();
+    const name = (rawName || "").replace(/"/g, "").trim().toLowerCase();
+    // Check the live worldObjects cache first
     if (worldObjects[name]) return worldObjects[name];
+    // Fall back to scanning every block by userData.name
     for (const block of blocks) {
-        if (block.userData.name && block.userData.name.toLowerCase() === name) return block;
+        if ((block.userData.name || "").toLowerCase() === name) return block;
     }
     return null;
 }
@@ -2913,145 +2908,197 @@ function tokenise(line) {
     const tokens = [];
     const re = /"([^"]*?)"|(\S+)/g;
     let m;
-    while ((m = re.exec(line)) !== null) tokens.push(m[1] !== undefined ? m[1] : m[2]);
+    while ((m = re.exec(line)) !== null)
+        tokens.push(m[1] !== undefined ? m[1] : m[2]);
     return tokens;
 }
+
+// Find the matching END for a REPEAT at startIndex
+function findMatchingEnd(lines, startIndex) {
+    let depth = 0;
+    for (let j = startIndex + 1; j < lines.length; j++) {
+        const kw = lines[j].split(/[\s(]/)[0].toUpperCase();
+        if (kw === "REPEAT") depth++;
+        else if (kw === "END") {
+            if (depth === 0) return j;
+            depth--;
+        }
+    }
+    return -1;   // malformed — no END found
+}
+
+// ── command executor ───────────────────────────────────────
 
 function runWorldCommand(line) {
     const tokens = tokenise(line);
     if (!tokens.length) return;
     const cmd = tokens[0].toUpperCase();
 
+    // SPAWN "name"
     if (cmd === "SPAWN") {
         const blockName = (tokens[1] || "").replace(/"/g, "").trim();
         if (!blockName) return;
+
+        // Look for a template block with this name
         let template = null;
         for (const block of blocks) {
-            if (block.userData.name && block.userData.name.toLowerCase() === blockName.toLowerCase()) { template = block; break; }
+            if ((block.userData.name || "").toLowerCase() === blockName.toLowerCase()) {
+                template = block;
+                break;
+            }
         }
-        let newBlock;
-        if (template) {
-            newBlock = new THREE.Mesh(template.geometry.clone(), template.material.clone());
-            newBlock.userData.isMegaBlock = template.userData.isMegaBlock || false;
-        } else {
-            newBlock = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff }));
-        }
-        newBlock.userData.name = blockName;
+
+        const newBlock = template
+            ? new THREE.Mesh(template.geometry.clone(), template.material.clone())
+            : new THREE.Mesh(
+                new THREE.BoxGeometry(1, 1, 1),
+                new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff })
+              );
+
+        if (template && template.userData.isMegaBlock)
+            newBlock.userData.isMegaBlock = true;
+
+        newBlock.userData.name        = blockName;
         newBlock.userData._playSpawned = true;
         newBlock.position.copy(spawnPad.position);
+
         scene.add(newBlock);
         blocks.push(newBlock);
         objectsToIntersect.push(newBlock);
-        worldObjects[blockName.toLowerCase()] = newBlock;
         playCreatedBlocks.push(newBlock);
+
+        // Register in the live cache so subsequent commands find it instantly
+        worldObjects[blockName.toLowerCase()] = newBlock;
+
         document.getElementById("count").innerText = blocks.length;
         updateWorldList();
         return;
     }
 
+    // MOVE "name" axis amount
+    // e.g.  MOVE "Box" y 1
     if (cmd === "MOVE") {
-        const obj = resolveObject(tokens[1] || "");
+        const obj  = resolveObject(tokens[1] || "");
         if (!obj) return;
-        const axis = (tokens[2] || "y").toLowerCase();
+        const axis  = (tokens[2] || "y").toLowerCase();
         const value = parseFloat(tokens[3]) || 0;
-        if (axis === "x" || axis === "y" || axis === "z") obj.position[axis] += value;
+        if (axis === "x" || axis === "y" || axis === "z")
+            obj.position[axis] += value;
         return;
     }
 
+    // SET "name" x = 5  [y = 2  z = 3 …]
     if (cmd === "SET") {
         const obj = resolveObject(tokens[1] || "");
         if (!obj) return;
-        for (let i = 2; i < tokens.length - 2; i++) {
+        // Walk the remaining tokens looking for   axis = value   triples
+        for (let i = 2; i <= tokens.length - 3; i++) {
             const axis = tokens[i].toLowerCase();
-            if ((axis === "x" || axis === "y" || axis === "z") && tokens[i+1] === "=") {
-                obj.position[axis] = parseFloat(tokens[i+2]) || 0;
-                i += 2;
+            if ((axis === "x" || axis === "y" || axis === "z") && tokens[i + 1] === "=") {
+                obj.position[axis] = parseFloat(tokens[i + 2]) || 0;
+                i += 2;          // skip past the = and value we just consumed
             }
         }
         return;
     }
 
-    if (cmd === "ROTATE") {
-        const obj = resolveObject(tokens[1] || "");
-        if (!obj) return;
-        const axis = (tokens[2] || "y").toLowerCase();
-        const deg = parseFloat(tokens[3]) || 0;
-        const rad = deg * Math.PI / 180;
-        if (axis === "x") obj.rotation.x += rad;
-        if (axis === "y") obj.rotation.y += rad;
-        if (axis === "z") obj.rotation.z += rad;
-        return;
-    }
-
-    if (cmd === "COLOR") {
-        const obj = resolveObject(tokens[1] || "");
-        if (!obj || !obj.material) return;
-        try { obj.material.color.set(tokens[2] || "#ffffff"); } catch(e) {}
-        return;
-    }
-
-    if (cmd === "SCALE") {
-        const obj = resolveObject(tokens[1] || "");
-        if (!obj) return;
-        obj.scale.setScalar(parseFloat(tokens[2]) || 1);
-        return;
-    }
-
-    // WAIT and REPEAT/END are handled by updateScripts, not here
+    // Unknown command — silently ignore so one typo doesn't crash everything
 }
 
+// ── per-frame task runner ──────────────────────────────────
+
 function updateScripts() {
+    if (!isPlaying) return;          // don't run scripts in editor mode
     const now = performance.now();
 
     for (let t = runningTasks.length - 1; t >= 0; t--) {
         const task = runningTasks[t];
+
+        // Not ready to run yet (WAIT active)
         if (now < task.nextTime) continue;
 
-        // One-shot tasks stop when they reach the end
-        if (task.oneShot && task.index >= task.lines.length) {
-            runningTasks.splice(t, 1);
-            continue;
-        }
+        // Inner execution loop — up to 500 commands per frame before we yield
+        let steps = 0;
+        while (steps++ < 500) {
 
-        let safety = 0;
-        while (safety++ < 10000) {
-            if (task.index >= task.lines.length) {
-                if (task.oneShot) { runningTasks.splice(t, 1); break; }
-                task.index = 0;
-            }
-
-            const line = task.lines[task.index];
-            const kw = line.split(/[\s(]/)[0].toUpperCase();
-
-            if (kw === "REPEAT") {
-                const m = line.match(/REPEAT\s*\(\s*(\d+)\s*\)/i);
-                const count = m ? parseInt(m[1]) : 1;
-                let depth = 0;
-                let bodyStart = task.index + 1;
-                let endIndex = -1;
-                for (let j = bodyStart; j < task.lines.length; j++) {
-                    const jkw = task.lines[j].split(/[\s(]/)[0].toUpperCase();
-                    if (jkw === "REPEAT") depth++;
-                    else if (jkw === "END") {
-                        if (depth === 0) { endIndex = j; break; }
-                        depth--;
+            // ── handle active REPEAT stack ──────────────────
+            // If the top of the repeat stack has reached its END, decrement
+            // and either loop back or pop the frame
+            while (task.repeatStack.length > 0) {
+                const top = task.repeatStack[task.repeatStack.length - 1];
+                if (task.index > top.bodyEnd) {
+                    top.remaining--;
+                    if (top.remaining > 0) {
+                        // Loop back to the first line inside the REPEAT
+                        task.index = top.bodyStart;
+                    } else {
+                        // Done repeating — pop and continue after the END
+                        task.repeatStack.pop();
+                        task.index = top.bodyEnd + 1;
                     }
+                } else {
+                    break;   // still inside the body, keep going
                 }
-                if (endIndex === -1) { task.index++; continue; }
-                const body = task.lines.slice(bodyStart, endIndex);
-                const unrolled = [];
-                for (let r = 0; r < count; r++) unrolled.push(...body);
-                task.lines.splice(task.index, endIndex - task.index + 1, ...unrolled);
-                continue;
             }
 
-            if (kw === "WAIT") {
-                const m = line.match(/WAIT\s*\(\s*([\d.]+)\s*\)/i);
-                task.nextTime = now + (m ? parseFloat(m[1]) * 1000 : 1000);
-                task.index++;
+            // ── end of task ─────────────────────────────────
+            if (task.index >= task.lines.length) {
+                if (task.oneShot) {
+                    runningTasks.splice(t, 1);
+                } else {
+                    task.index = 0;          // FOREVER — wrap around
+                }
                 break;
             }
 
+            const line = task.lines[task.index];
+            const kw   = line.split(/[\s(]/)[0].toUpperCase();
+
+            // ── WAIT ────────────────────────────────────────
+            if (kw === "WAIT") {
+                const m = line.match(/WAIT\s*\(\s*([\d.]+)\s*\)/i);
+                const secs = m ? parseFloat(m[1]) : 1;
+                task.nextTime = now + secs * 1000;
+                task.index++;
+                break;          // yield until the wait expires
+            }
+
+            // ── REPEAT ──────────────────────────────────────
+            if (kw === "REPEAT") {
+                const m    = line.match(/REPEAT\s*\(\s*(\d+)\s*\)/i);
+                const count = m ? parseInt(m[1]) : 1;
+                const endIdx = findMatchingEnd(task.lines, task.index);
+
+                if (endIdx === -1) {
+                    // Malformed — skip past this REPEAT so we don't hang
+                    task.index++;
+                    continue;
+                }
+
+                if (count <= 0) {
+                    // Zero repeats — jump past the END immediately
+                    task.index = endIdx + 1;
+                    continue;
+                }
+
+                task.repeatStack.push({
+                    remaining: count,
+                    bodyStart: task.index + 1,   // first line inside body
+                    bodyEnd:   endIdx             // the END line itself
+                });
+                task.index++;    // step into the body
+                continue;
+            }
+
+            // ── END (standalone, outside active REPEAT) ─────
+            // This shouldn't normally be reached because the repeatStack
+            // handles body boundaries, but guard against it anyway.
+            if (kw === "END") {
+                task.index++;
+                continue;
+            }
+
+            // ── Normal command ───────────────────────────────
             runWorldCommand(line);
             task.index++;
         }
@@ -3088,17 +3135,7 @@ document.body.appendChild(selectionBox);
     updateWorldList();
 
 });
-document.getElementById("closeScriptEditor").onclick = () => {
 
-    scriptEditorOpen = false;
-
-    document.getElementById("scriptEditor").style.display = "none";
-
-    document.getElementById("myWorldPanel").style.display = "flex";
-
-    document.getElementById("propertiesPanel").style.display = "block";
-
-};
 saveWorldState();
 
 document.addEventListener("click", () => {
@@ -3260,17 +3297,8 @@ groups = groups.filter(
         if (selectedBlocks.length > 0) {
 
             saveWorldState();
-document.getElementById("closeScriptEditor").onclick = () => {
 
-    scriptEditorOpen = false;
-
-    document.getElementById("scriptEditor").style.display = "none";
-
-    document.getElementById("myWorldPanel").style.display = "flex";
-
-    document.getElementById("propertiesPanel").style.display = "block";
-
-};
+            
 
             selectedBlocks.forEach(block => {
 
@@ -3367,6 +3395,30 @@ animate();
 
 if (gameIdParam) {
     loadGameFromFirestore(gameIdParam).then(() => {
+        // AUTO UPGRADE OLD GAMES
+if (!window.worldVersion || window.worldVersion < 2) {
+
+    console.log("Upgrading old game...");
+
+    window.worldVersion = 2;
+
+    blocks.forEach(block => {
+
+        if (!block.userData) {
+            block.userData = {};
+        }
+
+        if (!block.userData.name) {
+            block.userData.name = "Block";
+        }
+
+        if (block.userData.isMegaBlock === undefined) {
+            block.userData.isMegaBlock = false;
+        }
+
+    });
+
+}
         if (isPlayMode) {
             document.getElementById('loading-overlay').style.display = 'none';
             togglePlayMode();
