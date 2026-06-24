@@ -62,7 +62,15 @@ async function loadGlobalGames() {
     try {
         const snap = await getDocs(collection(db, 'games'));
         // Save to cache once
-        window.gameCache.global = snap.docs.filter(d => d.data().isPublic === true);
+        window.gameCache.global = snap.docs.filter(d => {
+    const data = d.data();
+
+    return (
+        data.isPublic === true ||
+        data.public === true ||
+        data.visibility === "public"
+    );
+});
         
         renderGlobalGames(window.gameCache.global, globalGrid);
     } catch (e) {
@@ -94,7 +102,17 @@ window.gameCache.user = null;
     
     // If no cache, fetch once from DB
     const snap = await getDocs(collection(db, 'games'));
-    window.gameCache.user = snap.docs.filter(d => d.data().authorId === auth.currentUser?.uid);
+    window.gameCache.user = snap.docs.filter(d => {
+    const data = d.data();
+
+    return (
+        data.authorId === auth.currentUser?.uid ||
+        data.ownerId === auth.currentUser?.uid ||
+        data.creatorId === auth.currentUser?.uid ||
+        data.userId === auth.currentUser?.uid ||
+        data.uid === auth.currentUser?.uid
+    );
+});
     console.log("Loaded user games:", window.gameCache.user.length);
 window.gameCache.user.forEach(g => console.log(g.id, g.data()));
     
