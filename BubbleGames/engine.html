@@ -428,8 +428,7 @@ font-size:14px;
     <div id="mobile-jump-btn" style="
         position: absolute;
         bottom: 40px;
-        left: 50%;
-        transform: translateX(-50%);
+        right: 30px;
         width: 70px;
         height: 70px;
         border-radius: 50%;
@@ -1539,7 +1538,11 @@ transformControl.attach(hits[0].object);
         b.position.y,
         b.position.z,
         b.material.color.getHexString(),
-        flags
+        flags,
+        encodeURIComponent(b.userData.name || ""),
+        b.userData.isMegaBlock ? b.geometry.parameters.width : 1,
+        b.userData.isMegaBlock ? b.geometry.parameters.height : 1,
+        b.userData.isMegaBlock ? b.geometry.parameters.depth : 1
     ].join(",");
 }).join(";");
 
@@ -1730,12 +1733,12 @@ function loadWorldDataString(worldData) {
             const x = parseFloat(p[0]);
             const y = parseFloat(p[1]);
             const z = parseFloat(p[2]);
-            const color = parseInt(p[3], 36);
-            const name = decodeURIComponent(p[4]);
-            const flags = parseInt(p[5]);
-            const w = parseFloat(p[6]);
-            const h = parseFloat(p[7]);
-            const d = parseFloat(p[8]);
+           const color = parseInt(p[3], 16);
+            const flags = parseInt(p[4]);
+            const name = decodeURIComponent(p[5] || "");
+            const w = parseFloat(p[6]) || 1;
+            const h = parseFloat(p[7]) || 1;
+            const d = parseFloat(p[8]) || 1;
             const isSpawn = (flags & 1) === 1;
             const isMega = (flags & 2) === 2;
 
@@ -2209,7 +2212,8 @@ updateScripts();
                     joystickMagnitude = Math.min(1, Math.sqrt(joystickVector.x * joystickVector.x + joystickVector.z * joystickVector.z));
                 }
 
-                let isMoving = inputDir.lengthSq() > 0.0001;
+                if (inputDir.lengthSq() > 0.0001) inputDir.normalize();
+let isMoving = inputDir.lengthSq() > 0.0001;
 
                 if (isFirstPerson) {
                     characterYaw = rotY;
