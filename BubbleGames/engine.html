@@ -255,11 +255,10 @@ BlockColor:
 </div>
     <div id="ui">        
         
-        <button id="buildBtn" class="btn active">Build</button>
-        <button id="moveBtn" class="btn">Move</button>
-
-        <button id="fillBtn" class="btn">Fill</button>
-        <button id="deleteBtn" class="btn">Delete</button>
+       <button id="buildBtn" class="btn active">Build</button>
+<button id="moveBtn" class="btn">Move</button>
+<button id="fillBtn" class="btn">Fill</button>
+<button id="deleteBtn" class="btn">Delete</button>
 <button id="paintBtn" class="btn">🪣</button>
 <input type="color" id="paintColor" value="#ff0000" style="width:40px; height:40px; border:none; background:none; cursor:pointer;">
         <button id="playBtn" class="btn">Play Test</button>
@@ -1522,35 +1521,25 @@ transformControl.attach(hits[0].object);
     // names "position","x","y","z","color","isSpawn", etc. EVERY time
     // they repeat per block — this removes all of that repeated overhead).
 
-    const blocksStr = blocks.map(b => {
-        const flags = (b.userData.isSpawn ? 1 : 0) + (b.userData.isMegaBlock ? 2 : 0);
-        const w = b.userData.isMegaBlock ? b.geometry.parameters.width : 1;
-        const h = b.userData.isMegaBlock ? b.geometry.parameters.height : 1;
-        const d = b.userData.isMegaBlock ? b.geometry.parameters.depth : 1;
-       return [
-    Math.round(b.position.x * 10) / 10,
-    Math.round(b.position.y * 10) / 10,
-    Math.round(b.position.z * 10) / 10,
-    b.material.color.getHex().toString(36),
-    encodeURIComponent(b.userData.name || ""),
-    flags,
-    Math.round(w * 10) / 10,
-    Math.round(h * 10) / 10,
-    Math.round(d * 10) / 10
-].join(",");
-            encodeURIComponent(b.userData.name || ""),
-            flags, w, h, d
-        ].join(",");
-    }).join(";");
+   const blocksStr = blocks.map(b => {
+    const flags =
+        (b.userData.isSpawn ? 1 : 0) |
+        (b.userData.isMegaBlock ? 2 : 0);
 
-    const groupsStr = groups.map(g =>
-        encodeURIComponent(g.name) + ":" + g.blocks.map(b => blocks.indexOf(b)).join(",")
-    ).join(";");
+    return [
+        b.position.x,
+        b.position.y,
+        b.position.z,
+        b.material.color.getHexString(),
+        flags
+    ].join(",");
+}).join(";");
 
-    const scriptsStr = scripts.map(s =>
-        encodeURIComponent(s.name || "Unnamed Script") + ":" + encodeURIComponent(s.code || "")
-    ).join(";");
+  const groupsStr = groups.map(g =>
+    encodeURIComponent(g.name) + ":" + g.blocks.map(b => blocks.indexOf(b)).join(",")
+).join(";");
 
+   const scriptsStr = "";
     // Final single-string blob: blocks ## groups ## scripts
     const worldData = [blocksStr, groupsStr, scriptsStr].join("##");
 
@@ -1570,14 +1559,14 @@ let realUsername = "Unknown";
     }
        
        const gameData = {
-        name: gameName,
-        description: gameDescription || "No description provided.", // Optional field
-        createdAt: new Date().toISOString(),
-        authorId: auth ? auth.currentUser?.uid || null : null,
-authorName: realUsername,
-isPublic: false,
-        worldData: worldData
-    };
+    n: gameName,
+    d: gameDescription || "",
+    t: Date.now(),
+    u: auth?.currentUser?.uid || "",
+    a: realUsername,
+    p: 0,
+    w: worldData
+};
 
     try {
         await addDoc(collection(db, 'games'), gameData);
