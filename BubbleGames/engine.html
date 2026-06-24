@@ -564,6 +564,9 @@ if (isPlayMode) {
     
   }
         const gameIdParam = urlParams.get('id');
+        if (gameIdParam) {
+    loadGameFromFirestore(gameIdParam);
+}
 let paintColor = "#ff0000";
 // --- THE NAME BRAIN ---
 let selectedBlock = null;
@@ -604,6 +607,9 @@ document.getElementById('nameInput').oninput = (e) => {
     }
 };        
 const blocks = [spawnPad];
+        // Prevent duplicate spawn pad entries when loading a saved game
+blocks.length = 0;
+blocks.push(spawnPad);
         updateWorldList(); 
         const objectsToIntersect = [floor, spawnPad];
         const raycaster = new THREE.Raycaster(), mouse = new THREE.Vector2();
@@ -698,7 +704,9 @@ sandboxState.forEach(data => {
     data.block.scale.copy(data.scale);
 
 });
-document.getElementById('count').innerText = blocks.length;
+console.log("Loaded blocks:", blocks.length);
+console.log("Scene objects:", scene.children.length);
+        document.getElementById('count').innerText = blocks.length;
 
 updateWorldList();
 
@@ -1732,10 +1740,18 @@ function loadWorldDataString(worldData) {
             const isMega = (flags & 2) === 2;
 
             let block;
-            if (isSpawn) {
-                block = spawnPad;
-                block.position.set(x, y, z);
-            } else {
+          if (isSpawn) {
+    block = spawnPad;
+    block.position.set(x, y, z);
+
+    // Make sure the spawn pad is visible
+    spawnPad.visible = true;
+
+    // Re-add it if it somehow got removed
+    if (!scene.children.includes(spawnPad)) {
+        scene.add(spawnPad);
+    }
+} else {
                 block = new THREE.Mesh(
                     new THREE.BoxGeometry(w, h, d),
                     new THREE.MeshStandardMaterial({ color: color })
