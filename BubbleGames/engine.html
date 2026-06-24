@@ -3415,6 +3415,16 @@ if (gameIdParam) {
 if (!window.worldVersion || window.worldVersion < 2) {
 
     console.log("Upgrading old game...");
+    blocksData = blocksData.filter(block => {
+    return (
+        Number.isFinite(block.x) &&
+        Number.isFinite(block.y) &&
+        Number.isFinite(block.z) &&
+        Number.isFinite(block.width) &&
+        Number.isFinite(block.height) &&
+        Number.isFinite(block.depth)
+    );
+});
 
     window.worldVersion = 2;
 
