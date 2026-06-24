@@ -1527,9 +1527,17 @@ transformControl.attach(hits[0].object);
         const w = b.userData.isMegaBlock ? b.geometry.parameters.width : 1;
         const h = b.userData.isMegaBlock ? b.geometry.parameters.height : 1;
         const d = b.userData.isMegaBlock ? b.geometry.parameters.depth : 1;
-        return [
-            b.position.x, b.position.y, b.position.z,
-            b.material.color.getHex(),
+       return [
+    Math.round(b.position.x * 10) / 10,
+    Math.round(b.position.y * 10) / 10,
+    Math.round(b.position.z * 10) / 10,
+    b.material.color.getHex().toString(36),
+    encodeURIComponent(b.userData.name || ""),
+    flags,
+    Math.round(w * 10) / 10,
+    Math.round(h * 10) / 10,
+    Math.round(d * 10) / 10
+].join(",");
             encodeURIComponent(b.userData.name || ""),
             flags, w, h, d
         ].join(",");
@@ -1725,7 +1733,7 @@ function loadWorldDataString(worldData) {
             const x = parseFloat(p[0]);
             const y = parseFloat(p[1]);
             const z = parseFloat(p[2]);
-            const color = parseInt(p[3]);
+            const color = parseInt(p[3], 36);
             const name = decodeURIComponent(p[4]);
             const flags = parseInt(p[5]);
             const w = parseFloat(p[6]);
