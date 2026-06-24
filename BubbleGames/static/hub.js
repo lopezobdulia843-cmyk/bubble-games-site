@@ -62,13 +62,14 @@ async function loadGlobalGames() {
     try {
         const snap = await getDocs(collection(db, 'games'));
         // Save to cache once
-        window.gameCache.global = snap.docs.filter(d => {
-    const data = d.data();
+        window.gameCache.global = snap.docs.filter(docSnap => {
+    const data = docSnap.data();
 
     return (
         data.isPublic === true ||
         data.public === true ||
-        data.visibility === "public"
+        data.visibility === "public" ||
+        data.n
     );
 });
         
@@ -102,15 +103,16 @@ window.gameCache.user = null;
     
     // If no cache, fetch once from DB
     const snap = await getDocs(collection(db, 'games'));
-    window.gameCache.user = snap.docs.filter(d => {
-    const data = d.data();
+    window.gameCache.user = snap.docs.filter(docSnap => {
+    const data = docSnap.data();
 
     return (
         data.authorId === auth.currentUser?.uid ||
         data.ownerId === auth.currentUser?.uid ||
         data.creatorId === auth.currentUser?.uid ||
         data.userId === auth.currentUser?.uid ||
-        data.uid === auth.currentUser?.uid
+        data.uid === auth.currentUser?.uid ||
+        data.u === auth.currentUser?.uid
     );
 });
     console.log("Loaded user games:", window.gameCache.user.length);
@@ -134,9 +136,9 @@ function makeGameCard(id, g, isOwner) {
     const card = document.createElement('div');
     const isPublic = g.isPublic === true;
     const safeId = id;
-    const safeName = (g.name || 'Untitled').replace(/`/g, '');
-    const safeDesc = (g.description || 'No description.').replace(/`/g, '');
-    const safeAuthor = (g.authorName || 'Unknown').replace(/`/g, '');
+    const safeName = (g.name || g.n || 'Untitled').replace(/`/g, '');
+    const safeDesc = (g.description || g.d || 'No description.').replace(/`/g, '');
+    const safeAuthor = (g.authorName || g.a || 'Unknown').replace(/`/g, '');
 
     card.style.cssText = `
         background: var(--card-bg);
@@ -157,7 +159,7 @@ function makeGameCard(id, g, isOwner) {
         box-shadow: 0 4px 15px var(--shadow);
     `;
 
-    card.innerHTML = `🎮 ${g.name || 'Untitled'}`;
+    card.innerHTML = `🎮 ${g.name || g.n || 'Untitled'}`;
 
     card.onmouseover = () => {
         card.style.transform = 'translateY(-10px)';
