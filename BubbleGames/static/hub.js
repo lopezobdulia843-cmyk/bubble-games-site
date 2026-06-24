@@ -88,16 +88,15 @@ async function loadUserGames() {
     if (!userGrid) return;
 
     // Check if we already have the data locally
-    if (window.gameCache.user) {
-        renderGames(window.gameCache.user, userGrid, true);
-        return;
-    }
+window.gameCache.user = null;
 
     userGrid.innerHTML = `<p class="no-games">Loading... 🚀</p>`;
     
     // If no cache, fetch once from DB
     const snap = await getDocs(collection(db, 'games'));
     window.gameCache.user = snap.docs.filter(d => d.data().authorId === auth.currentUser?.uid);
+    console.log("Loaded user games:", window.gameCache.user.length);
+window.gameCache.user.forEach(g => console.log(g.id, g.data()));
     
     renderGames(window.gameCache.user, userGrid, true);
 }
