@@ -563,9 +563,7 @@ if (isPlayMode) {
     
   }
         const gameIdParam = urlParams.get('id');
-        if (gameIdParam) {
-    loadGameFromFirestore(gameIdParam);
-}
+  
 let paintColor = "#ff0000";
 // --- THE NAME BRAIN ---
 let selectedBlock = null;
@@ -1552,7 +1550,7 @@ transformControl.attach(hits[0].object);
 
    const scriptsStr = "";
     // Final single-string blob: blocks ## groups ## scripts
-    const worldData = [blocksStr, groupsStr, scriptsStr].join("##");
+    const worldData = [blocksStr, groupsStr, scriptsStr].join("####");
 
 let realUsername = "Unknown";
     try {
@@ -1710,7 +1708,7 @@ async function loadGameFromFirestore(gameId) {
 }
 
 function loadWorldDataString(worldData) {
-    const parts = worldData.split("##");
+    const parts = worldData.split("####");
     const blocksStr = parts[0] || "";
     const groupsStr = parts[1] || "";
     const scriptsStr = parts[2] || "";
@@ -3415,40 +3413,7 @@ animate();
 
 if (gameIdParam) {
     loadGameFromFirestore(gameIdParam).then(() => {
-        // AUTO UPGRADE OLD GAMES
-if (!window.worldVersion || window.worldVersion < 2) {
-
-    console.log("Upgrading old game...");
-    blocksData = blocksData.filter(block => {
-    return (
-        Number.isFinite(block.x) &&
-        Number.isFinite(block.y) &&
-        Number.isFinite(block.z) &&
-        Number.isFinite(block.width) &&
-        Number.isFinite(block.height) &&
-        Number.isFinite(block.depth)
-    );
-});
-
-    window.worldVersion = 2;
-
-    blocks.forEach(block => {
-
-        if (!block.userData) {
-            block.userData = {};
-        }
-
-        if (!block.userData.name) {
-            block.userData.name = "Block";
-        }
-
-        if (block.userData.isMegaBlock === undefined) {
-            block.userData.isMegaBlock = false;
-        }
-
-    });
-
-}
+     
         if (isPlayMode) {
             document.getElementById('loading-overlay').style.display = 'none';
             togglePlayMode();
