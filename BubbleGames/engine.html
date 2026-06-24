@@ -1725,18 +1725,31 @@ function loadWorldDataString(worldData) {
     scripts = [];
 
     if (blocksStr) {
-        blocksStr.split(";").forEach(entry => {
+       blocksStr.split(";").forEach(entry => {
             if (!entry) return;
             const p = entry.split(",");
             const x = parseFloat(p[0]);
             const y = parseFloat(p[1]);
             const z = parseFloat(p[2]);
-           const color = parseInt(p[3], 16);
-            const flags = parseInt(p[4]);
-            const name = decodeURIComponent(p[5] || "");
-            const w = parseFloat(p[6]) || 1;
-            const h = parseFloat(p[7]) || 1;
-            const d = parseFloat(p[8]) || 1;
+            // Auto-detect old format (5 fields: x,y,z,color,flags)
+            // vs new format (9 fields: x,y,z,color,flags,name,w,h,d)
+            const isOldFormat = p.length <= 5 || (p.length === 8 && isNaN(parseInt(p[4])));
+            let color, flags, name, w, h, d;
+            if (isOldFormat) {
+                // Old format: x,y,z,color,flags  (color was base-36, flags at p[4])
+                color = parseInt(p[3], 36);
+                flags = parseInt(p[4]) || 0;
+                name = "";
+                w = 1; h = 1; d = 1;
+            } else {
+                // New format: x,y,z,color,flags,name,w,h,d
+                color = parseInt(p[3], 16);
+                flags = parseInt(p[4]) || 0;
+                name = decodeURIComponent(p[5] || "");
+                w = parseFloat(p[6]) || 1;
+                h = parseFloat(p[7]) || 1;
+                d = parseFloat(p[8]) || 1;
+            }
             const isSpawn = (flags & 1) === 1;
             const isMega = (flags & 2) === 2;
 
