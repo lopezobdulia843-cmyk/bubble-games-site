@@ -1690,9 +1690,9 @@ async function loadGameFromFirestore(gameId) {
         const gameSnap = await getDoc(doc(db, 'games', gameId));
         if (!gameSnap.exists()) return;
         const data = gameSnap.data();
-        if (data.worldData) {
-            loadWorldDataString(data.worldData);
-        }
+      if (data.w) {
+    loadWorldDataString(data.w);
+}
     } catch (err) {
         console.error("Failed to load game:", err);
     }
