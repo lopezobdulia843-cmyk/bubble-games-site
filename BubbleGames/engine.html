@@ -1744,8 +1744,9 @@ function loadWorldDataString(worldData) {
                 name = ""; w = 1; h = 1; d = 1;
             } else {
                 // Detect field order by checking if p[4] is a pure integer (flags) or text (name)
-                const p4trimmed = (p[4] || "").trim();
-                const p4isNumber = p4trimmed !== "" && !isNaN(parseInt(p4trimmed)) && !/[a-zA-Z%]/.test(p4trimmed);
+               const p4trimmed = (p[4] || "").trim();
+                // p[4] is flags (new format) if: it's empty OR it's a pure integer with no letters/percent
+                const p4isNumber = p4trimmed === "" || (!isNaN(parseInt(p4trimmed)) && !/[a-zA-Z%]/.test(p4trimmed));
                 color = parseInt(p[3], 16);
                 if (p4isNumber) {
                     // Current format: x,y,z,color,flags,name,w,h,d
