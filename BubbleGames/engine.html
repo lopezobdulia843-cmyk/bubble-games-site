@@ -1548,7 +1548,9 @@ transformControl.attach(hits[0].object);
     encodeURIComponent(g.name) + ":" + g.blocks.map(b => blocks.indexOf(b)).join(",")
 ).join(";");
 
-   const scriptsStr = "";
+   const scriptsStr = scripts.map(s =>
+    encodeURIComponent(s.name || "") + ":" + encodeURIComponent(s.code || "")
+).join(";");
     // Final single-string blob: blocks ## groups ## scripts
     const worldData = [blocksStr, groupsStr, scriptsStr].join("####");
 
@@ -1710,8 +1712,9 @@ async function loadGameFromFirestore(gameId) {
 function loadWorldDataString(worldData) {
     const parts = worldData.split("####");
     const blocksStr = parts[0] || "";
-    const groupsStr = parts[1] || "";
-    const scriptsStr = parts[2] || "";
+    // Handle both 2-part (blocks####scripts) and 3-part (blocks####groups####scripts)
+    const actualGroupsStr  = parts.length >= 3 ? (parts[1] || "") : "";
+    const actualScriptsStr = parts.length === 2 ? (parts[1] || "") : (parts[2] || "");
 
     // Wipe out the default editor blocks (keep the spawn mesh, just reposition it)
     blocks.slice().forEach(block => {
@@ -1733,22 +1736,32 @@ function loadWorldDataString(worldData) {
             const z = parseFloat(p[2]);
             // Auto-detect old format (5 fields: x,y,z,color,flags)
             // vs new format (9 fields: x,y,z,color,flags,name,w,h,d)
-            const isOldFormat = p.length <= 5 || (p.length === 8 && isNaN(parseInt(p[4])));
-            let color, flags, name, w, h, d;
-            if (isOldFormat) {
-                // Old format: x,y,z,color,flags  (color was base-36, flags at p[4])
+          let color, flags, name, w, h, d;
+            if (p.length <= 5) {
+                // Oldest format: x,y,z,color,flags only
                 color = parseInt(p[3], 36);
                 flags = parseInt(p[4]) || 0;
-                name = "";
-                w = 1; h = 1; d = 1;
+                name = ""; w = 1; h = 1; d = 1;
             } else {
-                // New format: x,y,z,color,flags,name,w,h,d
+                // Detect field order by checking if p[4] is a pure integer (flags) or text (name)
+                const p4trimmed = (p[4] || "").trim();
+                const p4isNumber = p4trimmed !== "" && !isNaN(parseInt(p4trimmed)) && !/[a-zA-Z%]/.test(p4trimmed);
                 color = parseInt(p[3], 16);
-                flags = parseInt(p[4]) || 0;
-                name = decodeURIComponent(p[5] || "");
-                w = parseFloat(p[6]) || 1;
-                h = parseFloat(p[7]) || 1;
-                d = parseFloat(p[8]) || 1;
+                if (p4isNumber) {
+                    // Current format: x,y,z,color,flags,name,w,h,d
+                    flags = parseInt(p[4]) || 0;
+                    name = decodeURIComponent(p[5] || "");
+                    w = parseFloat(p[6]) || 1;
+                    h = parseFloat(p[7]) || 1;
+                    d = parseFloat(p[8]) || 1;
+                } else {
+                    // Old corrupted format: x,y,z,color,name,flags,w,h,d
+                    name = decodeURIComponent(p[4] || "");
+                    flags = parseInt(p[5]) || 0;
+                    w = parseFloat(p[6]) || 1;
+                    h = parseFloat(p[7]) || 1;
+                    d = parseFloat(p[8]) || 1;
+                }
             }
             const isSpawn = (flags & 1) === 1;
             const isMega = (flags & 2) === 2;
@@ -1780,10 +1793,11 @@ function loadWorldDataString(worldData) {
         });
     }
 
-    if (groupsStr) {
-        groupsStr.split(";").forEach(entry => {
+if (actualGroupsStr) {
+        actualGroupsStr.split(";").forEach(entry => {
             if (!entry) return;
             const splitAt = entry.indexOf(":");
+            if (splitAt === -1) return;
             const groupName = decodeURIComponent(entry.substring(0, splitAt));
             const indicesPart = entry.substring(splitAt + 1);
             const indices = indicesPart ? indicesPart.split(",").map(n => parseInt(n)) : [];
@@ -1794,10 +1808,13 @@ function loadWorldDataString(worldData) {
         });
     }
 
-    if (scriptsStr) {
-        scriptsStr.split(";").forEach(entry => {
+    if (actualScriptsStr) {
+        actualScriptsStr.split(";").forEach(entry => {
             if (!entry) return;
             const splitAt = entry.indexOf(":");
+            if (splitAt === -1) return;
+            // Guard: if this looks like a block entry (starts with a number), skip it
+            if (!isNaN(parseFloat(entry.split(",")[0]))) return;
             const scriptName = decodeURIComponent(entry.substring(0, splitAt));
             const scriptCode = decodeURIComponent(entry.substring(splitAt + 1));
             scripts.push({ name: scriptName, code: scriptCode });
