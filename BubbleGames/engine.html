@@ -663,35 +663,6 @@ let selectStartY = 0;
 let editorState = [];
 
         // Player Setup
-        // Flight Movement Constants
-const flySpeed = 0.25;
-const keys = { w: false, a: false, s: false, d: false };
-
-window.addEventListener('keydown', (e) => {
-    if (e.key.toLowerCase() in keys) keys[e.key.toLowerCase()] = true;
-});
-window.addEventListener('keyup', (e) => {
-    if (e.key.toLowerCase() in keys) keys[e.key.toLowerCase()] = false;
-});
-
-function updateFlying() {
-    if (!isFlying || !isPlaying) return;
-    
-    const direction = new THREE.Vector3();
-    const euler = new THREE.Euler(0, 0, 0, 'YXZ');
-    euler.setFromQuaternion(camera.quaternion);
-
-    if (keys.w) direction.z -= 1;
-    if (keys.s) direction.z += 1;
-    if (keys.a) direction.x -= 1;
-    if (keys.d) direction.x += 1;
-
-    direction.applyEuler(euler);
-    direction.normalize().multiplyScalar(flySpeed);
-    
-    playerTarget.add(direction);
-    updateCameraAndPlayerTransform();
-}
         const playerHeight = 1.9; 
         const playerRadius = 0.35; // tighter box like Roblox
         
@@ -933,15 +904,13 @@ paint: document.getElementById('paintBtn'),
             const sizeZ = (maxZ - minZ) + 1;
 
             fillRegionPreviewMesh.scale.set(sizeX, sizeY, sizeZ);
-           minX + (sizeX / 2) - 0.5,
+            fillRegionPreviewMesh.position.set(
+                minX + (sizeX / 2) - 0.5,
                 minY + (sizeY / 2) - 0.5,
                 minZ + (sizeZ / 2) - 0.5
             );
             fillRegionPreviewMesh.visible = true;
         }
-    </script>
-</body>
-</html>
 
         function respawn() {
             playerTarget.set(spawnPad.position.x, spawnPad.position.y + 0.5 + playerHeight, spawnPad.position.z);
@@ -2249,7 +2218,6 @@ window.addEventListener('keyup', (e) => {
         }
 
         function animate() {
-           updateFlying();
             requestAnimationFrame(animate);
             const time = performance.now() * 0.001;
 updateScripts();
