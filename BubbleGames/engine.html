@@ -949,8 +949,13 @@ document.getElementById('propertiesPanel').style.display = isPlaying ? 'none' : 
                 savedEditorPos.copy(camera.position);
                 savedEditorRotX = rotX;
                 savedEditorRotY = rotY;
-                if (isPlayMode && gameIdParam) {
-                    initMultiplayer(gameIdParam);
+              if (isPlayMode && gameIdParam) {
+                    initMultiplayer(gameIdParam).then(() => {
+                        // After host check resolves, kill scripts on non-host clients
+                        if (!window._isRoomHost) {
+                            runningTasks.length = 0;
+                        }
+                    });
                 }
 
 editorState = [];
@@ -1032,8 +1037,6 @@ blocks.forEach(block => {
         scale: block.scale.clone()
 
     });
-
-});scripts.forEach(script => {
 
 });
 // Only run scripts if we are the host (or in solo play test)
