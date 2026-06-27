@@ -253,6 +253,16 @@ BlockColor:
     </button>
 </div>
 </div>
+   <div id="fly-ui" style="position: absolute; top: 150px; left: 20px; background: rgba(255,255,255,0.8); padding: 10px; border-radius: 15px; z-index: 100; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+    <div id="fly-header" style="cursor: pointer; font-weight: bold; margin-bottom: 5px; display: flex; justify-content: space-between;">
+        <span>Flight</span>
+        <span id="fly-arrow">▼</span>
+    </div>
+    <div id="fly-content">
+        <button id="toggleFlyBtn" style="background: #a29bfe; border: none; padding: 8px 16px; border-radius: 10px; color: white; font-weight: bold; cursor: pointer;">Enable Fly</button>
+        <p style="font-size: 10px; margin-top: 5px; color: #666;">WASD to move</p>
+    </div>
+</div>
     <div id="ui">        
         
        <button id="buildBtn" class="btn active">Build</button>
@@ -591,13 +601,24 @@ onValue(ref(rtdb, 'users/' + auth.currentUser?.uid + '/rank'), (snapshot) => {
     }
 });
 
+// --- FLIGHT LOGIC ---
 let isFlying = false;
-window.addEventListener('keydown', (e) => {
-    if (e.key === 'f' && isAdmin) {
-        isFlying = !isFlying;
-        alert("Fly Mode: " + (isFlying ? "ON" : "OFF"));
-    }
-});
+const flyUI = document.getElementById('fly-ui');
+const flyBtn = document.getElementById('toggleFlyBtn');
+const flyArrow = document.getElementById('fly-arrow');
+const flyContent = document.getElementById('fly-content');
+
+flyBtn.onclick = () => {
+    isFlying = !isFlying;
+    flyBtn.innerText = isFlying ? "Disable Fly" : "Enable Fly";
+    flyBtn.style.background = isFlying ? "#ff7675" : "#a29bfe";
+};
+
+flyArrow.onclick = () => {
+    const hidden = flyContent.style.display === 'none';
+    flyContent.style.display = hidden ? 'block' : 'none';
+    flyArrow.innerText = hidden ? '▼' : '▲';
+};
 let myUsername = "Player";
 let multiplayerActive = false;
 let myPlayerRef = null;
@@ -2213,13 +2234,14 @@ updateScripts();
 
             if (isPlaying) {
                 // Only apply gravity if NOT flying
+// Only apply gravity if NOT flying
 if (!isFlying) {
     velocityY -= robloxGravity;
 } else {
-    velocityY = 0; // Hover in place
+    velocityY = 0; // Hover
     if (keys['w']) playerTarget.y += 0.1;
     if (keys['s']) playerTarget.y -= 0.1;
-} 
+}
                 playerTarget.y += velocityY;
                 
                 let onGround = false;
