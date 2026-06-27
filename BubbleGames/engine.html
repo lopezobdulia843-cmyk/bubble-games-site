@@ -933,13 +933,15 @@ paint: document.getElementById('paintBtn'),
             const sizeZ = (maxZ - minZ) + 1;
 
             fillRegionPreviewMesh.scale.set(sizeX, sizeY, sizeZ);
-            fillRegionPreviewMesh.position.set(
-                minX + (sizeX / 2) - 0.5,
+           minX + (sizeX / 2) - 0.5,
                 minY + (sizeY / 2) - 0.5,
                 minZ + (sizeZ / 2) - 0.5
             );
             fillRegionPreviewMesh.visible = true;
         }
+    </script>
+</body>
+</html>
 
         function respawn() {
             playerTarget.set(spawnPad.position.x, spawnPad.position.y + 0.5 + playerHeight, spawnPad.position.z);
