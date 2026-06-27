@@ -396,20 +396,20 @@ font-size:14px;
             gap: 4px;
         "></div>
     </div>
-   <div id="mobile-joystick-zone" style="
+ <div id="mobile-joystick-zone" style="
         position: absolute;
-        bottom: 30px;
-        left: 30px;
-        width: 130px;
-        height: 130px;
+        bottom: 40px;
+        left: 40px;
+        width: 150px;
+        height: 150px;
         display: none;
         z-index: 110;
         touch-action: none;
     ">
-        <div id="joystick-outer" style="
+      <div id="joystick-outer" style="
             position: absolute;
-            width: 130px;
-            height: 130px;
+            width: 150px;
+            height: 150px;
             border-radius: 50%;
             background: rgba(255,255,255,0.25);
             border: 3px solid rgba(255,255,255,0.5);
@@ -420,8 +420,8 @@ font-size:14px;
             height: 55px;
             border-radius: 50%;
             background: rgba(255,255,255,0.7);
-            left: 37.5px;
-            top: 37.5px;
+         left: 47.5px;
+            top: 47.5px;
         "></div>
     </div>
 
@@ -1035,13 +1035,14 @@ blocks.forEach(block => {
 
 });scripts.forEach(script => {
 
-    if (script.code) {
-
-        executeWorldScript(script.code);
-
-    }
-
-});
+   // Only run scripts if we are the host (or in solo play test)
+if (!isPlayMode || window._isRoomHost !== false) {
+    scripts.forEach(script => {
+        if (script.code) {
+            executeWorldScript(script.code);
+        }
+    });
+}
                 transformControl.detach();
                 clearFillSequenceData();
             } else {
@@ -1304,11 +1305,12 @@ if (isBoxSelecting && mode === "move") {
     selectionBox.style.height = height + "px";
 }
 
-        window.addEventListener('wheel', (e) => {
+     window.addEventListener('wheel', (e) => {
             if (!isPlaying) return;
+            if (isTouchDevice) return; // Block pinch-zoom on mobile entirely
             if (e.target.closest('#leaderboard-ui')) return;
             cameraZoomDistance += e.deltaY * 0.01;
-            cameraZoomDistance = Math.max(0, Math.min(12, cameraZoomDistance));
+            cameraZoomDistance = Math.max(2, Math.min(12, cameraZoomDistance));
             
             const freshFirstPerson = (cameraZoomDistance <= 0.05);
             if (freshFirstPerson !== isFirstPerson) {
@@ -1883,6 +1885,35 @@ if (actualGroupsStr) {
 async function initMultiplayer(gameId) {
     if (!auth.currentUser) return;
     multiplayerActive = true;
+    
+    // Claim host slot — first one in wins
+    const hostRef = ref(rtdb, 'rooms/' + gameId + '/host');
+    const hostSnap = await new Promise(res => onValue(hostRef, res, { onlyOnce: true }));
+    if (!hostSnap.val()) {
+        // No host yet — become the host
+        await set(hostRef, auth.currentUser.uid);
+        onDisconnect(hostRef).remove();
+        window._isRoomHost = true;
+    } else {
+        window._isRoomHost = (hostSnap.val() === auth.currentUser.uid);
+    }
+
+    // If not host, sync block positions FROM the server every frame
+    if (!window._isRoomHost) {
+        const blocksRef = ref(rtdb, 'rooms/' + gameId + '/blocks');
+        onValue(blocksRef, (snap) => {
+            const data = snap.val();
+            if (!data) return;
+            blocks.forEach(block => {
+                const name = block.userData.name;
+                if (name && data[name]) {
+                    block.position.set(data[name].x, data[name].y, data[name].z);
+                }
+            });
+        });
+        // Don't run scripts on non-host clients
+        runningTasks.length = 0;
+    }
 
     try {
         const profileSnap = await getDoc(doc(db, "profiles", auth.currentUser.uid));
@@ -2048,7 +2079,7 @@ window.addEventListener('contextmenu', (e) => {
         const joystickZone = document.getElementById('mobile-joystick-zone');
         const joystickKnob = document.getElementById('joystick-knob');
         const jumpBtn = document.getElementById('mobile-jump-btn');
-        const JOYSTICK_RADIUS = 65;
+        const JOYSTICK_RADIUS = 75;
 
         function updateJoystick(touch) {
             const rect = joystickZone.getBoundingClientRect();
@@ -2061,8 +2092,8 @@ window.addEventListener('contextmenu', (e) => {
                 dx = (dx / dist) * JOYSTICK_RADIUS;
                 dy = (dy / dist) * JOYSTICK_RADIUS;
             }
-            joystickKnob.style.left = (37.5 + dx) + 'px';
-            joystickKnob.style.top = (37.5 + dy) + 'px';
+        joystickKnob.style.left = (47.5 + dx) + 'px';
+            joystickKnob.style.top = (47.5 + dy) + 'px';
             joystickVector.x = dx / JOYSTICK_RADIUS;
             joystickVector.z = dy / JOYSTICK_RADIUS;
         }
@@ -2073,8 +2104,8 @@ window.addEventListener('contextmenu', (e) => {
                     joystickTouchId = null;
                     joystickVector.x = 0;
                     joystickVector.z = 0;
-                    joystickKnob.style.left = '37.5px';
-                    joystickKnob.style.top = '37.5px';
+                  joystickKnob.style.left = '47.5px';
+                    joystickKnob.style.top = '47.5px';
                 }
             }
         }
@@ -2236,13 +2267,13 @@ updateScripts();
 
                 let joystickMagnitude = 0;
                 if (joystickTouchId !== null) {
-                    inputDir.x += joystickVector.x;
+               inputDir.x += joystickVector.x;
                     inputDir.z += joystickVector.z;
-                    joystickMagnitude = Math.min(1, Math.sqrt(joystickVector.x * joystickVector.x + joystickVector.z * joystickVector.z));
+                    // joystickMagnitude no longer used - normalize handles speed
                 }
 
-                if (inputDir.lengthSq() > 0.0001) inputDir.normalize();
-let isMoving = inputDir.lengthSq() > 0.0001;
+              if (inputDir.lengthSq() > 0.0001) inputDir.normalize();
+                let isMoving = inputDir.lengthSq() > 0.0001;
 
                 if (isFirstPerson) {
                     characterYaw = rotY;
@@ -2405,7 +2436,7 @@ playerTarget.z += movingZ;
                 }
 
                 updateCameraAndPlayerTransform();
-                if (multiplayerActive && myPlayerRef && (time * 1000 - lastMultiplayerSync) > 150) {
+               if (multiplayerActive && myPlayerRef && (time * 1000 - lastMultiplayerSync) > 150) {
                     lastMultiplayerSync = time * 1000;
                     set(myPlayerRef, {
                         name: myUsername,
@@ -2414,6 +2445,20 @@ playerTarget.z += movingZ;
                         z: playerTarget.z,
                         ry: characterYaw
                     });
+                    // Host syncs all named block positions so all clients see the same world
+                    if (window._isRoomHost) {
+                        const blockData = {};
+                        blocks.forEach(b => {
+                            if (b.userData.name) {
+                                blockData[b.userData.name] = {
+                                    x: b.position.x,
+                                    y: b.position.y,
+                                    z: b.position.z
+                                };
+                            }
+                        });
+                        set(ref(rtdb, 'rooms/' + gameIdParam + '/blocks'), blockData);
+                    }
                 }
 
             } else {
