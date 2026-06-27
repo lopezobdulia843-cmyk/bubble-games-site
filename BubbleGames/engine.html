@@ -1035,7 +1035,7 @@ blocks.forEach(block => {
 
 });scripts.forEach(script => {
 
-   // Only run scripts if we are the host (or in solo play test)
+ // Only run scripts if we are the host (or in solo play test)
 if (!isPlayMode || window._isRoomHost !== false) {
     scripts.forEach(script => {
         if (script.code) {
