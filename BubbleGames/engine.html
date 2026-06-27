@@ -579,6 +579,25 @@ const runningTasks = [];
 const sandboxState = [];
 let groupIdCounter = 0;
         // --- MULTIPLAYER STATE ---
+        // --- ADMIN PANEL ---
+let isAdmin = false; 
+
+// Check rank from database
+onValue(ref(rtdb, 'users/' + auth.currentUser?.uid + '/rank'), (snapshot) => {
+    const rank = snapshot.val();
+    if (rank === "Owner" || rank === "Admin") {
+        isAdmin = true;
+        console.log("Admin privileges active!");
+    }
+});
+
+let isFlying = false;
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'f' && isAdmin) {
+        isFlying = !isFlying;
+        alert("Fly Mode: " + (isFlying ? "ON" : "OFF"));
+    }
+});
 let myUsername = "Player";
 let multiplayerActive = false;
 let myPlayerRef = null;
@@ -2193,7 +2212,14 @@ updateScripts();
             const editSpeed = 0.25;
 
             if (isPlaying) {
-                velocityY -= robloxGravity; 
+                // Only apply gravity if NOT flying
+if (!isFlying) {
+    velocityY -= robloxGravity;
+} else {
+    velocityY = 0; // Hover in place
+    if (keys['w']) playerTarget.y += 0.1;
+    if (keys['s']) playerTarget.y -= 0.1;
+} 
                 playerTarget.y += velocityY;
                 
                 let onGround = false;
