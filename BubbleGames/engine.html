@@ -663,6 +663,35 @@ let selectStartY = 0;
 let editorState = [];
 
         // Player Setup
+        // Flight Movement Constants
+const flySpeed = 0.25;
+const keys = { w: false, a: false, s: false, d: false };
+
+window.addEventListener('keydown', (e) => {
+    if (e.key.toLowerCase() in keys) keys[e.key.toLowerCase()] = true;
+});
+window.addEventListener('keyup', (e) => {
+    if (e.key.toLowerCase() in keys) keys[e.key.toLowerCase()] = false;
+});
+
+function updateFlying() {
+    if (!isFlying || !isPlaying) return;
+    
+    const direction = new THREE.Vector3();
+    const euler = new THREE.Euler(0, 0, 0, 'YXZ');
+    euler.setFromQuaternion(camera.quaternion);
+
+    if (keys.w) direction.z -= 1;
+    if (keys.s) direction.z += 1;
+    if (keys.a) direction.x -= 1;
+    if (keys.d) direction.x += 1;
+
+    direction.applyEuler(euler);
+    direction.normalize().multiplyScalar(flySpeed);
+    
+    playerTarget.add(direction);
+    updateCameraAndPlayerTransform();
+}
         const playerHeight = 1.9; 
         const playerRadius = 0.35; // tighter box like Roblox
         
@@ -2218,6 +2247,7 @@ window.addEventListener('keyup', (e) => {
         }
 
         function animate() {
+           updateFlying();
             requestAnimationFrame(animate);
             const time = performance.now() * 0.001;
 updateScripts();
