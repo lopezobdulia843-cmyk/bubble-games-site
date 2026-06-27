@@ -396,20 +396,20 @@ font-size:14px;
             gap: 4px;
         "></div>
     </div>
- <div id="mobile-joystick-zone" style="
+   <div id="mobile-joystick-zone" style="
         position: absolute;
-        bottom: 40px;
-        left: 40px;
-        width: 150px;
-        height: 150px;
+        bottom: 30px;
+        left: 30px;
+        width: 130px;
+        height: 130px;
         display: none;
         z-index: 110;
         touch-action: none;
     ">
-      <div id="joystick-outer" style="
+        <div id="joystick-outer" style="
             position: absolute;
-            width: 150px;
-            height: 150px;
+            width: 130px;
+            height: 130px;
             border-radius: 50%;
             background: rgba(255,255,255,0.25);
             border: 3px solid rgba(255,255,255,0.5);
@@ -420,8 +420,8 @@ font-size:14px;
             height: 55px;
             border-radius: 50%;
             background: rgba(255,255,255,0.7);
-         left: 47.5px;
-            top: 47.5px;
+            left: 37.5px;
+            top: 37.5px;
         "></div>
     </div>
 
@@ -949,13 +949,8 @@ document.getElementById('propertiesPanel').style.display = isPlaying ? 'none' : 
                 savedEditorPos.copy(camera.position);
                 savedEditorRotX = rotX;
                 savedEditorRotY = rotY;
-              if (isPlayMode && gameIdParam) {
-                    initMultiplayer(gameIdParam).then(() => {
-                        // After host check resolves, kill scripts on non-host clients
-                        if (!window._isRoomHost) {
-                            runningTasks.length = 0;
-                        }
-                    });
+                if (isPlayMode && gameIdParam) {
+                    initMultiplayer(gameIdParam);
                 }
 
 editorState = [];
@@ -1038,15 +1033,15 @@ blocks.forEach(block => {
 
     });
 
+});scripts.forEach(script => {
+
+    if (script.code) {
+
+        executeWorldScript(script.code);
+
+    }
+
 });
-// Only run scripts if we are the host (or in solo play test)
-if (!isPlayMode || window._isRoomHost !== false) {
-    scripts.forEach(script => {
-        if (script.code) {
-            executeWorldScript(script.code);
-        }
-    });
-}
                 transformControl.detach();
                 clearFillSequenceData();
             } else {
@@ -1309,12 +1304,11 @@ if (isBoxSelecting && mode === "move") {
     selectionBox.style.height = height + "px";
 }
 
-     window.addEventListener('wheel', (e) => {
+        window.addEventListener('wheel', (e) => {
             if (!isPlaying) return;
-            if (isTouchDevice) return; // Block pinch-zoom on mobile entirely
             if (e.target.closest('#leaderboard-ui')) return;
             cameraZoomDistance += e.deltaY * 0.01;
-            cameraZoomDistance = Math.max(2, Math.min(12, cameraZoomDistance));
+            cameraZoomDistance = Math.max(0, Math.min(12, cameraZoomDistance));
             
             const freshFirstPerson = (cameraZoomDistance <= 0.05);
             if (freshFirstPerson !== isFirstPerson) {
@@ -1554,9 +1548,7 @@ transformControl.attach(hits[0].object);
     encodeURIComponent(g.name) + ":" + g.blocks.map(b => blocks.indexOf(b)).join(",")
 ).join(";");
 
-   const scriptsStr = scripts.map(s =>
-    encodeURIComponent(s.name || "") + ":" + encodeURIComponent(s.code || "")
-).join(";");
+   const scriptsStr = "";
     // Final single-string blob: blocks ## groups ## scripts
     const worldData = [blocksStr, groupsStr, scriptsStr].join("####");
 
@@ -1718,9 +1710,8 @@ async function loadGameFromFirestore(gameId) {
 function loadWorldDataString(worldData) {
     const parts = worldData.split("####");
     const blocksStr = parts[0] || "";
-    // Handle both 2-part (blocks####scripts) and 3-part (blocks####groups####scripts)
-    const actualGroupsStr  = parts.length >= 3 ? (parts[1] || "") : "";
-    const actualScriptsStr = parts.length === 2 ? (parts[1] || "") : (parts[2] || "");
+    const groupsStr = parts[1] || "";
+    const scriptsStr = parts[2] || "";
 
     // Wipe out the default editor blocks (keep the spawn mesh, just reposition it)
     blocks.slice().forEach(block => {
@@ -1742,33 +1733,22 @@ function loadWorldDataString(worldData) {
             const z = parseFloat(p[2]);
             // Auto-detect old format (5 fields: x,y,z,color,flags)
             // vs new format (9 fields: x,y,z,color,flags,name,w,h,d)
-          let color, flags, name, w, h, d;
-            if (p.length <= 5) {
-                // Oldest format: x,y,z,color,flags only
+            const isOldFormat = p.length <= 5 || (p.length === 8 && isNaN(parseInt(p[4])));
+            let color, flags, name, w, h, d;
+            if (isOldFormat) {
+                // Old format: x,y,z,color,flags  (color was base-36, flags at p[4])
                 color = parseInt(p[3], 36);
                 flags = parseInt(p[4]) || 0;
-                name = ""; w = 1; h = 1; d = 1;
+                name = "";
+                w = 1; h = 1; d = 1;
             } else {
-                // Detect field order by checking if p[4] is a pure integer (flags) or text (name)
-               const p4trimmed = (p[4] || "").trim();
-                // p[4] is flags (new format) if: it's empty OR it's a pure integer with no letters/percent
-                const p4isNumber = p4trimmed === "" || (!isNaN(parseInt(p4trimmed)) && !/[a-zA-Z%]/.test(p4trimmed));
+                // New format: x,y,z,color,flags,name,w,h,d
                 color = parseInt(p[3], 16);
-                if (p4isNumber) {
-                    // Current format: x,y,z,color,flags,name,w,h,d
-                    flags = parseInt(p[4]) || 0;
-                    name = decodeURIComponent(p[5] || "");
-                    w = parseFloat(p[6]) || 1;
-                    h = parseFloat(p[7]) || 1;
-                    d = parseFloat(p[8]) || 1;
-                } else {
-                    // Old corrupted format: x,y,z,color,name,flags,w,h,d
-                    name = decodeURIComponent(p[4] || "");
-                    flags = parseInt(p[5]) || 0;
-                    w = parseFloat(p[6]) || 1;
-                    h = parseFloat(p[7]) || 1;
-                    d = parseFloat(p[8]) || 1;
-                }
+                flags = parseInt(p[4]) || 0;
+                name = decodeURIComponent(p[5] || "");
+                w = parseFloat(p[6]) || 1;
+                h = parseFloat(p[7]) || 1;
+                d = parseFloat(p[8]) || 1;
             }
             const isSpawn = (flags & 1) === 1;
             const isMega = (flags & 2) === 2;
@@ -1800,11 +1780,10 @@ function loadWorldDataString(worldData) {
         });
     }
 
-if (actualGroupsStr) {
-        actualGroupsStr.split(";").forEach(entry => {
+    if (groupsStr) {
+        groupsStr.split(";").forEach(entry => {
             if (!entry) return;
             const splitAt = entry.indexOf(":");
-            if (splitAt === -1) return;
             const groupName = decodeURIComponent(entry.substring(0, splitAt));
             const indicesPart = entry.substring(splitAt + 1);
             const indices = indicesPart ? indicesPart.split(",").map(n => parseInt(n)) : [];
@@ -1815,13 +1794,10 @@ if (actualGroupsStr) {
         });
     }
 
-    if (actualScriptsStr) {
-        actualScriptsStr.split(";").forEach(entry => {
+    if (scriptsStr) {
+        scriptsStr.split(";").forEach(entry => {
             if (!entry) return;
             const splitAt = entry.indexOf(":");
-            if (splitAt === -1) return;
-            // Guard: if this looks like a block entry (starts with a number), skip it
-            if (!isNaN(parseFloat(entry.split(",")[0]))) return;
             const scriptName = decodeURIComponent(entry.substring(0, splitAt));
             const scriptCode = decodeURIComponent(entry.substring(splitAt + 1));
             scripts.push({ name: scriptName, code: scriptCode });
@@ -1889,35 +1865,6 @@ if (actualGroupsStr) {
 async function initMultiplayer(gameId) {
     if (!auth.currentUser) return;
     multiplayerActive = true;
-    
-    // Claim host slot — first one in wins
-    const hostRef = ref(rtdb, 'rooms/' + gameId + '/host');
-    const hostSnap = await new Promise(res => onValue(hostRef, res, { onlyOnce: true }));
-    if (!hostSnap.val()) {
-        // No host yet — become the host
-        await set(hostRef, auth.currentUser.uid);
-        onDisconnect(hostRef).remove();
-        window._isRoomHost = true;
-    } else {
-        window._isRoomHost = (hostSnap.val() === auth.currentUser.uid);
-    }
-
-    // If not host, sync block positions FROM the server every frame
-    if (!window._isRoomHost) {
-        const blocksRef = ref(rtdb, 'rooms/' + gameId + '/blocks');
-        onValue(blocksRef, (snap) => {
-            const data = snap.val();
-            if (!data) return;
-            blocks.forEach(block => {
-                const name = block.userData.name;
-                if (name && data[name]) {
-                    block.position.set(data[name].x, data[name].y, data[name].z);
-                }
-            });
-        });
-        // Don't run scripts on non-host clients
-        runningTasks.length = 0;
-    }
 
     try {
         const profileSnap = await getDoc(doc(db, "profiles", auth.currentUser.uid));
@@ -2083,7 +2030,7 @@ window.addEventListener('contextmenu', (e) => {
         const joystickZone = document.getElementById('mobile-joystick-zone');
         const joystickKnob = document.getElementById('joystick-knob');
         const jumpBtn = document.getElementById('mobile-jump-btn');
-        const JOYSTICK_RADIUS = 75;
+        const JOYSTICK_RADIUS = 65;
 
         function updateJoystick(touch) {
             const rect = joystickZone.getBoundingClientRect();
@@ -2096,8 +2043,8 @@ window.addEventListener('contextmenu', (e) => {
                 dx = (dx / dist) * JOYSTICK_RADIUS;
                 dy = (dy / dist) * JOYSTICK_RADIUS;
             }
-        joystickKnob.style.left = (47.5 + dx) + 'px';
-            joystickKnob.style.top = (47.5 + dy) + 'px';
+            joystickKnob.style.left = (37.5 + dx) + 'px';
+            joystickKnob.style.top = (37.5 + dy) + 'px';
             joystickVector.x = dx / JOYSTICK_RADIUS;
             joystickVector.z = dy / JOYSTICK_RADIUS;
         }
@@ -2108,8 +2055,8 @@ window.addEventListener('contextmenu', (e) => {
                     joystickTouchId = null;
                     joystickVector.x = 0;
                     joystickVector.z = 0;
-                  joystickKnob.style.left = '47.5px';
-                    joystickKnob.style.top = '47.5px';
+                    joystickKnob.style.left = '37.5px';
+                    joystickKnob.style.top = '37.5px';
                 }
             }
         }
@@ -2271,13 +2218,13 @@ updateScripts();
 
                 let joystickMagnitude = 0;
                 if (joystickTouchId !== null) {
-               inputDir.x += joystickVector.x;
+                    inputDir.x += joystickVector.x;
                     inputDir.z += joystickVector.z;
-                    // joystickMagnitude no longer used - normalize handles speed
+                    joystickMagnitude = Math.min(1, Math.sqrt(joystickVector.x * joystickVector.x + joystickVector.z * joystickVector.z));
                 }
 
-              if (inputDir.lengthSq() > 0.0001) inputDir.normalize();
-                let isMoving = inputDir.lengthSq() > 0.0001;
+                if (inputDir.lengthSq() > 0.0001) inputDir.normalize();
+let isMoving = inputDir.lengthSq() > 0.0001;
 
                 if (isFirstPerson) {
                     characterYaw = rotY;
@@ -2440,7 +2387,7 @@ playerTarget.z += movingZ;
                 }
 
                 updateCameraAndPlayerTransform();
-               if (multiplayerActive && myPlayerRef && (time * 1000 - lastMultiplayerSync) > 150) {
+                if (multiplayerActive && myPlayerRef && (time * 1000 - lastMultiplayerSync) > 150) {
                     lastMultiplayerSync = time * 1000;
                     set(myPlayerRef, {
                         name: myUsername,
@@ -2449,20 +2396,6 @@ playerTarget.z += movingZ;
                         z: playerTarget.z,
                         ry: characterYaw
                     });
-                    // Host syncs all named block positions so all clients see the same world
-                    if (window._isRoomHost) {
-                        const blockData = {};
-                        blocks.forEach(b => {
-                            if (b.userData.name) {
-                                blockData[b.userData.name] = {
-                                    x: b.position.x,
-                                    y: b.position.y,
-                                    z: b.position.z
-                                };
-                            }
-                        });
-                        set(ref(rtdb, 'rooms/' + gameIdParam + '/blocks'), blockData);
-                    }
                 }
 
             } else {
