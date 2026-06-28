@@ -604,7 +604,21 @@ const flyArrow = document.getElementById('fly-arrow');
 const flyContent = document.getElementById('fly-content');
 
 // Check rank from database
-onValue(ref(rtdb, 'users/' + auth.currentUser?.uid + '/rank'), (snapshot) => {
+const profileSnap = await getDoc(doc(db, "profiles", auth.currentUser.uid));
+
+if (profileSnap.exists()) {
+    const rank = profileSnap.data().rank;
+
+    if (rank === "Owner" || rank === "Admin") {
+        isAdmin = true;
+        flyUI.style.display = "block";
+    } else {
+        isAdmin = false;
+        flyUI.style.display = "none";
+    }
+} else {
+    flyUI.style.display = "none";
+}, (snapshot) => {
     const rank = snapshot.val();
 
     if (rank === "Owner" || rank === "Admin") {
