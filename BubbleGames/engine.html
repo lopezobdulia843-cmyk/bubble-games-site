@@ -589,7 +589,7 @@ const runningTasks = [];
 const sandboxState = [];
 let groupIdCounter = 0;
         // --- MULTIPLAYER STATE ---
-      // --- ADMIN PANEL ---
+   // --- ADMIN PANEL ---
 let isAdmin = false;
 const flyUI = document.getElementById('fly-ui');
 
@@ -602,15 +602,6 @@ onValue(ref(rtdb, 'users/' + auth.currentUser?.uid + '/rank'), (snapshot) => {
     } else {
         isAdmin = false;
         flyUI.style.display = 'none';
-    }
-});
-
-// Check rank from database
-onValue(ref(rtdb, 'users/' + auth.currentUser?.uid + '/rank'), (snapshot) => {
-    const rank = snapshot.val();
-    if (rank === "Owner" || rank === "Admin") {
-        isAdmin = true;
-        console.log("Admin privileges active!");
     }
 });
 
