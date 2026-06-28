@@ -589,8 +589,21 @@ const runningTasks = [];
 const sandboxState = [];
 let groupIdCounter = 0;
         // --- MULTIPLAYER STATE ---
-        // --- ADMIN PANEL ---
-let isAdmin = false; 
+      // --- ADMIN PANEL ---
+let isAdmin = false;
+const flyUI = document.getElementById('fly-ui');
+
+// Check rank from database
+onValue(ref(rtdb, 'users/' + auth.currentUser?.uid + '/rank'), (snapshot) => {
+    const rank = snapshot.val();
+    if (rank === "Owner" || rank === "Admin") {
+        isAdmin = true;
+        flyUI.style.display = 'block';
+    } else {
+        isAdmin = false;
+        flyUI.style.display = 'none';
+    }
+});
 
 // Check rank from database
 onValue(ref(rtdb, 'users/' + auth.currentUser?.uid + '/rank'), (snapshot) => {
