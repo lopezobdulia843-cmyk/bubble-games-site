@@ -588,39 +588,35 @@ const worldObjects = {};
 const runningTasks = [];
 const sandboxState = [];
 let groupIdCounter = 0;
-        // --- MULTIPLAYER STATE ---
+
+// --- MULTIPLAYER STATE ---
+
 // --- ADMIN PANEL ---
 let isAdmin = false;
 
-// Hide the admin panel by default
-const adminPanel = document.getElementById("adminPanel");
-if (adminPanel) {
-    adminPanel.style.display = "none";
-}
+// --- FLIGHT LOGIC ---
+let isFlying = false;
+const flyUI = document.getElementById('fly-ui');
+flyUI.style.display = "none";
+
+const flyBtn = document.getElementById('toggleFlyBtn');
+const flyArrow = document.getElementById('fly-arrow');
+const flyContent = document.getElementById('fly-content');
 
 // Check rank from database
 onValue(ref(rtdb, 'users/' + auth.currentUser?.uid + '/rank'), (snapshot) => {
     const rank = snapshot.val();
 
-if (rank === "Owner" || rank === "Admin") {
-    isAdmin = true;
-    flyUI.style.display = "block";
-
-    console.log("Admin privileges active!");
-} else {
-    isAdmin = false;
-    flyUI.style.display = "none";
-}
-    
+    if (rank === "Owner" || rank === "Admin") {
+        isAdmin = true;
+        flyUI.style.display = "block";
+        console.log("Admin privileges active!");
+    } else {
+        isAdmin = false;
+        flyUI.style.display = "none";
+    }
 });
 
-// --- FLIGHT LOGIC ---
-let isFlying = false;
-const flyUI = document.getElementById('fly-ui');
-        flyUI.style.display = "none";
-const flyBtn = document.getElementById('toggleFlyBtn');
-const flyArrow = document.getElementById('fly-arrow');
-const flyContent = document.getElementById('fly-content');
         // Hide the panel until we know the player's rank
 flyUI.style.display = "none";
 
