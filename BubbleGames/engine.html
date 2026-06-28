@@ -618,7 +618,17 @@ if (profileSnap.exists()) {
     }
 } else {
     flyUI.style.display = "none";
-}
+}, (snapshot) => {
+    const rank = snapshot.val();
+
+    if (rank === "Owner" || rank === "Admin") {
+        isAdmin = true;
+        flyUI.style.display = "block";
+        console.log("Admin privileges active!");
+    } else {
+        isAdmin = false;
+        flyUI.style.display = "none";
+    }
 });
 
         // Hide the panel until we know the player's rank
