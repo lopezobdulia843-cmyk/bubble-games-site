@@ -602,29 +602,27 @@ if (adminPanel) {
 onValue(ref(rtdb, 'users/' + auth.currentUser?.uid + '/rank'), (snapshot) => {
     const rank = snapshot.val();
 
-    if (rank === "Owner" || rank === "Admin") {
-        isAdmin = true;
+if (rank === "Owner" || rank === "Admin") {
+    isAdmin = true;
+    flyUI.style.display = "block";
 
-        if (adminPanel) {
-            adminPanel.style.display = "";
-        }
-
-        console.log("Admin privileges active!");
-    } else {
-        isAdmin = false;
-
-        if (adminPanel) {
-            adminPanel.style.display = "none";
-        }
+    console.log("Admin privileges active!");
+} else {
+    isAdmin = false;
+    flyUI.style.display = "none";
+}
     }
 });
 
 // --- FLIGHT LOGIC ---
 let isFlying = false;
 const flyUI = document.getElementById('fly-ui');
+        flyUI.style.display = "none";
 const flyBtn = document.getElementById('toggleFlyBtn');
 const flyArrow = document.getElementById('fly-arrow');
 const flyContent = document.getElementById('fly-content');
+        // Hide the panel until we know the player's rank
+flyUI.style.display = "none";
 
 flyBtn.onclick = () => {
     isFlying = !isFlying;
