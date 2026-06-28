@@ -2288,61 +2288,50 @@ updateScripts();
             if (isPlaying) {
                 // Only apply gravity if NOT flying
 // Replace your existing isFlying logic with this:
+// --- FLIGHT & PHYSICS LOGIC ---
 if (isFlying) {
-    velocityY = 0; // Disable gravity
-
-    // Get the direction the camera is looking
-    const direction = new THREE.Vector3();
-    camera.getWorldDirection(direction);
-    
-    // Set fly speed
-    const flySpeed = 0.2;
-
-    // FLYING LOGIC:
-    // 1. If keys are used (PC), move based on keys
-    if (keys['w']) {
-        playerTarget.add(direction.multiplyScalar(flySpeed));
-    } else if (keys['s']) {
-        playerTarget.add(direction.multiplyScalar(-flySpeed));
-    } 
-    // 2. MOBILE FLYING: If no keys are pressed, move forward in camera direction
-    else {
-        // This makes the mobile player move forward automatically 
-        // in the direction they are facing while Fly is enabled.
-        playerTarget.add(direction.multiplyScalar(flySpeed * 0.5)); 
-    }
+    velocityY = 0; // Disable gravity while flying
 } else {
     // Standard gravity
     velocityY -= robloxGravity;
 }
-                playerTarget.y += velocityY;
-                
-                let onGround = false;
-                const offMap = Math.abs(playerTarget.x) > 50 || Math.abs(playerTarget.z) > 50;
 
-                if (!offMap && playerTarget.y <= playerHeight) { 
-                    playerTarget.y = playerHeight; 
-                    velocityY = 0; 
-                    onGround = true; 
-                }
-                
-                if (playerTarget.y < -20) respawn();
+playerTarget.y += velocityY;
 
-                let horizontalMovement = new THREE.Vector3();
-                const camYawDir = new THREE.Vector3(0, 0, -1).applyEuler(new THREE.Euler(0, rotY, 0)).normalize();
-                
-                let inputDir = new THREE.Vector3();
-                if (keys.w) inputDir.z -= 1;
-                if (keys.s) inputDir.z += 1;
-                if (keys.a) inputDir.x -= 1;
-                if (keys.d) inputDir.x += 1;
+let onGround = false;
+const offMap = Math.abs(playerTarget.x) > 50 || Math.abs(playerTarget.z) > 50;
 
-                let joystickMagnitude = 0;
-                if (joystickTouchId !== null) {
-                    inputDir.x += joystickVector.x;
-                    inputDir.z += joystickVector.z;
-                    joystickMagnitude = Math.min(1, Math.sqrt(joystickVector.x * joystickVector.x + joystickVector.z * joystickVector.z));
-                }
+if (!offMap && playerTarget.y <= playerHeight) {
+    playerTarget.y = playerHeight;
+    velocityY = 0;
+    onGround = true;
+}
+
+if (playerTarget.y < -20) respawn();
+
+let horizontalMovement = new THREE.Vector3();
+const camYawDir = new THREE.Vector3(0, 0, -1).applyEuler(new THREE.Euler(0, rotY, 0)).normalize();
+
+let inputDir = new THREE.Vector3();
+if (keys.w) inputDir.z -= 1;
+if (keys.s) inputDir.z += 1;
+if (keys.a) inputDir.x -= 1;
+if (keys.d) inputDir.x += 1;
+
+let joystickMagnitude = 0;
+if (joystickTouchId !== null) {
+    inputDir.x += joystickVector.x;
+    inputDir.z += joystickVector.z;
+    joystickMagnitude = Math.min(1, Math.sqrt(joystickVector.x * joystickVector.x + joystickVector.z * joystickVector.z));
+}
+
+// FLYING MOVEMENT: Only move if there is actual input
+if (isFlying && (inputDir.length() > 0 || joystickMagnitude > 0)) {
+    const direction = new THREE.Vector3();
+    camera.getWorldDirection(direction);
+    // If flying, move in direction of camera look
+    playerTarget.add(direction.multiplyScalar(0.2));
+}
 
                 if (inputDir.lengthSq() > 0.0001) inputDir.normalize();
 let isMoving = inputDir.lengthSq() > 0.0001;
