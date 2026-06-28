@@ -2294,17 +2294,22 @@ if (isFlying) {
     // Get the direction the camera is looking
     const direction = new THREE.Vector3();
     camera.getWorldDirection(direction);
-
-    // Speed multiplier
+    
+    // Set fly speed
     const flySpeed = 0.2;
 
-    // Movement: If W is pressed, move in the direction of the camera
+    // FLYING LOGIC:
+    // 1. If keys are used (PC), move based on keys
     if (keys['w']) {
         playerTarget.add(direction.multiplyScalar(flySpeed));
-    }
-    // S is optional: move backward
-    if (keys['s']) {
+    } else if (keys['s']) {
         playerTarget.add(direction.multiplyScalar(-flySpeed));
+    } 
+    // 2. MOBILE FLYING: If no keys are pressed, move forward in camera direction
+    else {
+        // This makes the mobile player move forward automatically 
+        // in the direction they are facing while Fly is enabled.
+        playerTarget.add(direction.multiplyScalar(flySpeed * 0.5)); 
     }
 } else {
     // Standard gravity
