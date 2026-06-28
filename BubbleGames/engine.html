@@ -2238,8 +2238,8 @@ updateScripts();
 
             if (isPlaying) {
                 // Only apply gravity if NOT flying
-// Replace your existing isFlying logic with this:
-if (isFlying) {
+// Secured Fly Logic
+if (isFlying && isAdmin) {
     velocityY = 0; // Disable gravity
 
     // Get the direction the camera is looking
@@ -2260,6 +2260,8 @@ if (isFlying) {
 } else {
     // Standard gravity
     velocityY -= robloxGravity;
+    // Ensure flight is off if not Admin
+    if (isFlying && !isAdmin) isFlying = false; 
 }
                 playerTarget.y += velocityY;
                 
