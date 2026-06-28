@@ -606,7 +606,6 @@ const flyContent = document.getElementById('fly-content');
 // Check rank from Firestore profiles
 async function checkAdminRank() {
     try {
-        // Wait for auth to be ready
         await new Promise(resolve => {
             const unsubscribe = auth.onAuthStateChanged(user => {
                 unsubscribe();
@@ -620,7 +619,6 @@ async function checkAdminRank() {
             if (rank === "Owner" || rank === "Admin") {
                 isAdmin = true;
                 flyUI.style.display = "block";
-                console.log("Admin privileges active! Rank:", rank);
             } else {
                 isAdmin = false;
                 flyUI.style.display = "none";
@@ -630,6 +628,32 @@ async function checkAdminRank() {
         console.error("Rank check failed:", err);
     }
 }
+checkAdminRank();
+
+// Master Toggle Function
+function toggleFly() {
+    isFlying = !isFlying;
+    flyBtn.innerText = isFlying ? "Disable Fly" : "Enable Fly";
+    flyBtn.style.background = isFlying ? "#ff7675" : "#a29bfe";
+    
+    // This updates the game physics engine
+    if (isFlying) {
+        velocityY = 0; // Stop falling
+    }
+}
+
+// Click and Touch support for Mobile
+flyBtn.onclick = toggleFly;
+flyBtn.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    toggleFly();
+}, { passive: false });
+
+flyArrow.onclick = () => {
+    const isHidden = flyContent.style.display === 'none';
+    flyContent.style.display = isHidden ? 'block' : 'none';
+    flyArrow.innerText = isHidden ? '▼' : '▲';
+};
 checkAdminRank();
 
         // Hide the panel until we know the player's rank
