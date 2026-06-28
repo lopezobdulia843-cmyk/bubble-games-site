@@ -589,19 +589,15 @@ const runningTasks = [];
 const sandboxState = [];
 let groupIdCounter = 0;
         // --- MULTIPLAYER STATE ---
-   // --- ADMIN PANEL ---
-let isAdmin = false;
-const flyUI = document.getElementById('fly-ui');
+        // --- ADMIN PANEL ---
+let isAdmin = false; 
 
 // Check rank from database
 onValue(ref(rtdb, 'users/' + auth.currentUser?.uid + '/rank'), (snapshot) => {
     const rank = snapshot.val();
     if (rank === "Owner" || rank === "Admin") {
         isAdmin = true;
-        flyUI.style.display = 'block';
-    } else {
-        isAdmin = false;
-        flyUI.style.display = 'none';
+        console.log("Admin privileges active!");
     }
 });
 
@@ -2238,8 +2234,8 @@ updateScripts();
 
             if (isPlaying) {
                 // Only apply gravity if NOT flying
-// Secured Fly Logic
-if (isFlying && isAdmin) {
+// Replace your existing isFlying logic with this:
+if (isFlying) {
     velocityY = 0; // Disable gravity
 
     // Get the direction the camera is looking
@@ -2260,8 +2256,6 @@ if (isFlying && isAdmin) {
 } else {
     // Standard gravity
     velocityY -= robloxGravity;
-    // Ensure flight is off if not Admin
-    if (isFlying && !isAdmin) isFlying = false; 
 }
                 playerTarget.y += velocityY;
                 
