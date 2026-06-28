@@ -463,7 +463,7 @@ font-size:14px;
     <script type="module">
       import { getFirestore, collection, addDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getDatabase, ref, set, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import * as THREE from 'three';
         import { TransformControls } from 'three/addons/controls/TransformControls.js';
@@ -603,19 +603,34 @@ const flyBtn = document.getElementById('toggleFlyBtn');
 const flyArrow = document.getElementById('fly-arrow');
 const flyContent = document.getElementById('fly-content');
 
-// Check rank from database
-onValue(ref(rtdb, 'users/' + auth.currentUser?.uid + '/rank'), (snapshot) => {
-    const rank = snapshot.val();
-
-    if (rank === "Owner" || rank === "Admin") {
-        isAdmin = true;
-        flyUI.style.display = "block";
-        console.log("Admin privileges active!");
-    } else {
-        isAdmin = false;
-        flyUI.style.display = "none";
+// Check rank from Firestore profiles
+async function checkAdminRank() {
+    try {
+        // Wait for auth to be ready
+        await new Promise(resolve => {
+            const unsubscribe = auth.onAuthStateChanged(user => {
+                unsubscribe();
+                resolve(user);
+            });
+        });
+        if (!auth.currentUser) return;
+        const profileSnap = await getDoc(doc(db, "profiles", auth.currentUser.uid));
+        if (profileSnap.exists()) {
+            const rank = profileSnap.data().rank;
+            if (rank === "Owner" || rank === "Admin") {
+                isAdmin = true;
+                flyUI.style.display = "block";
+                console.log("Admin privileges active! Rank:", rank);
+            } else {
+                isAdmin = false;
+                flyUI.style.display = "none";
+            }
+        }
+    } catch (err) {
+        console.error("Rank check failed:", err);
     }
-});
+}
+checkAdminRank();
 
         // Hide the panel until we know the player's rank
 flyUI.style.display = "none";
@@ -1600,7 +1615,9 @@ transformControl.attach(hits[0].object);
     encodeURIComponent(g.name) + ":" + g.blocks.map(b => blocks.indexOf(b)).join(",")
 ).join(";");
 
-   const scriptsStr = "";
+   const scriptsStr = scripts.map(s =>
+    encodeURIComponent(s.name || "") + ":" + encodeURIComponent(s.code || "")
+).join(";");
     // Final single-string blob: blocks ## groups ## scripts
     const worldData = [blocksStr, groupsStr, scriptsStr].join("####");
 
