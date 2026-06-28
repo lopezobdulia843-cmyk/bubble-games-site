@@ -589,15 +589,33 @@ const runningTasks = [];
 const sandboxState = [];
 let groupIdCounter = 0;
         // --- MULTIPLAYER STATE ---
-        // --- ADMIN PANEL ---
-let isAdmin = false; 
+// --- ADMIN PANEL ---
+let isAdmin = false;
+
+// Hide the admin panel by default
+const adminPanel = document.getElementById("adminPanel");
+if (adminPanel) {
+    adminPanel.style.display = "none";
+}
 
 // Check rank from database
 onValue(ref(rtdb, 'users/' + auth.currentUser?.uid + '/rank'), (snapshot) => {
     const rank = snapshot.val();
+
     if (rank === "Owner" || rank === "Admin") {
         isAdmin = true;
+
+        if (adminPanel) {
+            adminPanel.style.display = "";
+        }
+
         console.log("Admin privileges active!");
+    } else {
+        isAdmin = false;
+
+        if (adminPanel) {
+            adminPanel.style.display = "none";
+        }
     }
 });
 
