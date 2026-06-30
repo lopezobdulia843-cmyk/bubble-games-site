@@ -2102,7 +2102,11 @@ window.addEventListener('contextmenu', (e) => {
         
         const keys = {};
         // --- MOBILE TOUCH CONTROLS ---
-        const isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+const isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+        let editorTouchActive = false;
+        let editorTouchId = null;
+        let lastEditorTouchX = 0, lastEditorTouchY = 0;
+        let editorTouchMoved = false;
         let joystickTouchId = null;
         let joystickVector = { x: 0, z: 0 };
         let lookTouchId = null;
@@ -2199,8 +2203,132 @@ window.addEventListener('contextmenu', (e) => {
                 if (touch.identifier === lookTouchId) lookTouchId = null;
             }
         }
-        renderer.domElement.addEventListener('touchend', endLookTouch);
+ renderer.domElement.addEventListener('touchend', endLookTouch);
         renderer.domElement.addEventListener('touchcancel', endLookTouch);
+
+        // --- MOBILE EDITOR BUILD SUPPORT ---
+        renderer.domElement.addEventListener('touchstart', (e) => {
+            if (isPlaying || scriptEditorOpen) return;
+            if (e.target.closest('#ui') || e.target.closest('#fill-dialog') || e.target.closest('#myWorldPanel') || e.target.closest('#propertiesPanel')) return;
+            const touch = e.changedTouches[0];
+            editorTouchActive = true;
+            editorTouchId = touch.identifier;
+            editorTouchMoved = false;
+            lastEditorTouchX = touch.clientX;
+            lastEditorTouchY = touch.clientY;
+            mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+        }, { passive: true });
+
+        renderer.domElement.addEventListener('touchmove', (e) => {
+            if (isPlaying || scriptEditorOpen) return;
+            if (editorTouchId === null) return;
+            for (const touch of e.changedTouches) {
+                if (touch.identifier !== editorTouchId) continue;
+                const dx = touch.clientX - lastEditorTouchX;
+                const dy = touch.clientY - lastEditorTouchY;
+                if (Math.abs(dx) > 4 || Math.abs(dy) > 4) editorTouchMoved = true;
+                lastEditorTouchX = touch.clientX;
+                lastEditorTouchY = touch.clientY;
+                mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+                // One-finger drag rotates the editor camera (like right-click drag on desktop)
+                rotY -= dx * 0.005;
+                rotX -= dy * 0.005;
+                rotX = Math.max(-Math.PI/2 + 0.1, Math.min(Math.PI/2 - 0.1, rotX));
+            }
+        }, { passive: true });
+
+        renderer.domElement.addEventListener('touchend', (e) => {
+            if (isPlaying || scriptEditorOpen) return;
+            for (const touch of e.changedTouches) {
+                if (touch.identifier !== editorTouchId) continue;
+                editorTouchId = null;
+                editorTouchActive = false;
+                // A tap (no significant drag) triggers the same action as a desktop click
+                if (!editorTouchMoved) {
+                    raycaster.setFromCamera(mouse, camera);
+                    if (mode === 'build') {
+                        const hits = raycaster.intersectObjects(objectsToIntersect);
+                        if (hits.length > 0 && ghostBlock.position.y >= 0.5 && ghostBlock.visible) {
+                            const b = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff }));
+                            b.position.copy(ghostBlock.position);
+                            saveWorldState();
+                            scene.add(b); blocks.push(b); objectsToIntersect.push(b);
+                            document.getElementById('count').innerText = blocks.length;
+                            updateWorldList();
+                        }
+                    } else if (mode === 'fill') {
+                        const hits = raycaster.intersectObjects(objectsToIntersect);
+                        if (hits.length > 0 && ghostBlock.visible) {
+                            const targetPos = ghostBlock.position.clone();
+                            if (!fillStartPoint) {
+                                fillStartPoint = targetPos;
+                                fillEndPoint = targetPos.clone();
+                                fillAnchorVisual.position.copy(fillStartPoint);
+                                fillAnchorVisual.visible = true;
+                                fillEndControlBlock.position.copy(fillEndPoint);
+                                fillEndControlBlock.visible = true;
+                                transformControl.setMode('translate');
+                                transformControl.attach(fillEndControlBlock);
+                                updateFillPreviewVolume();
+                                document.getElementById('fill-dialog').classList.add('visible');
+                            } else {
+                                fillEndPoint.copy(targetPos);
+                                fillEndControlBlock.position.copy(fillEndPoint);
+                                updateFillPreviewVolume();
+                            }
+                        }
+                    } else if (mode === 'paint') {
+                        const hits = raycaster.intersectObjects(blocks);
+                        if (hits.length > 0) {
+                            const target = hits[0].object;
+                            if (!target.userData.isSpawn) {
+                                target.material.color.set(paintColor);
+                                target.material.needsUpdate = true;
+                                target.userData.savedColor = paintColor;
+                            }
+                        }
+                    } else if (mode === 'delete') {
+                        const hits = raycaster.intersectObjects(blocks);
+                        if (hits.length > 0) {
+                            const target = hits[0].object;
+                            if (target.isMesh && !target.userData.isSpawn) {
+                                saveWorldState();
+                                if (target.userData.group) {
+                                    const group = target.userData.group;
+                                    group.blocks = group.blocks.filter(b => b !== target);
+                                    if (group.blocks.length === 0) groups = groups.filter(g => g !== group);
+                                }
+                                scene.remove(target);
+                                blocks.splice(blocks.indexOf(target), 1);
+                                objectsToIntersect.splice(objectsToIntersect.indexOf(target), 1);
+                                if (selectedBlock === target) {
+                                    selectedBlock = null;
+                                    selectedBlocks = [];
+                                    transformControl.detach();
+                                    document.getElementById('emptyMessage').style.display = 'block';
+                                    document.getElementById('propertyEditor').style.display = 'none';
+                                }
+                                document.getElementById('count').innerText = blocks.length;
+                                updateWorldList();
+                            }
+                        }
+                    } else if (mode === 'move') {
+                        const hits = raycaster.intersectObjects(blocks);
+                        if (hits.length > 0) {
+                            selectedBlock = hits[0].object;
+                            document.getElementById('emptyMessage').style.display = 'none';
+                            document.getElementById('propertyEditor').style.display = 'block';
+                            document.getElementById('nameInput').value = selectedBlock.userData.name || "";
+                            document.getElementById('colorInput').value = "#" + selectedBlock.material.color.getHexString();
+                            transformControl.setMode('translate');
+                            transformControl.attach(selectedBlock);
+                        }
+                    }
+                }
+            }
+        }, { passive: true });
         window.addEventListener('keydown', (e) => {
 
     if (scriptEditorOpen) return;
