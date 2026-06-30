@@ -499,9 +499,10 @@ createBubbleUI();
         scene.fog = new THREE.Fog(0x87ceeb, 20, 100);
         
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const isTouchForRenderer = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+        const renderer = new THREE.WebGLRenderer({ antialias: !isTouchForRenderer });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
        document.body.appendChild(renderer.domElement);
 
         const light = new THREE.DirectionalLight(0xffffff, 1.2);
@@ -527,11 +528,13 @@ createBubbleUI();
         scene.add(floor);
 
         
-        // BUBBLES
+// BUBBLES
         const bubbles = [];
-        const bubbleGeo = new THREE.SphereGeometry(0.5, 12, 12);
+        const bubbleGeo = new THREE.SphereGeometry(0.5, 8, 8);
         const bubbleMat = new THREE.MeshPhongMaterial({ color: 0xffffff, transparent: true, opacity: 0.3 });
-        for(let i=0; i<60; i++) {
+        const isMobileDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+        const bubbleCount = isMobileDevice ? 20 : 60;
+        for(let i=0; i<bubbleCount; i++) {
             const b = new THREE.Mesh(bubbleGeo, bubbleMat);
             b.position.set((Math.random()-0.5)*100, Math.random()*20, (Math.random()-0.5)*100);
             b.scale.setScalar(Math.random() * 0.4 + 0.1);
@@ -653,22 +656,6 @@ flyArrow.onclick = () => {
     const isHidden = flyContent.style.display === 'none';
     flyContent.style.display = isHidden ? 'block' : 'none';
     flyArrow.innerText = isHidden ? '▼' : '▲';
-};
-checkAdminRank();
-
-        // Hide the panel until we know the player's rank
-flyUI.style.display = "none";
-
-flyBtn.onclick = () => {
-    isFlying = !isFlying;
-    flyBtn.innerText = isFlying ? "Disable Fly" : "Enable Fly";
-    flyBtn.style.background = isFlying ? "#ff7675" : "#a29bfe";
-};
-
-flyArrow.onclick = () => {
-    const hidden = flyContent.style.display === 'none';
-    flyContent.style.display = hidden ? 'block' : 'none';
-    flyArrow.innerText = hidden ? '▼' : '▲';
 };
 let myUsername = "Player";
 let multiplayerActive = false;
