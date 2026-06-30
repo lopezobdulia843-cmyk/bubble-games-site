@@ -1013,10 +1013,10 @@ updateWorldList();
 // Add this line to hide the properties panel too!
 document.getElementById('propertiesPanel').style.display = isPlaying ? 'none' : 'flex';
             
-           document.getElementById('play-hint').style.display = (isPlaying && !isPlayMode) ? 'block' : 'none';
-            document.getElementById('play-leave-ui').style.display = (isPlaying && isPlayMode) ? 'block' : 'none';
-     if (isTouchDevice) {
-                document.getElementById('mobile-joystick-zone').style.display = isPlaying ? 'block' : 'none';
+  document.getElementById('play-hint').style.display = (isPlaying && !isPlayMode && !isTouchDevice) ? 'block' : 'none';
+            document.getElementById('play-leave-ui').style.display = (isPlaying && (isPlayMode || isTouchDevice)) ? 'block' : 'none';
+   if (isTouchDevice) {
+                document.getElementById('mobile-joystick-zone').style.display = 'block';
                 document.getElementById('mobile-jump-btn').style.display = isPlaying ? 'flex' : 'none';
             }
             btns.play.innerText = isPlaying ? "Stop Test" : "Play Test";
@@ -2623,12 +2623,20 @@ playerTarget.z += movingZ;
                     });
                 }
 
-            } else {
+      } else {
                 camera.quaternion.setFromEuler(new THREE.Euler(rotX, rotY, 0, 'YXZ'));
                 if (keys.w) { camera.getWorldDirection(moveDir); camera.position.addScaledVector(moveDir, editSpeed); }
                 if (keys.s) { camera.getWorldDirection(moveDir); camera.position.addScaledVector(moveDir, -editSpeed); }
                 if (keys.a) camera.translateX(-editSpeed);
                 if (keys.d) camera.translateX(editSpeed);
+
+                // Mobile joystick drives the editor camera the same way WASD does
+                if (joystickTouchId !== null) {
+                    if (joystickVector.z < -0.1) { camera.getWorldDirection(moveDir); camera.position.addScaledVector(moveDir, editSpeed * -joystickVector.z); }
+                    if (joystickVector.z > 0.1) { camera.getWorldDirection(moveDir); camera.position.addScaledVector(moveDir, -editSpeed * joystickVector.z); }
+                    if (joystickVector.x < -0.1) camera.translateX(editSpeed * joystickVector.x);
+                    if (joystickVector.x > 0.1) camera.translateX(editSpeed * joystickVector.x);
+                }
 
                 raycaster.setFromCamera(mouse, camera);
                 const hits = raycaster.intersectObjects(objectsToIntersect);
@@ -3644,9 +3652,18 @@ document.getElementById("closeScriptEditor").onclick = () => {
 
 };
 animate();
-        document.getElementById('leaveBtn').onclick = () => {
-    leaveMultiplayer();
-    window.location.href = "https://bubblegames.onrender.com/hub.html";
+if (isTouchDevice) {
+    document.getElementById('mobile-joystick-zone').style.display = 'block';
+}
+document.getElementById('leaveBtn').onclick = () => {
+    if (isPlayMode) {
+        // Real multiplayer session — leave the room and go back to the hub
+        leaveMultiplayer();
+        window.location.href = "https://bubblegames.onrender.com/hub.html";
+    } else {
+        // Local Play Test on mobile — just stop testing and return to the editor
+        togglePlayMode();
+    }
 };
 
 if (gameIdParam) {
