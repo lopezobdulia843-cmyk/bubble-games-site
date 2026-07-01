@@ -445,3 +445,27 @@ window.searchGames = (query) => {
 };
 // Add this at the very end of hub.js to expose the function to the HTML
 window.searchGames = searchGames;
+
+// --- BUBBLE BACKGROUND GENERATOR ---
+const container = document.getElementById('bubbles-container');
+if (container) {
+    for (let i = 0; i < 15; i++) {
+        const bubble = document.createElement('div');
+        const color = Math.random() > 0.5 ? '#00a8ff' : '#ff4757';
+        bubble.style.cssText = `
+            position: absolute;
+            left: ${Math.random() * 95}%;
+            top: 100%;
+            width: ${Math.random() * 40 + 20}px;
+            height: ${Math.random() * 40 + 20}px;
+            border: 4px solid ${color};
+            border-radius: 50%;
+            animation: rise ${Math.random() * 5 + 5}s linear infinite;
+            animation-delay: ${Math.random() * 5}s;
+        `;
+        container.appendChild(bubble);
+    }
+    const style = document.createElement('style');
+    style.innerHTML = `@keyframes rise { from { transform: translateY(0); } to { transform: translateY(-110vh); } }`;
+    document.head.appendChild(style);
+}
