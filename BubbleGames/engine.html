@@ -502,7 +502,7 @@ createBubbleUI();
         const isTouchForRenderer = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
         const renderer = new THREE.WebGLRenderer({ antialias: !isTouchForRenderer });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+        renderer.setPixelRatio(isTouchForRenderer ? Math.min(window.devicePixelRatio, 1) : Math.min(window.devicePixelRatio, 1.5));
        document.body.appendChild(renderer.domElement);
 
         const light = new THREE.DirectionalLight(0xffffff, 1.2);
