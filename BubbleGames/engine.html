@@ -3108,7 +3108,7 @@ function executeWorldScript(code) {
     let inForever  = false;
     let depth      = 0;          // tracks nested REPEATs inside FOREVER
 
-    for (const line of rawLines) {
+for (const line of rawLines) {
         const kw = line.split(/[\s(]/)[0].toUpperCase();
 
         if (!inForever) {
@@ -3117,6 +3117,7 @@ function executeWorldScript(code) {
                 depth = 0;
             } else {
                 immediateLines.push(line);
+                foreverLines.push(line);
             }
         } else {
             // We are inside FOREVER
