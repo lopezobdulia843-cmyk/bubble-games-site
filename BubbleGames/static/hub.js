@@ -83,10 +83,12 @@ async function loadGlobalGames() {
 // Helper to render the global list
 function renderGlobalGames(games, container) {
     container.innerHTML = '';
+    // Show this message only if we have a finished cache but nothing matched
     if (games.length === 0) {
         container.innerHTML = `<p class="no-games">Nothing found, create a game! 🫧</p>`;
         return;
     }
+    // ... rest of your code
     games.forEach(docSnap => {
         container.appendChild(makeGameCard(docSnap.id, docSnap.data(), false));
     });
@@ -434,11 +436,18 @@ window.searchGames = (query) => {
     const searchTerm = query.toLowerCase();
     const globalGrid = document.getElementById('global-game-grid');
     
-    // Filter the cached games
+    // Fallback if cache isn't ready
+    if (!window.gameCache.global) {
+        console.warn("Cache not ready yet.");
+        return;
+    }
+
     const filtered = window.gameCache.global.filter(doc => {
         const data = doc.data();
-        return data.name?.toLowerCase().includes(searchTerm) || 
-               data.description?.toLowerCase().includes(searchTerm);
+        // Check both 'name' and 'n' (since your makeGameCard uses both)
+        const name = (data.name || data.n || "").toLowerCase();
+        const desc = (data.description || data.d || "").toLowerCase();
+        return name.includes(searchTerm) || desc.includes(searchTerm);
     });
 
     renderGlobalGames(filtered, globalGrid);
