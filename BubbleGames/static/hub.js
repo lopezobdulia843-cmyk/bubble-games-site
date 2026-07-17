@@ -256,6 +256,7 @@ function openGamePanel(id, name, desc, isOwner, isPublic, author) {
                     ` : ''}
                 </div>
 
+               ${(isPublic || isOwner) ? `
                 <button onclick="window.location.href='https://bubblegames.onrender.com/engine.html?id=${id}&mode=play'" style="
                     background: linear-gradient(135deg, #4f46e5, #ec4899);
                     color: white;
@@ -277,6 +278,7 @@ function openGamePanel(id, name, desc, isOwner, isPublic, author) {
                 onmousedown="this.style.transform='translateY(6px) scale(0.95)'; this.style.boxShadow='0 2px 0 #3730a3'"
                 onmouseup="this.style.transform=''; this.style.boxShadow='0 10px 0 #3730a3, 0 15px 30px rgba(236, 72, 153, 0.4)'"
                 >🎮 Play Now</button>
+                ` : `<p style="font-weight:bold; color:var(--text-sub); opacity:0.6; margin-top:20px;">🔒 This game is private.</p>`}
             </div>
         </div>
     `;
