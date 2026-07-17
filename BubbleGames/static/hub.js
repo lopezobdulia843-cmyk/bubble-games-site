@@ -100,7 +100,7 @@ async function loadUserGames() {
 
     // PROTECTION: Check if logged in
     if (!auth.currentUser) {
-        userGrid.innerHTML = `<p class="no-games">Please log in to manage your games! 🔒</p>`;
+        userGrid.innerHTML = `<p class="no-games">Please log in to save your games! 🔒</p>`;
         return;
     }
 
