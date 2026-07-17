@@ -66,7 +66,7 @@ window.handleAuth = async () => {
 
     if (window.mode === "signup") {
         if (/^\d+$/.test(usernameInput)) {
-            alert("Username cannot be only numbers! Add some letters! 🦆");
+            alert("Username cannot be only numbers! Add some letters!");
             resetButton(mainButton, loader);
             return;
         }
