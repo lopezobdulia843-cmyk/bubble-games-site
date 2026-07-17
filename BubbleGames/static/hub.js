@@ -98,27 +98,27 @@ async function loadUserGames() {
     const userGrid = document.getElementById('owned-game-grid');
     if (!userGrid) return;
 
-    // Check if we already have the data locally
-window.gameCache.user = null;
+    // PROTECTION: Check if logged in
+    if (!auth.currentUser) {
+        userGrid.innerHTML = `<p class="no-games">Please log in to manage your games! 🔒</p>`;
+        return;
+    }
 
+    window.gameCache.user = null;
     userGrid.innerHTML = `<p class="no-games">Loading... 🚀</p>`;
     
-    // If no cache, fetch once from DB
     const snap = await getDocs(collection(db, 'games'));
     window.gameCache.user = snap.docs.filter(docSnap => {
-    const data = docSnap.data();
-
-    return (
-        data.authorId === auth.currentUser?.uid ||
-        data.ownerId === auth.currentUser?.uid ||
-        data.creatorId === auth.currentUser?.uid ||
-        data.userId === auth.currentUser?.uid ||
-        data.uid === auth.currentUser?.uid ||
-        data.u === auth.currentUser?.uid
-    );
-});
-    console.log("Loaded user games:", window.gameCache.user.length);
-window.gameCache.user.forEach(g => console.log(g.id, g.data()));
+        const data = docSnap.data();
+        return (
+            data.authorId === auth.currentUser?.uid ||
+            data.ownerId === auth.currentUser?.uid ||
+            data.creatorId === auth.currentUser?.uid ||
+            data.userId === auth.currentUser?.uid ||
+            data.uid === auth.currentUser?.uid ||
+            data.u === auth.currentUser?.uid
+        );
+    });
     
     renderGames(window.gameCache.user, userGrid, true);
 }
